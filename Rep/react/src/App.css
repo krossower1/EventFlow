@@ -1,0 +1,69 @@
+.App {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #f6f7fb 0%, #e8ecf4 100%);
+}
+
+.login-card {
+  width: min(420px, 92vw);
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+  padding: 28px;
+}
+
+.login-card h1 {
+  margin: 0 0 20px;
+  font-size: 1.5rem;
+  color: #101828;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.login-card label {
+  font-size: 0.9rem;
+  color: #344054;
+  text-align: left;
+}
+
+.login-card input {
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 1rem;
+}
+
+.login-card button {
+  margin-top: 8px;
+  border: 0;
+  border-radius: 8px;
+  padding: 11px 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.login-card button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.status-message {
+  margin: 16px 0 0;
+  font-size: 0.95rem;
+}
+
+.status-message.success {
+  color: #067647;
+}
+
+.status-message.error {
+  color: #b42318;
+}
