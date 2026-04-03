@@ -1,44 +1,66 @@
-.App {
+.auth-page {
   min-height: 100vh;
   display: grid;
   place-items: center;
   background: linear-gradient(180deg, #f6f7fb 0%, #e8ecf4 100%);
+  padding: 16px;
 }
 
-.login-card {
-  width: min(420px, 92vw);
+.auth-card {
+  width: min(460px, 92vw);
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
   padding: 28px;
 }
 
-.login-card h1 {
+.auth-card h1 {
   margin: 0 0 20px;
   font-size: 1.5rem;
   color: #101828;
 }
 
-.login-card form {
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.auth-tabs button {
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  padding: 10px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.auth-tabs button.active {
+  border-color: #2563eb;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.auth-form {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.login-card label {
+.auth-form label {
   font-size: 0.9rem;
   color: #344054;
   text-align: left;
 }
 
-.login-card input {
+.auth-form input {
   border: 1px solid #d0d5dd;
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 1rem;
 }
 
-.login-card button {
+.auth-form button {
   margin-top: 8px;
   border: 0;
   border-radius: 8px;
@@ -50,7 +72,7 @@
   cursor: pointer;
 }
 
-.login-card button:disabled {
+.auth-form button:disabled {
   background: #94a3b8;
   cursor: not-allowed;
 }
@@ -66,4 +88,20 @@
 
 .status-message.error {
   color: #b42318;
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.table-toolbar button {
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: #1d4ed8;
+  color: #ffffff;
+  cursor: pointer;
 }

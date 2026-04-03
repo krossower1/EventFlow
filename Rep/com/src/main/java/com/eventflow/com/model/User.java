@@ -21,14 +21,8 @@ public class User {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String login;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String username; //do poprawy
-
     @Column(columnDefinition = "TEXT", nullable = false)
     private String haslo;
-
-    @Column(name = "password_hash", columnDefinition = "TEXT", nullable = false)
-    private String passwordHash; //do poprawy
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String salt;

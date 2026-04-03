@@ -2,6 +2,7 @@ package com.eventflow.com.auth;
 
 import com.eventflow.com.auth.dto.LoginRequest;
 import com.eventflow.com.auth.dto.LoginResponse;
+import com.eventflow.com.auth.dto.RegisterRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,12 +22,29 @@ public class AuthController {
 
 	@PostMapping("/login")
 	public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-		boolean isValid = authService.validateCredentials(request.username(), request.password());
+		boolean isValid = authService.validateCredentials(request.login(), request.password());
 
 		if (isValid) {
 			return ResponseEntity.ok(new LoginResponse(true, "Login successful"));
 		}
 
-		return ResponseEntity.status(401).body(new LoginResponse(false, "Invalid username or password"));
+		return ResponseEntity.status(401).body(new LoginResponse(false, "Invalid login or password"));
+	}
+
+	@PostMapping("/register")
+	public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest request) {
+		String error = authService.registerUser(
+			request.imie(),
+			request.nazwisko(),
+			request.email(),
+			request.login(),
+			request.password()
+		);
+
+		if (error != null) {
+			return ResponseEntity.badRequest().body(new LoginResponse(false, error));
+		}
+
+		return ResponseEntity.status(201).body(new LoginResponse(true, "Registration successful"));
 	}
 }

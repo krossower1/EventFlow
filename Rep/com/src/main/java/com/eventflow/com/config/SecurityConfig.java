@@ -29,6 +29,7 @@ public class SecurityConfig {
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/login").permitAll() // Logowanie jest jawne
+						.requestMatchers("/api/auth/register").permitAll()
 						.requestMatchers("/api/users/**").permitAll()   // DODAJ TO: Pozwól Reactowi pobierać użytkowników
 						.anyRequest().authenticated()                  // Reszta nadal zablokowana
 				)
