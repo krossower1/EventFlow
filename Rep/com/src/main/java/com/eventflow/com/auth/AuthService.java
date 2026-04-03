@@ -1,8 +1,12 @@
 package com.eventflow.com.auth;
 
 import com.eventflow.com.repository.UserRepository;
+import com.eventflow.com.model.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -15,9 +19,32 @@ public class AuthService {
 		this.passwordEncoder = passwordEncoder;
 	}
 
-	public boolean validateCredentials(String username, String password) {
-		return userRepository.findByLogin(username)
+	public boolean validateCredentials(String login, String password) {
+		return userRepository.findByLogin(login)
 			.map(user -> passwordEncoder.matches(password, user.getHaslo()))
 			.orElse(false);
+	}
+
+	public String registerUser(String imie, String nazwisko, String email, String login, String password) {
+		if (userRepository.existsByLogin(login)) {
+			return "Login already exists";
+		}
+		if (userRepository.existsByEmail(email)) {
+			return "Email already exists";
+		}
+
+		String encodedPassword = passwordEncoder.encode(password);
+		User user = new User();
+		user.setImie(imie);
+		user.setNazwisko(nazwisko);
+		user.setEmail(email);
+		user.setLogin(login);
+		user.setHaslo(encodedPassword);
+		user.setSalt(UUID.randomUUID().toString());
+		user.setRola("USER");
+		user.setAktywnosc(true);
+		user.setDataUtw(LocalDateTime.now());
+		userRepository.save(user);
+		return null;
 	}
 }

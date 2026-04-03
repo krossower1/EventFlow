@@ -21,9 +21,7 @@ public class AuthDataInitializer {
 				User user = new User();
 				String encodedPassword = passwordEncoder.encode("admin123");
 				user.setLogin("admin");
-				user.setUsername("admin");
 				user.setHaslo(encodedPassword);
-				user.setPasswordHash(encodedPassword);
 				user.setEmail("admin@example.com");
 				user.setSalt(UUID.randomUUID().toString());
 				user.setRola("ADMIN");
