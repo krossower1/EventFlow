@@ -16,6 +16,8 @@ function App() {
     login: '',
     password: ''
   });
+  const [activeTab, setActiveTab] = useState('Panel główny');
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -81,7 +83,7 @@ function App() {
       <div className="auth-page">
         <div className="auth-card">
           <h1>
-            <img src="/eventflow_icon.png" alt="EventFlow Icon" style={{ width: '24px', height: '24px', marginRight: '8px' }} />
+            <img src="/eventflow_icon.png" alt="EventFlow Icon" className="logo-icon" />
             EventFlow
           </h1>
           <div className="auth-tabs">
@@ -181,64 +183,154 @@ function App() {
     );
   }
 
+  const navItems = ['Panel główny', 'Wydarzenia', 'Bilety', 'Uczestnicy', 'Miejsca', 'Analityka', 'Ustawienia'];
+
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      <div className="table-toolbar">
-        <h1>Dane z tabeli users w bazie MySQL(EventFlow)</h1>
-        <button
-          type="button"
-          onClick={() => {
-            setIsLoggedIn(false);
-            setData([]);
-            setStatus({ type: '', message: '' });
-            setLoginForm({ login: '', password: '' });
-          }}
-        >
-          Wyloguj
-        </button>
-      </div>
-      {loading && <h2>Ładowanie danych z bazy MySQL...</h2>}
-      
-      <table border="1" cellPadding="10" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-        <thead>
-          <tr style={{ backgroundColor: '#eee' }}>
-            <th>ID</th>
-            <th>Imię i Nazwisko</th>
-            <th>Email</th>
-            <th>Login</th>
-            <th>Rola</th>
-            <th>Status</th>
-            <th>Data Utworzenia</th>
-            <th>Płatność</th>
-            <th>Szczegóły Bezpieczeństwa</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.length > 0 ? data.map(user => (
-            <tr key={user.id}>
-              <td>{user.id}</td>
-              <td>{user.imie || '-'} {user.nazwisko || '-'}</td>
-              <td>{user.email}</td>
-              <td>{user.login}</td>
-              <td>{user.rola}</td>
-              <td>{user.aktywnosc ? "✅ Aktywny" : "❌ Nieaktywny"}</td>
-              <td>{user.dataUtw ? new Date(user.dataUtw).toLocaleString() : '-'}</td>
-              <td>{user.platnosc || 'Brak'}</td>
-              <td>
-                <details>
-                  <summary>Pokaz haslo/salt</summary>
-                  <div style={{ wordBreak: 'break-all', fontSize: '10px' }}>
-                    <strong>Haslo:</strong> {user.haslo}<br/>
-                    <strong>Salt:</strong> {user.salt}
-                  </div>
-                </details>
-              </td>
-            </tr>
-          )) : (
-            <tr><td colSpan="9">Brak użytkowników w bazie danych.</td></tr>
+    <div className="app-layout">
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <img src="/eventflow_icon.png" alt="EventFlow" />
+          <span>EventFlow</span>
+        </div>
+        <nav className="sidebar-nav">
+          {navItems.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={`nav-button ${activeTab === item ? 'active' : ''}`}
+              onClick={() => setActiveTab(item)}
+            >
+              {item}
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      <main className="main-area">
+        <header className="topbar">
+          <div className="topbar-left"></div>
+          <div className="topbar-right">
+            <div className="account-menu-wrapper">
+              <button
+                type="button"
+                className="btn-icon"
+                aria-label="Konto"
+                onClick={() => setAccountMenuOpen((open) => !open)}
+              >
+                <img src="/account.png" alt="Konto" />
+              </button>
+              <div className={`account-menu ${accountMenuOpen ? 'open' : ''}`}>
+                <button
+                  type="button"
+                  className="account-menu-item"
+                  onClick={() => {
+                    setAccountMenuOpen(false);
+                    setIsLoggedIn(false);
+                    setData([]);
+                    setStatus({ type: '', message: '' });
+                    setLoginForm({ login: '', password: '' });
+                    setActiveTab('Panel główny');
+                  }}
+                >
+                  Wyloguj
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="content-area">
+          {activeTab === 'Panel główny' && (
+            <div>
+              <h2>Panel główny</h2>
+              <p>Witaj w dashboardzie EventFlow! Wybierz zakładkę, aby zarządzać różnymi aspektami aplikacji.</p>
+            </div>
           )}
-        </tbody>
-      </table>
+          
+          {activeTab === 'Wydarzenia' && (
+            <div>
+              <h2>Wydarzenia</h2>
+              <p>Tutaj będą zarządzane wydarzenia.</p>
+            </div>
+          )}
+          
+          {activeTab === 'Bilety' && (
+            <div>
+              <h2>Bilety</h2>
+              <p>Tutaj będą zarządzane bilety.</p>
+            </div>
+          )}
+          
+          {activeTab === 'Uczestnicy' && (
+            <div>
+              <h2>Dane z tabeli users w bazie MySQL (EventFlow)</h2>
+              {loading && <h3>Ładowanie danych z bazy MySQL...</h3>}
+              
+              <table border="1" cellPadding="10" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#eee' }}>
+                    <th>ID</th>
+                    <th>Imię i Nazwisko</th>
+                    <th>Email</th>
+                    <th>Login</th>
+                    <th>Rola</th>
+                    <th>Status</th>
+                    <th>Data Utworzenia</th>
+                    <th>Płatność</th>
+                    <th>Szczegóły Bezpieczeństwa</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.length > 0 ? data.map(user => (
+                    <tr key={user.id}>
+                      <td>{user.id}</td>
+                      <td>{user.imie || '-'} {user.nazwisko || '-'}</td>
+                      <td>{user.email}</td>
+                      <td>{user.login}</td>
+                      <td>{user.rola}</td>
+                      <td>{user.aktywnosc ? "✅ Aktywny" : "❌ Nieaktywny"}</td>
+                      <td>{user.dataUtw ? new Date(user.dataUtw).toLocaleString() : '-'}</td>
+                      <td>{user.platnosc || 'Brak'}</td>
+                      <td>
+                        <details>
+                          <summary>Pokaz haslo/salt</summary>
+                          <div style={{ wordBreak: 'break-all', fontSize: '10px' }}>
+                            <strong>Haslo:</strong> {user.haslo}<br/>
+                            <strong>Salt:</strong> {user.salt}
+                          </div>
+                        </details>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr><td colSpan="9">Brak użytkowników w bazie danych.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+          
+          {activeTab === 'Miejsca' && (
+            <div>
+              <h2>Miejsca</h2>
+              <p>Tutaj będą zarządzane miejsca.</p>
+            </div>
+          )}
+          
+          {activeTab === 'Analityka' && (
+            <div>
+              <h2>Analityka</h2>
+              <p>Tutaj będą wyświetlane analizy i statystyki.</p>
+            </div>
+          )}
+          
+          {activeTab === 'Ustawienia' && (
+            <div>
+              <h2>Ustawienia</h2>
+              <p>Tutaj będą ustawienia aplikacji.</p>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }
