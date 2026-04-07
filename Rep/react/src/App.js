@@ -80,7 +80,10 @@ function App() {
     return (
       <div className="auth-page">
         <div className="auth-card">
-          <h1>EventFlow</h1>
+          <h1>
+            <img src="/eventflow_icon.png" alt="EventFlow Icon" style={{ width: '24px', height: '24px', marginRight: '8px' }} />
+            EventFlow
+          </h1>
           <div className="auth-tabs">
             <button
               type="button"
