@@ -25,10 +25,11 @@ public class AuthController {
 		boolean isValid = authService.validateCredentials(request.login(), request.password());
 
 		if (isValid) {
-			return ResponseEntity.ok(new LoginResponse(true, "Login successful"));
+			String rola = authService.getUserRole(request.login());
+			return ResponseEntity.ok(new LoginResponse(true, "Login successful", rola));
 		}
 
-		return ResponseEntity.status(401).body(new LoginResponse(false, "Invalid login or password"));
+		return ResponseEntity.status(401).body(new LoginResponse(false, "Invalid login or password", null));
 	}
 
 	@PostMapping("/register")
@@ -42,9 +43,9 @@ public class AuthController {
 		);
 
 		if (error != null) {
-			return ResponseEntity.badRequest().body(new LoginResponse(false, error));
+			return ResponseEntity.badRequest().body(new LoginResponse(false, error, null));
 		}
 
-		return ResponseEntity.status(201).body(new LoginResponse(true, "Registration successful"));
+		return ResponseEntity.status(201).body(new LoginResponse(true, "Registration successful", null));
 	}
 }

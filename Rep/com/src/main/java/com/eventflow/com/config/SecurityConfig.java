@@ -30,7 +30,7 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/login").permitAll() // Logowanie jest jawne
 						.requestMatchers("/api/auth/register").permitAll()
-						.requestMatchers("/api/users/**").permitAll()   // DODAJ TO: Pozwól Reactowi pobierać użytkowników
+						.requestMatchers("/api/users/**").authenticated()
 						.anyRequest().authenticated()                  // Reszta nadal zablokowana
 				)
 			.httpBasic(Customizer.withDefaults());
