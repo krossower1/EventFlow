@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dokumentacja App.js - EventFlow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #1a73e8;
+            border-bottom: 3px solid #1a73e8;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #2e7d32;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-left: 5px solid #2e7d32;
+            padding-left: 15px;
+        }
+        
+        h3 {
+            color: #424242;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        
+        .summary-box {
+            background-color: #e3f2fd;
+            border-left: 4px solid #1a73e8;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 4px;
+        }
+        
+        .summary-box p {
+            margin-bottom: 10px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .subsection {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        table thead {
+            background-color: #2e7d32;
+            color: white;
+        }
+        
+        table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        table tbody tr:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .code-block {
+            background-color: #263238;
+            color: #aed581;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .badge-state {
+            background-color: #c8e6c9;
+            color: #1b5e20;
+        }
+        
+        .badge-function {
+            background-color: #bbdefb;
+            color: #0d47a1;
+        }
+        
+        .badge-async {
+            background-color: #ffe0b2;
+            color: #e65100;
+        }
+        
+        .role-section {
+            background-color: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        
+        .role-section strong {
+            color: #e65100;
+        }
+        
+        ul, ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        .note-box {
+            background-color: #f1f8e9;
+            border-left: 4px solid #558b2f;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        
+        .warning-box {
+            background-color: #ffebee;
+            border-left: 4px solid #c62828;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        
+        footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .toc {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 4px;
+            margin-bottom: 30px;
+        }
+        
+        .toc h3 {
+            margin-top: 0;
+        }
+        
+        .toc a {
+            display: block;
+            color: #1a73e8;
+            text-decoration: none;
+            padding: 8px 0;
+        }
+        
+        .toc a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Dokumentacja - Komponent App.js</h1>
+        <p style="color: #666; margin-bottom: 30px;">EventFlow - System Zarządzania Wydarzeniami</p>
+        
+        <div class="toc">
+            <h3>📑 Spis Treści</h3>
+            <a href="#overview">1. Przegląd Komponentu</a>
+            <a href="#state">2. Stan Komponentu</a>
+            <a href="#functions">3. Funkcje Pomocnicze</a>
+            <a href="#handlers">4. Obsługiwacze Formularzy</a>
+            <a href="#fetch">5. Funkcje Pobierania Danych</a>
+            <a href="#ui">6. Struktura UI</a>
+            <a href="#roles">7. Role Użytkownika</a>
+            <a href="#tabs">8. Dostępne Zakładki</a>
+        </div>
+        
+        <!-- OVERVIEW -->
+        <div class="section" id="overview">
+            <h2>1. Przegląd Komponentu</h2>
+            <div class="summary-box">
+                <p><strong>Nazwa:</strong> App (Default Export)</p>
+                <p><strong>Typ:</strong> React Functional Component</p>
+                <p><strong>Przeznaczenie:</strong> Główny komponenty aplikacji EventFlow - system zarządzania wydarzeniami z obsługą autentykacji, różnych ról użytkownika i wielopoziomowego interfejsu.</p>
+                <p><strong>Importy:</strong> React (hooks), axios (HTTP), CSS styles</p>
+            </div>
+            
+            <h3>Główne Odpowiedzialności:</h3>
+            <ul>
+                <li>Zarządzanie stanem autentykacji (login/rejestracja)</li>
+                <li>Wyświetlanie interfejsu na podstawie roli użytkownika (USER, ORG, ADMIN)</li>
+                <li>Obsługa formularzy dla miejsc, sal i wydarzeń</li>
+                <li>Komunikacja z API backend (http://localhost:8081/api)</li>
+                <li>Nawigacja między zakładkami i sekcjami aplikacji</li>
+                <li>Zarządzanie wniioskami o rolę organizatora (dla ADMIN)</li>
+            </ul>
+        </div>
+        
+        <!-- STATE MANAGEMENT -->
+        <div class="section" id="state">
+            <h2>2. Stan Komponentu (State Variables)</h2>
+            
+            <h3>Autentykacja i Rola Użytkownika</h3>
+            <div class="subsection">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zmienna</th>
+                            <th>Typ</th>
+                            <th>Opis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-state">isLoggedIn</span></td>
+                            <td>boolean</td>
+                            <td>Status logowania użytkownika (true = zalogowany)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">currentUserRole</span></td>
+                            <td>string</td>
+                            <td>Rola użytkownika: 'USER', 'ORG', 'ADMIN'</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">authCredentials</span></td>
+                            <td>object</td>
+                            <td>{ login: string, password: string } - dane do autentykacji</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <h3>Formularze Autentykacji</h3>
+            <div class="subsection">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zmienna</th>
+                            <th>Typ</th>
+                            <th>Opis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-state">loginForm</span></td>
+                            <td>object</td>
+                            <td>{ login: string, password: string } - dane logowania</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">registerForm</span></td>
+                            <td>object</td>
+                            <td>{ imie, nazwisko, email, login, password } - dane rejestracji</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">mode</span></td>
+                            <td>string</td>
+                            <td>'login' lub 'register' - tryb na stronie autentykacji</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <h3>Dane i Status</h3>
+            <div class="subsection">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zmienna</th>
+                            <th>Typ</th>
+                            <th>Opis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-state">data</span></td>
+                            <td>array</td>
+                            <td>Lista użytkowników z backendu</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">loading</span></td>
+                            <td>boolean</td>
+                            <td>Status ładowania danych użytkowników</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">status</span></td>
+                            <td>object</td>
+                            <td>{ type: 'error'|'success', message: string } - wiadomości statusu</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <h3>Interfejs i Nawigacja</h3>
+            <div class="subsection">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zmienna</th>
+                            <th>Typ</th>
+                            <th>Opis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-state">activeTab</span></td>
+                            <td>string</td>
+                            <td>Aktualnie wyświetlana zakładka/sekcja</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">accountMenuOpen</span></td>
+                            <td>boolean</td>
+                            <td>Stan menu konta w topbarze</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <h3>Organizator - Wnioski i Miejsca</h3>
+            <div class="subsection">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zmienna</th>
+                            <th>Typ</th>
+                            <th>Opis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-state">organizerForm</span></td>
+                            <td>object</td>
+                            <td>{ firma, kwalifikacje, strona } - formularz wniosku organizatora</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">organizerRequests</span></td>
+                            <td>array</td>
+                            <td>Lista wniiosków organizatorów (tylko dla ADMIN)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">organizerLoading</span></td>
+                            <td>boolean</td>
+                            <td>Status ładowania wniiosków organizatora</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">miejsca</span></td>
+                            <td>array</td>
+                            <td>Lista miejsc przypisanych do organizatora (ORG)</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">miejscaLoading</span></td>
+                            <td>boolean</td>
+                            <td>Status ładowania listy miejsc</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">miejsceForm</span></td>
+                            <td>object</td>
+                            <td>Formularz do dodawania nowego miejsca</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">salaForms</span></td>
+                            <td>object</td>
+                            <td>Obiekty przechowujące formularze sal dla każdego miejsca</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <h3>Wydarzenia</h3>
+            <div class="subsection">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Zmienna</th>
+                            <th>Typ</th>
+                            <th>Opis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-state">myWydarzenia</span></td>
+                            <td>array</td>
+                            <td>Lista wydarzeń organizatora</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">showWydarzenieForm</span></td>
+                            <td>boolean</td>
+                            <td>Czy wyświetlać formularz do dodania nowego wydarzenia</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">wydarzenieForm</span></td>
+                            <td>object</td>
+                            <td>Formularz do tworzenia/edycji wydarzenia</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">wydarzenieOptions</span></td>
+                            <td>object</td>
+                            <td>{ miejsca: [], kategorie: [] } - opcje do selectów w formularzu</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">wydarzenieLoading</span></td>
+                            <td>boolean</td>
+                            <td>Status ładowania opcji formularza</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">wydarzeniaSearch</span></td>
+                            <td>string</td>
+                            <td>Tekst wyszukiwania w liście wydarzeń</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-state">wydarzeniaStatusFilter</span></td>
+                            <td>string</td>
+                            <td>Filtr statusu: 'ALL', 'AKTYWNE', 'SZKIC', 'ZAMKNIETE'</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- FUNCTIONS -->
+        <div class="section" id="functions">
+            <h2>3. Funkcje Pomocnicze</h2>
+            
+            <h3>Autentykacja</h3>
+            <div class="subsection">
+                <h4><span class="badge badge-function">getAuthHeaders()</span></h4>
+                <p><strong>Zwraca:</strong> object { Authorization: Basic &lt;base64&gt; }</p>
+                <p><strong>Opis:</strong> Tworzy nagłówki HTTP Basic Auth z aktualnych poświadczeń zalogowanego użytkownika. Użytkiwane do wszystkich żądań API.</p>
+                <div class="code-block">
+const basicToken = btoa(`${authCredentials.login}:${authCredentials.password}`);
+return { Authorization: `Basic ${basicToken}` };
+                </div>
+            </div>
+            
+            <h3>Wyszukiwanie i Filtrowanie</h3>
+            <div class="subsection">
+                <h4><span class="badge badge-function">filteredWydarzenia (computed)</span></h4>
+                <p><strong>Zwraca:</strong> array</p>
+                <p><strong>Opis:</strong> Filtruje listę wydarzeń na podstawie tekstu wyszukiwania i filtera statusu.</p>
+                <p><strong>Logika filtracji:</strong></p>
+                <ul>
+                    <li>Szuka w polu: tytul, miejsceNazwa (bez rozróżniania wielkości)</li>
+                    <li>Filtruje po statusie: 'ALL' (wszystkie) lub konkretny status (AKTYWNE, SZKIC, ZAMKNIETE)</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- HANDLERS -->
+        <div class="section" id="handlers">
+            <h2>4. Obsługiwacze Formularzy (Form Handlers)</h2>
+            
+            <div class="subsection">
+                <h3><span class="badge badge-async">onLoginSubmit(event)</span></h3>
+                <p><strong>Parametr:</strong> event (FormEvent)</p>
+                <p><strong>Akcje:</strong></p>
+                <ul>
+                    <li>POST do: <code>http://localhost:8081/api/auth/login</code></li>
+                    <li>Wysyła: loginForm (login, password)</li>
+                    <li>Przy sukcesie: ustawia logowanie, poświadczenia, rolę</li>
+                    <li>Obsługuje błędy z komunikatami statusu</li>
+                </ul>
+            </div>
+            
+            <div class="subsection">
+                <h3><span class="badge badge-async">onRegisterSubmit(event)</span></h3>
+                <p><strong>Parametr:</strong> event (FormEvent)</p>
+                <p><strong>Akcje:</strong></p>
+                <ul>
+                    <li>POST do: <code>http://localhost:8081/api/auth/register</code></li>
+                    <li>Wysyła: registerForm (imie, nazwisko, email, login, password)</li>
+                    <li>Przy sukcesie: przełącza na tryb logowania</li>
+                    <li>Obsługuje błędy z komunikatami</li>
+                </ul>
+            </div>
+            
+            <div class="subsection">
+                <h3><span class="badge badge-async">onMiejsceSubmit(event)</span></h3>
+                <p><strong>Parametr:</strong> event (FormEvent)</p>
+                <p><strong>Akcje:</strong></p>
+                <ul>
+                    <li>POST do: <code>http://localhost:8081/api/miejsca</code></li>
+                    <li>Wysyła: miejsceForm + konwersja pojemnosci na Number</li>
+                    <li>Przy sukcesie: resetuje formularz, odświeża listę</li>
+                    <li>Wymaga: Basic Auth headers</li>
+                </ul>
+                <p><strong>Wymagane pola:</strong> nazwa, miasto, ulica, kodPoczt, pojemnosc</p>
+            </div>
+            
+            <div class="subsection">
+                <h3><span class="badge badge-async">onSalaSubmit(event, miejsceId)</span></h3>
+                <p><strong>Parametry:</strong> event (FormEvent), miejsceId (number)</p>
+                <p><strong>Akcje:</strong></p>
+                <ul>
+                    <li>POST do: <code>http://localhost:8081/api/miejsca/{miejsceId}/sale</code></li>
+                    <li>Wysyła: { nazwa, pojemnosc, pietro, maPlan }</li>
+                    <li>Konwertuje pojemnosc i pietro na Number</li>
+                    <li>Resetuje formularz dla tego miejsca po sukcesie</li>
+                </ul>
+            </div>
+            
+            <div class="subsection">
+                <h3><span class="badge badge-async">onWydarzenieSubmit(event)</span></h3>
+                <p><strong>Parametr:</strong> event (FormEvent)</p>
+                <p><strong>Akcje:</strong></p>
+                <ul>
+                    <li>POST do: <code>http://localhost:8081/api/wydarzenia</code></li>
+                    <li>Wysyła: wszystkie pola z wydarzenieForm</li>
+                    <li>Obsługuje tworzenie nowych kategorii na lotu</li>
+                    <li>Odświeża opcje i listę wydarzeń po sukcesie</li>
+                </ul>
+                <p><strong>Logika kategorii:</strong> Jeśli createNowaKategoria = true, wysyła nowaKategoriaNazwa i nowaKategoriaOpis</p>
+            </div>
+            
+            <div class="subsection">
+                <h3><span class="badge badge-async">onOrganizerRequestSubmit(event)</span></h3>
+                <p><strong>Parametr:</strong> event (FormEvent)</p>
+                <p><strong>Akcje:</strong></p>
+                <ul>
+                    <li>POST do: <code>http://localhost:8081/api/organizator/request</code></li>
+                    <li>Wysyła: organizerForm (firma, kwalifikacje, strona)</li>
+                    <li>Resetuje formularz po sukcesie</li>
+                    <li>Wymaga: Basic Auth</li>
+                </ul>
+            </div>
+            
+            <div class="subsection">
+                <h3><span class="badge badge-function">updateSalaForm(miejsceId, field, value)</span></h3>
+                <p><strong>Parametry:</strong> miejsceId (number), field (string), value (any)</p>
+                <p><strong>Opis:</strong> Aktualizuje pole w salaForms dla konkretnego miejsca. Zachowuje pozostałe pola.</p>
+            </div>
+        </div>
+        
+        <!-- FETCH FUNCTIONS -->
+        <div class="section" id="fetch">
+            <h2>5. Funkcje Pobierania Danych</h2>
+            
+            <div class="subsection">
+                <h3><span class="badge badge-async">fetchUsers()</span></h3>
+                <p><strong>Endpoint:</strong> GET <code>http://localhost:8081/api/users</code></p>
+                <p><strong>Ustawia:</strong> data (array użytkowników), loading (boolean)</p>
+                <p><strong>Wymaga:</strong> Basic Auth headers</p>
+                <p><strong>Wywoływana:</strong> useEffect gdy isLoggedIn = true</p>
+            </div>
+            
+            <div class="subsection">
+                <h3><span class="badge badge-async">fetchOrganizerRequests()</span></h3>
+                <p><strong>Endpoint:</strong> GET <code>http://localhost:8081/api/organizator</code></p>
+                <p><strong>Ustawia:</strong> organizerRequests (array), organizerLoading (boolean)</p>
+                <p><strong>Wymaga:</strong> Basic Auth headers</p>
+                <p><strong>Used by:</strong> ADMIN role</p>
+            </div>
+            
+            <div class="subsection">
+                <h3><span class="badge badge-async">fetchMyMiejsca()</span></h3>
+                <p><strong>Endpoint:</strong> GET <code>http://localhost:8081/api/miejsca/my</code></p>
+                <p><strong>Ustawia:</strong> miejsca (array), miejscaLoading (boolean)</p>
+                <p><strong>Wymaga:</strong> Basic Auth headers</p>
+                <p><strong>Used by:</strong> ORG role</p>
+            </div>
+            
+            <div class="subsection">
+                <h3><span class="badge badge-async">fetchWydarzeniaOptions()</span></h3>
+                <p><strong>Endpoint:</strong> GET <code>http://localhost:8081/api/wydarzenia/options</code></p>
+                <p><strong>Ustawia:</strong> wydarzenieOptions (array { miejsca, kategorie }), wydarzenieLoading (boolean)</p>
+                <p><strong>Wymaga:</strong> Basic Auth headers</p>
+                <p><strong>Użycie:</strong> Pobiera opcje dla formularza nowego wydarzenia</p>
+            </div>
+            
+            <div class="subsection">
+                <h3><span class="badge badge-async">fetchMyWydarzenia()</span></h3>
+                <p><strong>Endpoint:</strong> GET <code>http://localhost:8081/api/wydarzenia/my</code></p>
+                <p><strong>Ustawia:</strong> myWydarzenia (array)</p>
+                <p><strong>Wymaga:</strong> Basic Auth headers</p>
+                <p><strong>Used by:</strong> ORG role</p>
+            </div>
+            
+            <div class="note-box">
+                <strong>ℹ️ Efekty uboczne (useEffect):</strong>
+                <ul>
+                    <li><code>fetchUsers()</code> jest wywoływana gdy <code>isLoggedIn</code> lub <code>authCredentials</code> się zmienią</li>
+                    <li>Dla roli ORG: <code>fetchMyMiejsca()</code>, <code>fetchWydarzeniaOptions()</code>, <code>fetchMyWydarzenia()</code></li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- ADMIN ACTIONS -->
+        <div class="section">
+            <h2>Akcje dla Roli ADMIN</h2>
+            
+            <div class="subsection">
+                <h3><span class="badge badge-async">onApproveOrganizer(id)</span></h3>
+                <p><strong>Endpoint:</strong> POST <code>http://localhost:8081/api/organizator/{id}/approve</code></p>
+                <p><strong>Akcje:</strong></p>
+                <ul>
+                    <li>Zatwierdza wniosek organizatora</li>
+                    <li>Odświeża listę wniiosków i użytkowników</li>
+                    <li>Wysyła komunikat sukcesu/błędu</li>
+                </ul>
+            </div>
+            
+            <div class="subsection">
+                <h3><span class="badge badge-async">onRejectOrganizer(id)</span></h3>
+                <p><strong>Endpoint:</strong> DELETE <code>http://localhost:8081/api/organizator/{id}/reject</code></p>
+                <p><strong>Akcje:</strong></p>
+                <ul>
+                    <li>Odrzuca i usuwa wniosek organizatora</li>
+                    <li>Odświeża listę wniiosków</li>
+                    <li>Wysyła komunikat statusu</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- UI STRUCTURE -->
+        <div class="section" id="ui">
+            <h2>6. Struktura Interfejsu (UI)</h2>
+            
+            <h3>Strona Autentykacji (Pre-Login)</h3>
+            <div class="subsection">
+                <p>Wyświetlana gdy <code>isLoggedIn === false</code></p>
+                <ul>
+                    <li>Przełączanie między trybami: Login / Rejestracja</li>
+                    <li>Logo EventFlow z ikoną (<code>/eventflow_icon.png</code>)</li>
+                    <li>Formularze z campos do wpisania danych</li>
+                    <li>Komunikaty statusu (błąd/sukces)</li>
+                </ul>
+            </div>
+            
+            <h3>Główny Layout (Post-Login)</h3>
+            <div class="subsection">
+                <p>Struktura layoutu:</p>
+                <div class="code-block">
+&lt;div class="app-layout"&gt;
+  &lt;aside class="sidebar"&gt; ... &lt;/aside&gt;
+  &lt;main class="main-area"&gt;
+    &lt;header class="topbar"&gt; ... &lt;/header&gt;
+    &lt;div class="content-area"&gt; ... &lt;/div&gt;
+  &lt;/main&gt;
+&lt;/div&gt;
+                </div>
+            </div>
+            
+            <h3>Sidebar - Nawigacja</h3>
+            <div class="subsection">
+                <p>Logo EventFlow i przyciski nawigacyjne:</p>
+                <ul style="list-style: none; padding-left: 0;">
+                    <li>📊 Panel główny</li>
+                    <li>📅 Wydarzenia</li>
+                    <li>🎟️ Bilety</li>
+                    <li>👥 Uczestnicy</li>
+                    <li>📍 Miejsca</li>
+                    <li>📈 Analityka</li>
+                    <li>⚙️ Ustawienia</li>
+                </ul>
+                <p>Aktywna zakładka ma dodaną klasę CSS <code>active</code></p>
+            </div>
+            
+            <h3>Topbar - Górny Pasek</h3>
+            <div class="subsection">
+                <p><strong>Prawe elementy:</strong></p>
+                <ul>
+                    <li>Przyciski akcji (dla roli ORG)</li>
+                    <li>Menu konta z przyciskiem "Wyloguj"</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- ROLES -->
+        <div class="section" id="roles">
+            <h2>7. Role Użytkownika i Ich Uprawnienia</h2>
+            
+            <div class="role-section">
+                <h3>👤 Role: USER</h3>
+                <p><strong>Uprawnienia:</strong></p>
+                <ul>
+                    <li>Przeglądanie panelu głównego</li>
+                    <li>Widok informacyjny o dalszych możliwościach</li>
+                    <li>Możliwość złożenia wniosku aby zostać organizatorem</li>
+                    <li>Dostęp do przeglądu użytkowników (dane pobierane z API)</li>
+                </ul>
+                <p><strong>Dostępne formularze:</strong> Wniosek organizatora</p>
+            </div>
+            
+            <div class="role-section">
+                <h3>📋 Role: ORG (Organizator)</h3>
+                <p><strong>Uprawnienia:</strong></p>
+                <ul>
+                    <li>Dodawanie nowych miejsc (sale imprez)</li>
+                    <li>Zarządzanie salami w miejscach</li>
+                    <li>Tworzenie i publikowanie wydarzeń</li>
+                    <li>Wyszukiwanie i filtrowanie Wydarzenia</li>
+                    <li>Szybkie przyciski akcji (Zarządzaj miejscami, Dodaj miejsce)</li>
+                    <li>Dostęp do listy swoich miejsc i wydarzeń</li>
+                </ul>
+                <p><strong>Dostępne formularze:</strong></p>
+                <ul>
+                    <li>Formularz Dodaj miejsce</li>
+                    <li>Formularz Dodaj salę (dla każdego miejsca)</li>
+                    <li>Formularz Nowe wydarzenie</li>
+                </ul>
+            </div>
+            
+            <div class="role-section">
+                <h3>🔐 Role: ADMIN</h3>
+                <p><strong>Uprawnienia:</strong></p>
+                <ul>
+                    <li>Przeglądanie wszystkich użytkowników z bazy danych</li>
+                    <li>Widok szczegółów bezpieczeństwa (hasło, salt) dla każdego użytkownika</li>
+                    <li>Zarządzanie wniioskami organizatorów (zatwierdź/odrzuć)</li>
+                    <li>Zmiana roli użytkownika z USER na ORG</li>
+                </ul>
+                <p><strong>Dostępne sekcje:</strong> Wnioski organizatora, Uczestnicy (rozszerzona tabela)</p>
+            </div>
+            
+            <div class="warning-box">
+                <strong>⚠️ Uwaga Bezpieczeństwa:</strong> Wyświetlanie haseł i saltów dla ADMIN jest widoczne w kodzie. W produkcji zalecane jest ukrycie tych danych lub ich niezapisywanie.
+            </div>
+        </div>
+        
+        <!-- TABS -->
+        <div class="section" id="tabs">
+            <h2>8. Dostępne Zakładki (Tabs)</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nazwa Zakładki</th>
+                        <th>Dostępne dla</th>
+                        <th>Funkcjonalność</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Panel główny</strong></td>
+                        <td>Wszyscy</td>
+                        <td>Strona powitalny</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Wydarzenia</strong></td>
+                        <td>USER, ORG, ADMIN</td>
+                        <td>ORG: Zarządzanie wydarzeniami. USER: CTA do wniosku organizatora. ADMIN: Pusta sekcja</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Bilety</strong></td>
+                        <td>Wszyscy</td>
+                        <td>Placeholder - "Tutaj będą zarządzane bilety"</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Uczestnicy</strong></td>
+                        <td>Wszyscy</td>
+                        <td>ADMIN: Tabela użytkowników. Inni: Przycisk do wniiosków (ADMIN only)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Miejsca</strong></td>
+                        <td>Wszyscy</td>
+                        <td>Placeholder - "Tutaj będą zarządzane miejsca"</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Analityka</strong></td>
+                        <td>Wszyscy</td>
+                        <td>Placeholder - "Tutaj będą statystyki"</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ustawienia</strong></td>
+                        <td>Wszyscy</td>
+                        <td>Placeholder - "Ustawienia aplikacji"</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dodaj miejsce ORG</strong></td>
+                        <td>ORG</td>
+                        <td>Formularz do dodawania nowego miejsca</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Zarzadzaj miejscami ORG</strong></td>
+                        <td>ORG</td>
+                        <td>Lista miejsc z opcją dodawania sal</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Wniosek organizatora</strong></td>
+                        <td>USER</td>
+                        <td>Formularz do złożenia wniosku o rolę organizatora</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Wnioski organizatora</strong></td>
+                        <td>ADMIN</td>
+                        <td>Tabela wniiosków z opcją zatwierdz/odrzuć</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- API ENDPOINTS SUMMARY -->
+        <div class="section">
+            <h2>API Endpoints - Podsumowanie</h2>
+            
+            <div class="subsection">
+                <h3>Autentykacja</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metoda</th>
+                            <th>Endpoint</th>
+                            <th>Opis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/auth/login</code></td>
+                            <td>Logowanie użytkownika</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/auth/register</code></td>
+                            <td>Rejestracja nowego użytkownika</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="subsection">
+                <h3>Użytkownicy i Organizatorzy</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metoda</th>
+                            <th>Endpoint</th>
+                            <th>Auth</th>
+                            <th>Opis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/users</code></td>
+                            <td>✅ Basic</td>
+                            <td>Lista wszystkich użytkowników</td>
+                        </tr>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/organizator</code></td>
+                            <td>✅ Basic</td>
+                            <td>Lista wniiosków organizatorów</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/organizator/request</code></td>
+                            <td>✅ Basic</td>
+                            <td>Złożenie wniosku o organizatora</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/organizator/{id}/approve</code></td>
+                            <td>✅ Basic</td>
+                            <td>Zatwierdzenie wniosku (ADMIN)</td>
+                        </tr>
+                        <tr>
+                            <td>DELETE</td>
+                            <td><code>/api/organizator/{id}/reject</code></td>
+                            <td>✅ Basic</td>
+                            <td>Odrzucenie wniosku (ADMIN)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="subsection">
+                <h3>Miejsca i Sale</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metoda</th>
+                            <th>Endpoint</th>
+                            <th>Auth</th>
+                            <th>Opis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/miejsca/my</code></td>
+                            <td>✅ Basic</td>
+                            <td>Moje miejsca (ORG)</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/miejsca</code></td>
+                            <td>✅ Basic</td>
+                            <td>Dodanie nowego miejsca</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/miejsca/{id}/sale</code></td>
+                            <td>✅ Basic</td>
+                            <td>Dodanie sali do miejsca</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="subsection">
+                <h3>Wydarzenia</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metoda</th>
+                            <th>Endpoint</th>
+                            <th>Auth</th>
+                            <th>Opis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/wydarzenia/options</code></td>
+                            <td>✅ Basic</td>
+                            <td>Opcje do formularza (miejsca, kategorie)</td>
+                        </tr>
+                        <tr>
+                            <td>GET</td>
+                            <td><code>/api/wydarzenia/my</code></td>
+                            <td>✅ Basic</td>
+                            <td>Moje wydarzenia (ORG)</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td><code>/api/wydarzenia</code></td>
+                            <td>✅ Basic</td>
+                            <td>Utworzenie nowego wydarzenia</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- KEY FEATURES -->
+        <div class="section">
+            <h2>Kluczowe Cechy i Przepływy</h2>
+            
+            <div class="subsection">
+                <h3>1. Przepływ Logowania</h3>
+                <ul>
+                    <li>Użytkownik wpisuje login i hasło</li>
+                    <li>System wysyła POST do /api/auth/login</li>
+                    <li>Backend zwraca response z polem <code>success</code> i <code>rola</code></li>
+                    <li>Ustawiana jest zmienna <code>isLoggedIn = true</code></li>
+                    <li>Pobierane są dane dla odpowiedniej roli</li>
+                </ul>
+            </div>
+            
+            <div class="subsection">
+                <h3>2. Przepływ Wniosku Organizatora</h3>
+                <ul>
+                    <li>USER klika "Zostań Organizatorem"</li>
+                    <li>Wypełnia formularz (firma, kwalifikacje, strona)</li>
+                    <li>System wysyła POST do /api/organizator/request</li>
+                    <li>ADMIN otrzymuje wniosek w sekcji "Wnioski organizatora"</li>
+                    <li>ADMIN zatwierdza (approve) → rola zmieniana na ORG</li>
+                    <li>ADMIN odrzuca (reject) → wniosek usuwany</li>
+                </ul>
+            </div>
+            
+            <div class="subsection">
+                <h3>3. Przepływ Tworzenia Wydarzenia (ORG)</h3>
+                <ul>
+                    <li>ORG kliknie "+ Nowe wydarzenie"</li>
+                    <li>Pobierane są opcje (miejsca, kategorie) za helper fetchWydarzeniaOptions()</li>
+                    <li>Wypełnia formularz z:
+                        <ul>
+                            <li>Wyborem miejsca ze selectu</li>
+                            <li>Nową kategorią (jeśli oznaczy checkbox)</li>
+                            <li>Datami rozpoczęcia i zakończenia</li>
+                        </ul>
+                    </li>
+                    <li>System wysyła POST do /api/wydarzenia</li>
+                    <li>Wydarzenia pojawia się na liście</li>
+                </ul>
+            </div>
+            
+            <div class="subsection">
+                <h3>4. Filtrowanie Wydarzeń</h3>
+                <ul>
+                    <li>ORG może wyszukiwać po tekście (tytuł, miejsca)</li>
+                    <li>Może filtrować po statusie: ALL, AKTYWNE, SZKIC, ZAMKNIETE</li>
+                    <li>FilteredWydarzenia obliczane jest dynamicznie</li>
+                </ul>
+            </div>
+            
+            <div class="subsection">
+                <h3>5. Wylogowanie</h3>
+                <ul>
+                    <li>Klik na menu konta → "Wyloguj"</li>
+                    <li>Resetowanie całego state'u do wartości początkowych</li>
+                    <li>Powrót do ekranu logowania</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- POTENTIAL IMPROVEMENTS -->
+        <div class="section">
+            <h2>Potencjalne Ulepszenia</h2>
+            
+            <div class="warning-box">
+                <h3>⚠️ Uwagi o Kodzie:</h3>
+                <ul>
+                    <li><strong>Duży Component:</strong> Komponent App.js jest bardzo duży (~1000+ linii). Rozważyć rozdzielenie na mniejsze komponenty.</li>
+                    <li><strong>Bezpieczeństwo:</strong> Hasła i poświadczenia przechowywane w state. Rozważyć przechowywanie w secure cookies.</li>
+                    <li><strong>Brak ValidaUsed:</strong> Brak walidacji danych na froncie (email validation, format sprawdzenie).</li>
+                    <li><strong>Error Handling:</strong> Błędy obsługiwane głównie poprzez status wiadomości bez globalnego error boundary.</li>
+                    <li><strong>Placeholder Zawartość:</strong> Wiele sekcji to placeholder (Bilety, Miejsca, Analityka, Ustawienia).</li>
+                    <li><strong>Brak Cache'u:</strong> Każde przełączenie tab pobiera dane na nowo.</li>
+                </ul>
+            </div>
+            
+            <div class="note-box">
+                <h3>✅ Sugestie Refaktoryzacji:</h3>
+                <ul>
+                    <li>Wydzielić logikę autentykacji do osobnego hooeka useAuth()</li>
+                    <li>Stworzyć komponenty dla każdej roli (UserPanel, AuthPanel, AdminPanel)</li>
+                    <li>Użyć Context API lub Redux do zarządzania globalnym state'em</li>
+                    <li>Wydzielić API calls do osobnego serwisu</li>
+                    <li>Dodać React Query lub useMemo dla cachingu danych</li>
+                    <li>Tworzyć custom hooki dla operacji (useFormHandler, useFetchData)</li>
+                </ul>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Dokumentacja wygenerowana automatycznie | EventFlow • System Zarządzania Wydarzeniami</p>
+            <p>Ostatnia aktualizacja: 2026-04-08</p>
+        </footer>
+    </div>
+</body>
+</html>

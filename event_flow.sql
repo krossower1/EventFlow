@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 9.6.0, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.45, for Win64 (x86_64)
 --
 -- Host: localhost    Database: event_flow
 -- ------------------------------------------------------
--- Server version	9.6.0
+-- Server version	8.0.45
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -14,14 +14,6 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-SET @MYSQLDUMP_TEMP_LOG_BIN = @@SESSION.SQL_LOG_BIN;
-SET @@SESSION.SQL_LOG_BIN= 0;
-
---
--- GTID state at the beginning of the backup 
---
-
-SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '09d8d5f4-2076-11f1-87b7-b42e991066cf:1-445';
 
 --
 -- Table structure for table `kategorie`
@@ -68,7 +60,7 @@ CREATE TABLE `miejsca` (
   `user_id` bigint NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -77,7 +69,7 @@ CREATE TABLE `miejsca` (
 
 LOCK TABLES `miejsca` WRITE;
 /*!40000 ALTER TABLE `miejsca` DISABLE KEYS */;
-INSERT INTO `miejsca` VALUES (1,'TEST','Polska','Gdańsk','Jana 13','33 364',200,'TEST',6),(2,'T2','Polska','Tarnów','Pawła13','33 840',200,'test',8),(3,'3','Polska','A','A','A',1,'A',8);
+INSERT INTO `miejsca` VALUES (1,'TEST','Polska','Gdańsk','Jana 13','33 364',200,'TEST',6),(2,'T2','Polska','Tarnów','Pawła13','33 840',200,'test',8),(3,'3','Polska','A','A','A',1,'A',8),(4,'ow','Polska','qwd','qwd','qwd',1,'ads',3);
 /*!40000 ALTER TABLE `miejsca` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -98,7 +90,7 @@ CREATE TABLE `organizator` (
   `zweryfikow` bit(1) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UK_4gcjcqm4bx4fw68tl0jym5oaf` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -107,7 +99,7 @@ CREATE TABLE `organizator` (
 
 LOCK TABLES `organizator` WRITE;
 /*!40000 ALTER TABLE `organizator` DISABLE KEYS */;
-INSERT INTO `organizator` VALUES (1,'2026-04-08 11:34:07.635557','asd','null','a.com',6,_binary ''),(2,'2026-04-08 13:50:54.916522','MARBUD','Jakieś tam','www.google.com',8,_binary '');
+INSERT INTO `organizator` VALUES (1,'2026-04-08 11:34:07.635557','asd','null','a.com',6,_binary ''),(2,'2026-04-08 13:50:54.916522','MARBUD','Jakieś tam','www.google.com',8,_binary ''),(3,'2026-04-08 14:44:11.801085','firma','niewiem','strona',3,_binary ''),(4,'2026-04-08 20:08:21.873883','jakasfirma','nonon','qowndwoin',11,_binary ''),(5,'2026-04-08 22:07:51.618027','ss','ss','ss',12,_binary '');
 /*!40000 ALTER TABLE `organizator` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -165,7 +157,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `UK_r43af9ap4edm43mmtq01oddj6` (`login`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -174,7 +166,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'Mateusz','Chochorowski','admin@example.com','admin','$2a$10$UOBujPQuCzaeCC5ok1lCIuLQ4lAn0PvYgv91bCNcKE6eNPsQkseFS','4046f48c-a02e-4680-9b3c-0c536cea0adc',NULL,'ADMIN','2026-03-25 15:08:36',1),(2,'Jakub','Marczyk','jakub.marczyk@example.com','jmarczyk','haslo123','random_salt_789','Karta','USER','2026-03-25 17:30:30',1),(3,'Mateusz','Chochorowski','mchochorowski1@gmail.com','mateusz08102004','$2a$10$Hnh7GOA7PAATQkKaCnmiNOx6sR4.VA2FjLpMJW0VvKCml1ld6V36m','99f868ba-75fb-4c66-a0fc-8bb9b482f61b',NULL,'USER','2026-04-07 08:42:11',1),(4,'Mateusz','Chochorowski','mchochorowski2@gmail.com','mateusz08102005','$2a$10$mt9.HaAzGk8LQXrQ8gFIkOelcl3sI9/IMz61hL4lb0JRpt13zkex.','ac8c3dd3-9be0-4f5d-9932-eabdf56223e7',NULL,'USER','2026-04-07 12:42:47',1),(5,'Adam','Kowalski','an@gmail.com','AKowal','$2a$10$N5B5xCSXbYM1.L14/Dy8TOq6XmC5uJIY.u2i3DjliCyDSfFRR/Tiq','216c5ddf-666e-47f5-90c3-eec37c437897',NULL,'ADMIN','2026-04-08 08:53:14',1),(6,'Adam','B','a@a.a','AB','$2a$10$KJI27FFtxUAWpqQCFhOye.AEo//dZttzCXNU7A7aOvrRokH.RTsEG','64138a6f-01cf-4717-9bcd-5ba3e24d3502',NULL,'ORG','2026-04-08 09:04:18',1),(7,'Q','Q','Q@q.q','Q','$2a$10$wUJr39H3JdXbcV7aBJ.0TeTJ73HizpQEmlfJA9XMlXw1kBTwvRjqG','780c43fd-1f59-41ac-aed9-59abfb68d627',NULL,'USER','2026-04-08 09:40:47',1),(8,'Jan','Kowalski','as@a.a','JK','$2a$10$i/8I5JYTgGto4QNy2tMs0utL.aKTWO3f.9wBxklNxaBxN3FWARh5q','5d208b07-232a-436b-8df1-963ec5ba24f3',NULL,'ORG','2026-04-08 11:49:35',1);
+INSERT INTO `users` VALUES (1,'Mateusz','Chochorowski','admin@example.com','admin','$2a$12$N7BHTRlGg32x3MWLRt0mVOcfHcM9yc8a11KXqkeoHcdF6aMf8KN6i','4046f48c-a02e-4680-9b3c-0c536cea0adc',NULL,'ADMIN','2026-03-25 15:08:36',1),(12,'Jan','Chochorowski','jchochorowski1@gmail.com','jchochorowski08102004','$2a$10$gnYlSdfb8IwvEBhMC9XK2uVI/M0dKF3KX9g.6Gk5VVKnl88hCkHLm','9b8fe5b4-97df-46c9-a512-eeebc9c51cbb',NULL,'ORG','2026-04-08 18:47:06',1);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -217,7 +209,6 @@ LOCK TABLES `wydarzenia` WRITE;
 INSERT INTO `wydarzenia` VALUES (1,1,1,'WYD','Wydarzenie',1,'TEST','2026-04-08 11:35:51','AKTYWNA','2026-04-24 08:00:00','2026-04-30 08:00:00');
 /*!40000 ALTER TABLE `wydarzenia` ENABLE KEYS */;
 UNLOCK TABLES;
-SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -228,4 +219,4 @@ SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-08 16:18:39
+-- Dump completed on 2026-04-09  0:21:16

@@ -31,6 +31,18 @@ public class AuthService {
 			.orElse(null);
 	}
 
+	public String getUserImie(String login) {
+		return userRepository.findByLogin(login)
+			.map(User::getImie)
+			.orElse(null);
+	}
+
+	public String getUserNazwisko(String login) {
+		return userRepository.findByLogin(login)
+			.map(User::getNazwisko)
+			.orElse(null);
+	}
+
 	public String registerUser(String imie, String nazwisko, String email, String login, String password) {
 		if (userRepository.existsByLogin(login)) {
 			return "Login already exists";

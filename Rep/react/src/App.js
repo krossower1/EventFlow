@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import './App.css';
 
@@ -8,9 +8,12 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState('');
   const [authCredentials, setAuthCredentials] = useState({ login: '', password: '' });
+  const [currentUserName, setCurrentUserName] = useState({ imie: '', nazwisko: '' });
   const [mode, setMode] = useState('login');
   const [status, setStatus] = useState({ type: '', message: '' });
   const [loginForm, setLoginForm] = useState({ login: '', password: '' });
+  const [rememberMe, setRememberMe] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [registerForm, setRegisterForm] = useState({
     imie: '',
     nazwisko: '',
@@ -18,7 +21,53 @@ function App() {
     login: '',
     password: ''
   });
+
+  useEffect(() => {
+    const savedRememberMe = localStorage.getItem('rememberMe') === 'true';
+    const savedLogin = localStorage.getItem('rememberedLogin') || '';
+
+    setRememberMe(savedRememberMe);
+
+    if (savedLogin) {
+      setLoginForm((prev) => ({ ...prev, login: savedLogin }));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('rememberMe', rememberMe ? 'true' : 'false');
+
+    if (!rememberMe) {
+      localStorage.removeItem('rememberedLogin');
+    }
+  }, [rememberMe]);
   const [activeTab, setActiveTab] = useState('Panel główny');
+  const [tabHistory, setTabHistory] = useState([]);
+  const skipTabHistoryPushRef = useRef(false);
+  const prevActiveTabRef = useRef('Panel główny');
+
+  useEffect(() => {
+    if (skipTabHistoryPushRef.current) {
+      skipTabHistoryPushRef.current = false;
+      prevActiveTabRef.current = activeTab;
+      return;
+    }
+    const prev = prevActiveTabRef.current;
+    if (prev !== activeTab) {
+      setTabHistory((h) => [...h, prev]);
+    }
+    prevActiveTabRef.current = activeTab;
+  }, [activeTab]);
+
+  const goBackTab = useCallback(() => {
+    setTabHistory((h) => {
+      if (h.length === 0) return h;
+      const target = h[h.length - 1];
+      skipTabHistoryPushRef.current = true;
+      setActiveTab(target);
+      return h.slice(0, -1);
+    });
+  }, []);
+
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [organizerForm, setOrganizerForm] = useState({ firma: '', kwalifikacje: '', strona: '' });
   const [organizerRequests, setOrganizerRequests] = useState([]);
@@ -114,6 +163,19 @@ function App() {
         setAuthCredentials({ login: loginForm.login, password: loginForm.password });
         setIsLoggedIn(true);
         setCurrentUserRole(response.data.rola || '');
+        setCurrentUserName({
+          imie: response.data.imie || '',
+          nazwisko: response.data.nazwisko || ''
+        });
+
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+          localStorage.setItem('rememberedLogin', loginForm.login);
+        } else {
+          localStorage.removeItem('rememberMe');
+          localStorage.removeItem('rememberedLogin');
+        }
+
         setStatus({ type: 'success', message: 'Login successful.' });
       } else {
         setStatus({ type: 'error', message: response.data.message || 'Login failed.' });
@@ -131,7 +193,7 @@ function App() {
     try {
       const response = await axios.post('http://localhost:8081/api/auth/register', registerForm);
       if (response.data.success) {
-        setStatus({ type: 'success', message: 'Registration successful. You can now log in.' });
+        setStatus({ type: 'success', message: 'Rejestracja udana. Możesz się teraz zalogować.' });
         setMode('login');
         setLoginForm({
           login: registerForm.login,
@@ -189,6 +251,23 @@ function App() {
       fetchOrganizerRequests();
     } catch (error) {
       const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie odrzucic wniosku.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const onDeleteUser = async (userId, userLogin) => {
+    if (!window.confirm(`Czy na pewno chcesz usunąć użytkownika ${userLogin}?`)) {
+      return;
+    }
+
+    try {
+      await axios.delete(`http://localhost:8081/api/users/${userId}`, {
+        headers: getAuthHeaders()
+      });
+      setStatus({ type: 'success', message: `Użytkownik ${userLogin} został usunięty.` });
+      fetchUsers();
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udało się usunąć użytkownika.';
       setStatus({ type: 'error', message });
     }
   };
@@ -399,6 +478,18 @@ function App() {
                 required
               />
 
+              <div className="remember-me">
+                <label htmlFor="remember-me-checkbox">
+                  <input
+                    id="remember-me-checkbox"
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(event) => setRememberMe(event.target.checked)}
+                  />
+                  <span id="remember-me-text">Zapamiętaj mnie </span>
+                </label>
+              </div>
+
               <button type="submit">Zaloguj się</button>
             </form>
           ) : (
@@ -474,7 +565,9 @@ function App() {
       <aside className="sidebar">
         <div className="sidebar-logo">
           <img src="/eventflow_icon.png" alt="EventFlow" />
-          <span>EventFlow</span>
+          <div className="logo-text">
+            <span>EventFlow</span>
+          </div>
         </div>
         <nav className="sidebar-nav">
           {navItems.map((item) => (
@@ -491,8 +584,69 @@ function App() {
       </aside>
 
       <main className="main-area">
+        {(loading || organizerLoading) && (
+          <div className="loading-toast" role="status" aria-live="polite">
+            <span className="loading-toast__spinner" aria-hidden="true" />
+            <span>
+              {loading
+                ? 'Ładowanie danych z bazy MySQL…'
+                : 'Ładowanie wniosków…'}
+            </span>
+          </div>
+        )}
         <header className="topbar">
-          <div className="topbar-left"></div>
+          <div className="topbar-left">
+            <div className="topbar-left-row">
+              <button
+                type="button"
+                className="btn-back-tab"
+                onClick={goBackTab}
+                disabled={tabHistory.length === 0}
+                title="Cofnij do poprzedniej zakładki"
+              >
+                Wstecz
+              </button>
+              <button
+                type="button"
+                onClick={fetchUsers}
+                className="btn-icon btn-icon--topbar"
+                aria-label="Odśwież listę użytkowników"
+                title="Odśwież listę użytkowników"
+                disabled={loading}
+              >
+                <svg
+                  className={loading ? 'spin' : ''}
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M20 12a8 8 0 1 1-2.34-5.66"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M20 4v6h-6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+              <div className="header-user-meta">
+                <div className="header-user-line">
+                  Twoja rola: <span className="header-accent">{currentUserRole}</span>
+                </div>
+                <div className="header-user-line">
+                  Zalogowany jako: <span className="header-accent">{currentUserName.imie} {currentUserName.nazwisko}</span>
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="topbar-right">
             {currentUserRole === 'ORG' && miejsca.length > 0 && (
               <button
@@ -535,6 +689,7 @@ function App() {
                     setIsLoggedIn(false);
                     setCurrentUserRole('');
                     setAuthCredentials({ login: '', password: '' });
+                    setCurrentUserName({ imie: '', nazwisko: '' });
                     setData([]);
                     setOrganizerRequests([]);
                     setOrganizerForm({ firma: '', kwalifikacje: '', strona: '' });
@@ -569,6 +724,9 @@ function App() {
                     });
                     setStatus({ type: '', message: '' });
                     setLoginForm({ login: '', password: '' });
+                    setTabHistory([]);
+                    skipTabHistoryPushRef.current = true;
+                    prevActiveTabRef.current = 'Panel główny';
                     setActiveTab('Panel główny');
                   }}
                 >
@@ -597,7 +755,7 @@ function App() {
                     <input
                       type="text"
                       className="events-search"
-                      placeholder="Szukaj wydarzen..."
+                      placeholder="Szukaj wydarzeń..."
                       value={wydarzeniaSearch}
                       onChange={(event) => setWydarzeniaSearch(event.target.value)}
                     />
@@ -772,6 +930,7 @@ function App() {
             </div>
           )}
           
+          
           {activeTab === 'Bilety' && (
             <div>
               <h2>Bilety</h2>
@@ -779,26 +938,28 @@ function App() {
             </div>
           )}
           
+          
           {activeTab === 'Uczestnicy' && (
             <div>
               <h2>Uczestnicy</h2>
               {currentUserRole === 'ADMIN' && (
-                <button
-                  type="button"
-                  className="btn-refresh"
-                  onClick={() => {
-                    fetchOrganizerRequests();
-                    setActiveTab('Wnioski organizatora');
-                  }}
-                >
-                  Przegladaj prosby o organizatora
-                </button>
+                <div className="participants-toolbar">
+                  <button
+                    type="button"
+                    className="btn-refresh"
+                    onClick={() => {
+                      fetchOrganizerRequests();
+                      setActiveTab('Wnioski organizatora');
+                    }}
+                  >
+                    Zgłoszenia
+                  </button>
+                </div>
               )}
-              {loading && <h3>Ładowanie danych z bazy MySQL...</h3>}
-              
-              <table border="1" cellPadding="10" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+
+              <table className="participants-table">
                 <thead>
-                  <tr style={{ backgroundColor: '#eee' }}>
+                  <tr>
                     <th>ID</th>
                     <th>Imię i Nazwisko</th>
                     <th>Email</th>
@@ -808,11 +969,21 @@ function App() {
                     <th>Data Utworzenia</th>
                     <th>Płatność</th>
                     {currentUserRole === 'ADMIN' && <th>Szczegóły Bezpieczeństwa</th>}
+                    {currentUserRole === 'ADMIN' && <th>Akcje</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {data.length > 0 ? data.map(user => (
-                    <tr key={user.id}>
+                    <tr
+                      key={user.id}
+                      className="participants-row"
+                      onClick={() => setSelectedUser(user)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') setSelectedUser(user);
+                      }}
+                    >
                       <td>{user.id}</td>
                       <td>{user.imie || '-'} {user.nazwisko || '-'}</td>
                       <td>{user.email}</td>
@@ -832,12 +1003,108 @@ function App() {
                           </details>
                         </td>
                       )}
+                      {currentUserRole === 'ADMIN' && (
+                        <td>
+                          {user.login !== authCredentials.login && (
+                            <button
+                              type="button"
+                              className="btn-delete"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteUser(user.id, user.login);
+                              }}
+                            >
+                              Usuń
+                            </button>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   )) : (
-                    <tr><td colSpan={currentUserRole === 'ADMIN' ? 9 : 8}>Brak użytkowników w bazie danych.</td></tr>
+                    <tr><td colSpan={currentUserRole === 'ADMIN' ? 10 : 8}>Brak użytkowników w bazie danych.</td></tr>
                   )}
                 </tbody>
               </table>
+
+              {selectedUser && (
+                <div
+                  className="modal-overlay"
+                  role="dialog"
+                  aria-modal="true"
+                  onMouseDown={(e) => {
+                    if (e.target === e.currentTarget) setSelectedUser(null);
+                  }}
+                >
+                  <div className="modal-card">
+                    <div className="modal-header">
+                      <div className="modal-title">
+                        Dane osoby: <span className="header-accent">{selectedUser.imie || '-'} {selectedUser.nazwisko || '-'} </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="modal-close"
+                        onClick={() => setSelectedUser(null)}
+                        aria-label="Zamknij"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    <div className="modal-grid">
+                      <div className="modal-field">
+                        <span className="modal-label">Imię i nazwisko</span>
+                        <span className="modal-value">{selectedUser.imie || '-'} {selectedUser.nazwisko || '-'}</span>
+                      </div>
+                      <div className="modal-field">
+                        <span className="modal-label">Login</span>
+                        <span className="modal-value">{selectedUser.login || '-'}</span>
+                      </div>
+                      <div className="modal-field">
+                        <span className="modal-label">Email</span>
+                        <span className="modal-value">{selectedUser.email || '-'}</span>
+                      </div>
+                      <div className="modal-field">
+                        <span className="modal-label">Rola</span>
+                        <span className="modal-value">{selectedUser.rola || '-'}</span>
+                      </div>
+                      <div className="modal-field">
+                        <span className="modal-label">Status</span>
+                        <span className="modal-value">{selectedUser.aktywnosc ? 'Aktywny' : 'Nieaktywny'}</span>
+                      </div>
+                      <div className="modal-field">
+                        <span className="modal-label">Data utworzenia</span>
+                        <span className="modal-value">{selectedUser.dataUtw ? new Date(selectedUser.dataUtw).toLocaleString() : '-'}</span>
+                      </div>
+                      <div className="modal-field">
+                        <span className="modal-label">Płatność</span>
+                        <span className="modal-value">{selectedUser.platnosc || 'Brak'}</span>
+                      </div>
+                    </div>
+
+                    {currentUserRole === 'ADMIN' && (
+                      <div className="modal-admin">
+                        <details>
+                          <summary>Szczegóły bezpieczeństwa (ADMIN)</summary>
+                          <div className="modal-admin-details">
+                            <div><strong>Haslo:</strong> {selectedUser.haslo || '-'}</div>
+                            <div><strong>Salt:</strong> {selectedUser.salt || '-'}</div>
+                          </div>
+                        </details>
+
+                        {selectedUser.login !== authCredentials.login && (
+                          <button
+                            type="button"
+                            className="btn-delete"
+                            onClick={() => onDeleteUser(selectedUser.id, selectedUser.login)}
+                          >
+                            Usuń użytkownika
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           
@@ -1061,13 +1328,9 @@ function App() {
           {activeTab === 'Wnioski organizatora' && currentUserRole === 'ADMIN' && (
             <div>
               <h2>Wnioski organizatora</h2>
-              <button type="button" className="btn-refresh" onClick={fetchOrganizerRequests}>
-                Odswiez
-              </button>
-              {organizerLoading && <h3>Ladowanie wnioskow...</h3>}
-              <table border="1" cellPadding="10" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginTop: '12px' }}>
+              <table class="participants-table">
                 <thead>
-                  <tr style={{ backgroundColor: '#eee' }}>
+                  <tr>
                     <th>ID</th>
                     <th>Uzytkownik</th>
                     <th>Email</th>

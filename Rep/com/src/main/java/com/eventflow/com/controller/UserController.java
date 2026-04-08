@@ -29,6 +29,34 @@ public class UserController {
             .toList();
     }
 
+    @DeleteMapping("/{id}")
+    public String deleteUser(@PathVariable Long id, Authentication authentication) {
+        // Sprawdzenie czy użytkownik jest adminem
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+            .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+
+        if (!isAdmin) {
+            throw new RuntimeException("Tylko administrator może usuwać użytkowników");
+        }
+
+        // Pobierz aktualnie zalogowanego użytkownika
+        String currentLogin = authentication.getName();
+        User currentUser = userRepository.findByLogin(currentLogin)
+            .orElseThrow(() -> new RuntimeException("Nie znaleziono aktualnego użytkownika"));
+
+        // Sprawdzenie czy użytkownik próbuje usunąć siebie
+        if (currentUser.getId().equals(id)) {
+            throw new RuntimeException("Nie możesz usunąć swojego konta");
+        }
+
+        // Usuń użytkownika
+        User userToDelete = userRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Użytkownik nie znaleziony"));
+
+        userRepository.delete(userToDelete);
+        return "Użytkownik " + userToDelete.getLogin() + " został usunięty";
+    }
+
     private UserResponse mapUser(User user, boolean isAdmin) {
         return new UserResponse(
             user.getId(),

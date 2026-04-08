@@ -5,7 +5,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
-    icon: path.join(__dirname, 'eventflow_icon.png'),
+    icon: path.join(__dirname, 'image(1).ico'),
     webPreferences: {
       nodeIntegration: true
     }
