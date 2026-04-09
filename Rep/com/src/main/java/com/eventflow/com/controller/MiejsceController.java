@@ -40,6 +40,7 @@ public class MiejsceController {
 		Authentication authentication,
 		@Valid @RequestBody MiejsceRequestDto request
 	) {
+		// Miejsca mogą tworzyć wyłącznie użytkownicy z rolą ORG.
 		User currentUser = requireOrg(authentication);
 
 		Miejsce miejsce = new Miejsce();
@@ -59,6 +60,7 @@ public class MiejsceController {
 	@GetMapping("/my")
 	public ResponseEntity<List<MiejsceResponseDto>> getMyMiejsca(Authentication authentication) {
 		User currentUser = requireOrg(authentication);
+		// ORG widzi tylko swoje miejsca, przypisane po user_id.
 		List<MiejsceResponseDto> result = miejsceRepository.findByUserId(currentUser.getId()).stream()
 			.map(this::toMiejsceDto)
 			.toList();
@@ -75,6 +77,7 @@ public class MiejsceController {
 		Miejsce miejsce = miejsceRepository.findById(miejsceId)
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono miejsca."));
 
+		// Dodatkowa walidacja własności miejsca przed dodaniem sali.
 		if (!miejsce.getUserId().equals(currentUser.getId())) {
 			throw new ResponseStatusException(FORBIDDEN, "To miejsce nie nalezy do Ciebie.");
 		}
@@ -91,6 +94,7 @@ public class MiejsceController {
 	}
 
 	private MiejsceResponseDto toMiejsceDto(Miejsce miejsce) {
+		// Każde miejsce zwraca też listę przypisanych sal.
 		List<SalaResponseDto> sale = salaRepository.findByMiejsceId(miejsce.getId()).stream()
 			.map(this::toSalaDto)
 			.toList();
@@ -119,6 +123,7 @@ public class MiejsceController {
 	}
 
 	private User requireOrg(Authentication authentication) {
+		// Wspólna metoda wymusza uwierzytelnienie i rolę ORG.
 		if (authentication == null) {
 			throw new ResponseStatusException(UNAUTHORIZED, "Brak uwierzytelnienia.");
 		}

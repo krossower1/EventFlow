@@ -42,6 +42,7 @@ function App() {
   }, [rememberMe]);
   const [activeTab, setActiveTab] = useState('Panel główny');
   const [tabHistory, setTabHistory] = useState([]);
+  // Flaga blokuje dopisywanie historii przy cofnięciu, żeby nie tworzyć pętli nawigacji.
   const skipTabHistoryPushRef = useRef(false);
   const prevActiveTabRef = useRef('Panel główny');
 
@@ -87,6 +88,7 @@ function App() {
   const [wydarzenieOptions, setWydarzenieOptions] = useState({ miejsca: [], kategorie: [] });
   const [wydarzenieLoading, setWydarzenieLoading] = useState(false);
   const [myWydarzenia, setMyWydarzenia] = useState([]);
+  const [openWydarzenia, setOpenWydarzenia] = useState([]);
   const [showWydarzenieForm, setShowWydarzenieForm] = useState(false);
   const [wydarzeniaSearch, setWydarzeniaSearch] = useState('');
   const [wydarzeniaStatusFilter, setWydarzeniaStatusFilter] = useState('ALL');
@@ -126,7 +128,9 @@ function App() {
 
   useEffect(() => {
     if (isLoggedIn) {
+      // Dane globalne dostępne dla wszystkich ról po zalogowaniu.
       fetchUsers();
+      fetchOpenWydarzenia();
     }
   }, [isLoggedIn, authCredentials]);
 
@@ -272,6 +276,23 @@ function App() {
     }
   };
 
+  const onDeactivateUser = async (userId, userLogin) => {
+    if (!window.confirm(`Czy na pewno chcesz dezaktywować użytkownika ${userLogin}?`)) {
+      return;
+    }
+
+    try {
+      await axios.put(`http://localhost:8081/api/users/${userId}/deactivate`, {}, {
+        headers: getAuthHeaders()
+      });
+      setStatus({ type: 'success', message: `Użytkownik ${userLogin} został dezaktywowany.` });
+      fetchUsers();
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udało się dezaktywować użytkownika.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
   const fetchMyMiejsca = async () => {
     setMiejscaLoading(true);
     try {
@@ -383,6 +404,19 @@ function App() {
       setMyWydarzenia(response.data);
     } catch (error) {
       const message = error.response?.data?.message || 'Nie udalo sie pobrac listy wydarzen.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const fetchOpenWydarzenia = async () => {
+    try {
+      // Endpoint zwraca tylko wydarzenia, które jeszcze się nie zakończyły.
+      const response = await axios.get('http://localhost:8081/api/wydarzenia/open', {
+        headers: getAuthHeaders()
+      });
+      setOpenWydarzenia(response.data);
+    } catch (error) {
+      const message = error.response?.data?.message || 'Nie udalo sie pobrac aktualnych wydarzen.';
       setStatus({ type: 'error', message });
     }
   };
@@ -551,6 +585,8 @@ function App() {
   }
 
   const navItems = ['Panel główny', 'Wydarzenia', 'Bilety', 'Uczestnicy', 'Miejsca', 'Analityka', 'Ustawienia'];
+  // Nie pokazujemy kont nieaktywnych w tabeli Uczestnicy.
+  const visibleParticipants = data.filter((user) => user.aktywnosc !== false);
   const filteredWydarzenia = myWydarzenia.filter((item) => {
     const matchesText = !wydarzeniaSearch
       || item.tytul?.toLowerCase().includes(wydarzeniaSearch.toLowerCase())
@@ -706,6 +742,7 @@ function App() {
                     setSalaForms({});
                     setWydarzenieOptions({ miejsca: [], kategorie: [] });
                     setMyWydarzenia([]);
+                    setOpenWydarzenia([]);
                     setShowWydarzenieForm(false);
                     setWydarzeniaSearch('');
                     setWydarzeniaStatusFilter('ALL');
@@ -742,6 +779,24 @@ function App() {
             <div>
               <h2>Panel główny</h2>
               <p>Witaj w dashboardzie EventFlow! Wybierz zakładkę, aby zarządzać różnymi aspektami aplikacji.</p>
+              <div className="dashboard-events">
+                <h3>Trwające i nadchodzące wydarzenia</h3>
+                <div className="events-grid">
+                  {/* Karty na dashboardzie celowo używają tego samego stylu co zakładka Wydarzenia. */}
+                  {openWydarzenia.length > 0 ? openWydarzenia.map((item) => (
+                    <article key={item.id} className="event-card">
+                      <span className="event-badge">{(item.status || 'aktywne').toLowerCase()}</span>
+                      <h3>{item.tytul}</h3>
+                      <p>{item.miejsceNazwa}</p>
+                      <p>{item.dataRozp ? new Date(item.dataRozp).toLocaleString() : '-'}</p>
+                      <p>Do: {item.dataZamk ? new Date(item.dataZamk).toLocaleString() : '-'}</p>
+                      <p>Kategoria: {item.kategoriaNazwa}</p>
+                    </article>
+                  )) : (
+                    <p>Brak wydarzeń, które jeszcze się nie zakończyły.</p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
           
@@ -923,7 +978,7 @@ function App() {
                   </button>
                 </div>
               ) : currentUserRole === 'ADMIN' ? (
-                <div></div>
+                <p>Administratorzy nie mogą tworzyć wydarzeń.</p>
               ) : (
                 <p>Tutaj będą zarządzane wydarzenia.</p>
               )}
@@ -943,16 +998,17 @@ function App() {
             <div>
               <h2>Uczestnicy</h2>
               {currentUserRole === 'ADMIN' && (
-                <div className="participants-toolbar">
+                <div className="events-user-cta participants-admin-cta">
+                  <p>Rozważ proźby uczestników o zostanie organizatorem</p>
                   <button
                     type="button"
-                    className="btn-refresh"
+                    className="btn-new-event"
                     onClick={() => {
                       fetchOrganizerRequests();
                       setActiveTab('Wnioski organizatora');
                     }}
                   >
-                    Zgłoszenia
+                    Sprawdź proźby
                   </button>
                 </div>
               )}
@@ -965,15 +1021,13 @@ function App() {
                     <th>Email</th>
                     <th>Login</th>
                     <th>Rola</th>
-                    <th>Status</th>
                     <th>Data Utworzenia</th>
                     <th>Płatność</th>
-                    {currentUserRole === 'ADMIN' && <th>Szczegóły Bezpieczeństwa</th>}
                     {currentUserRole === 'ADMIN' && <th>Akcje</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {data.length > 0 ? data.map(user => (
+                  {visibleParticipants.length > 0 ? visibleParticipants.map(user => (
                     <tr
                       key={user.id}
                       className="participants-row"
@@ -989,39 +1043,41 @@ function App() {
                       <td>{user.email}</td>
                       <td>{user.login}</td>
                       <td>{user.rola}</td>
-                      <td>{user.aktywnosc ? "✅ Aktywny" : "❌ Nieaktywny"}</td>
                       <td>{user.dataUtw ? new Date(user.dataUtw).toLocaleString() : '-'}</td>
                       <td>{user.platnosc || 'Brak'}</td>
                       {currentUserRole === 'ADMIN' && (
                         <td>
-                          <details>
-                            <summary>Pokaz haslo/salt</summary>
-                            <div style={{ wordBreak: 'break-all', fontSize: '10px' }}>
-                              <strong>Haslo:</strong> {user.haslo}<br/>
-                              <strong>Salt:</strong> {user.salt}
-                            </div>
-                          </details>
-                        </td>
-                      )}
-                      {currentUserRole === 'ADMIN' && (
-                        <td>
-                          {user.login !== authCredentials.login && (
-                            <button
-                              type="button"
-                              className="btn-delete"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDeleteUser(user.id, user.login);
-                              }}
-                            >
-                              Usuń
-                            </button>
+                          {/* Admin nie może modyfikować własnego konta ani kont innych adminów. */}
+                          {user.login !== authCredentials.login && user.rola !== 'ADMIN' && (
+                            <>
+                              <button
+                                type="button"
+                                className="btn-delete"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeactivateUser(user.id, user.login);
+                                }}
+                              >
+                                Dezaktywuj
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-delete"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteUser(user.id, user.login);
+                                }}
+                                style={{ marginLeft: '8px' }}
+                              >
+                                Usuń
+                              </button>
+                            </>
                           )}
                         </td>
                       )}
                     </tr>
                   )) : (
-                    <tr><td colSpan={currentUserRole === 'ADMIN' ? 10 : 8}>Brak użytkowników w bazie danych.</td></tr>
+                    <tr><td colSpan={currentUserRole === 'ADMIN' ? 8 : 7}>Brak użytkowników w bazie danych.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -1091,7 +1147,7 @@ function App() {
                           </div>
                         </details>
 
-                        {selectedUser.login !== authCredentials.login && (
+                        {selectedUser.login !== authCredentials.login && selectedUser.rola !== 'ADMIN' && (
                           <button
                             type="button"
                             className="btn-delete"

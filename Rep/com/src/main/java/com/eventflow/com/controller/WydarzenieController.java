@@ -57,10 +57,35 @@ public class WydarzenieController {
 	@GetMapping("/my")
 	public ResponseEntity<List<WydarzenieListItemDto>> getMyWydarzenia(Authentication authentication) {
 		User user = requireOrgUser(authentication);
+		// ORG widzi tylko wydarzenia powiązane z własnym profilem organizatora.
 		Organizator organizator = organizatorRepository.findByUserIdAndZweryfikowTrue(user.getId())
 			.orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "Brak aktywnego profilu organizatora."));
 
 		List<WydarzenieListItemDto> result = wydarzenieRepository.findByOrgId(organizator.getId()).stream()
+			.map(w -> new WydarzenieListItemDto(
+				w.getId(),
+				w.getTytul(),
+				w.getStatus(),
+				miejsceRepository.findById(w.getMiejsceId()).map(Miejsce::getNazwa).orElse("-"),
+				kategoriaRepository.findById(w.getKategoriaId()).map(Kategoria::getNazwa).orElse("-"),
+				w.getDataRozp(),
+				w.getDataZamk()
+			))
+			.toList();
+
+		return ResponseEntity.ok(result);
+	}
+
+	@GetMapping("/open")
+	public ResponseEntity<List<WydarzenieListItemDto>> getOpenWydarzenia(Authentication authentication) {
+		if (authentication == null) {
+			throw new ResponseStatusException(UNAUTHORIZED, "Brak uwierzytelnienia.");
+		}
+
+		// Dashboard: zwracamy wydarzenia, których data zakończenia jest w przyszłości.
+		List<WydarzenieListItemDto> result = wydarzenieRepository
+			.findByDataZamkAfterOrderByDataRozpAsc(LocalDateTime.now())
+			.stream()
 			.map(w -> new WydarzenieListItemDto(
 				w.getId(),
 				w.getTytul(),
@@ -118,6 +143,7 @@ public class WydarzenieController {
 	private Long resolveKategoriaId(WydarzenieCreateRequestDto request) {
 		boolean createNowa = Boolean.TRUE.equals(request.createNowaKategoria());
 		if (createNowa) {
+			// Tworzymy kategorię "w locie" i zwracamy jej nowe ID do powiązania z wydarzeniem.
 			if (request.nowaKategoriaNazwa() == null || request.nowaKategoriaNazwa().isBlank()) {
 				throw new ResponseStatusException(BAD_REQUEST, "Podaj nazwe nowej kategorii.");
 			}

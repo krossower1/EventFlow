@@ -31,7 +31,7 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     public String deleteUser(@PathVariable Long id, Authentication authentication) {
-        // Sprawdzenie czy użytkownik jest adminem
+        // Operacje usuwania/dezaktywacji są zarezerwowane tylko dla ADMIN.
         boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
             .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
 
@@ -44,7 +44,7 @@ public class UserController {
         User currentUser = userRepository.findByLogin(currentLogin)
             .orElseThrow(() -> new RuntimeException("Nie znaleziono aktualnego użytkownika"));
 
-        // Sprawdzenie czy użytkownik próbuje usunąć siebie
+        // Dodatkowa ochrona: admin nie może usunąć samego siebie.
         if (currentUser.getId().equals(id)) {
             throw new RuntimeException("Nie możesz usunąć swojego konta");
         }
@@ -53,8 +53,48 @@ public class UserController {
         User userToDelete = userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Użytkownik nie znaleziony"));
 
+        if ("ADMIN".equalsIgnoreCase(userToDelete.getRola())) {
+            // Konta administratorów są chronione przed modyfikacją przez API.
+            throw new RuntimeException("Nie można usuwać kont administratorów");
+        }
+
         userRepository.delete(userToDelete);
         return "Użytkownik " + userToDelete.getLogin() + " został usunięty";
+    }
+
+    @PutMapping("/{id}/deactivate")
+    public String deactivateUser(@PathVariable Long id, Authentication authentication) {
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+            .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+
+        if (!isAdmin) {
+            throw new RuntimeException("Tylko administrator może dezaktywować użytkowników");
+        }
+
+        String currentLogin = authentication.getName();
+        User currentUser = userRepository.findByLogin(currentLogin)
+            .orElseThrow(() -> new RuntimeException("Nie znaleziono aktualnego użytkownika"));
+
+        if (currentUser.getId().equals(id)) {
+            throw new RuntimeException("Nie możesz dezaktywować swojego konta");
+        }
+
+        User userToDeactivate = userRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Użytkownik nie znaleziony"));
+
+        if ("ADMIN".equalsIgnoreCase(userToDeactivate.getRola())) {
+            // Konta administratorów są chronione przed modyfikacją przez API.
+            throw new RuntimeException("Nie można dezaktywować kont administratorów");
+        }
+
+        if (Boolean.FALSE.equals(userToDeactivate.getAktywnosc())) {
+            return "Użytkownik " + userToDeactivate.getLogin() + " jest już nieaktywny";
+        }
+
+        // Boolean false mapuje się na 0 w kolumnie MySQL typu tinyint(1).
+        userToDeactivate.setAktywnosc(false);
+        userRepository.save(userToDeactivate);
+        return "Użytkownik " + userToDeactivate.getLogin() + " został dezaktywowany";
     }
 
     private UserResponse mapUser(User user, boolean isAdmin) {
