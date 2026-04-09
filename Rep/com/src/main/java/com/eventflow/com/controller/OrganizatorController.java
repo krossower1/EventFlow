@@ -36,9 +36,11 @@ public class OrganizatorController {
 		@Valid @RequestBody OrganizatorRequestDto request
 	) {
 		User currentUser = getCurrentUser(authentication);
+		// ADMIN nie składa własnego wniosku o rolę organizatora.
 		if (isAdmin(currentUser)) {
 			return ResponseEntity.badRequest().body("Admin nie sklada wniosku organizatora.");
 		}
+		// Dla jednego użytkownika dopuszczamy tylko jeden aktywny wniosek.
 		if (organizatorRepository.existsByUserId(currentUser.getId())) {
 			return ResponseEntity.badRequest().body("Wniosek dla tego uzytkownika juz istnieje.");
 		}
@@ -58,6 +60,7 @@ public class OrganizatorController {
 	@GetMapping
 	public ResponseEntity<List<OrganizatorResponseDto>> getAllRequests(Authentication authentication) {
 		User currentUser = getCurrentUser(authentication);
+		// Lista wszystkich wniosków jest dostępna wyłącznie dla ADMIN.
 		if (!isAdmin(currentUser)) {
 			return ResponseEntity.status(403).build();
 		}
@@ -71,6 +74,7 @@ public class OrganizatorController {
 	@PostMapping("/{id}/approve")
 	public ResponseEntity<String> approveRequest(@PathVariable Long id, Authentication authentication) {
 		User currentUser = getCurrentUser(authentication);
+		// Tylko ADMIN może zatwierdzić wniosek i nadać rolę ORG.
 		if (!isAdmin(currentUser)) {
 			return ResponseEntity.status(403).body("Brak uprawnien.");
 		}
@@ -84,6 +88,7 @@ public class OrganizatorController {
 		organizator.setZweryfikow(true);
 		organizatorRepository.save(organizator);
 
+		// Po akceptacji aktualizujemy rolę użytkownika w tabeli users.
 		targetUser.setRola("ORG");
 		userRepository.save(targetUser);
 
@@ -93,6 +98,7 @@ public class OrganizatorController {
 	@DeleteMapping("/{id}/reject")
 	public ResponseEntity<String> rejectRequest(@PathVariable Long id, Authentication authentication) {
 		User currentUser = getCurrentUser(authentication);
+		// Odrzucanie wniosków również jest akcją administracyjną.
 		if (!isAdmin(currentUser)) {
 			return ResponseEntity.status(403).body("Brak uprawnien.");
 		}
@@ -105,6 +111,7 @@ public class OrganizatorController {
 	}
 
 	private OrganizatorResponseDto toDto(Organizator organizator) {
+		// DTO wzbogacamy o login/email z users dla czytelności panelu admina.
 		User user = userRepository.findById(organizator.getUserId()).orElse(null);
 		return new OrganizatorResponseDto(
 			organizator.getId(),
@@ -120,6 +127,7 @@ public class OrganizatorController {
 	}
 
 	private User getCurrentUser(Authentication authentication) {
+		// Wspólna metoda pobiera użytkownika z kontekstu security.
 		if (authentication == null) {
 			throw new ResponseStatusException(UNAUTHORIZED, "Brak uwierzytelnienia.");
 		}

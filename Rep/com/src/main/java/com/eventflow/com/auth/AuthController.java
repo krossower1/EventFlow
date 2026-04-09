@@ -22,6 +22,7 @@ public class AuthController {
 
 	@PostMapping("/login")
 	public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+		// Logowanie zwraca też podstawowe dane profilu potrzebne od razu w UI.
 		boolean isValid = authService.validateCredentials(request.login(), request.password());
 
 		if (isValid) {
@@ -36,6 +37,7 @@ public class AuthController {
 
 	@PostMapping("/register")
 	public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest request) {
+		// Serwis zwraca tekst błędu biznesowego albo null przy sukcesie.
 		String error = authService.registerUser(
 			request.imie(),
 			request.nazwisko(),
