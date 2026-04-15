@@ -1,39 +1,54 @@
 package com.eventflow.com.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
 @Data
 public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // bigint unsigned -> Long
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    private String imie;
-    private String nazwisko;
+	private String imie;
+	private String nazwisko;
 
-    @Column(nullable = false, unique = true)
-    private String email;
+	@Column(nullable = false, unique = true)
+	private String email;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String login;
+	@Column(nullable = false, unique = true)
+	private String login;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String haslo;
+	@Column(columnDefinition = "TEXT", nullable = false)
+	private String haslo;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String salt;
+	@Column(columnDefinition = "TEXT", nullable = false)
+	private String salt;
 
-    @Column(columnDefinition = "TEXT")
-    private String platnosc;
+	@Column(name = "email_verified")
+	private Boolean emailVerified = false;
 
-    private String rola;
+	@Column(length = 6)
+	private String verificationCode;
 
-    @Column(name = "data_utw")
-    private LocalDateTime dataUtw;
+	@Column(name = "verification_code_expires_at")
+	private LocalDateTime verificationCodeExpiresAt;
 
-    private Boolean aktywnosc; // tinyint(1) -> Boolean
+	@Column(columnDefinition = "TEXT")
+	private String platnosc;
+
+	private String rola;
+
+	@Column(name = "data_utw")
+	private LocalDateTime dataUtw;
+
+	private Boolean aktywnosc;
 }

@@ -21,6 +21,11 @@ function App() {
     login: '',
     password: ''
   });
+  const [verificationForm, setVerificationForm] = useState({
+    email: '',
+    code: ''
+  });
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState('');
 
   useEffect(() => {
     const savedRememberMe = localStorage.getItem('rememberMe') === 'true';
@@ -85,6 +90,7 @@ function App() {
     opis: ''
   });
   const [salaForms, setSalaForms] = useState({});
+  const [hideAdmins, setHideAdmins] = useState(false);
   const [wydarzenieOptions, setWydarzenieOptions] = useState({ miejsca: [], kategorie: [] });
   const [wydarzenieLoading, setWydarzenieLoading] = useState(false);
   const [myWydarzenia, setMyWydarzenia] = useState([]);
@@ -197,7 +203,8 @@ function App() {
     try {
       const response = await axios.post('http://localhost:8081/api/auth/register', registerForm);
       if (response.data.success) {
-        setStatus({ type: 'success', message: 'Rejestracja udana. Możesz się teraz zalogować.' });
+        setStatus({ type: 'success', message: 'Konto utworzone poprawnie.' });
+        setPendingVerificationEmail(registerForm.email);
         setMode('login');
         setLoginForm({
           login: registerForm.login,
@@ -208,6 +215,26 @@ function App() {
       }
     } catch (error) {
       const message = error.response?.data?.message || 'Registration failed.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const onVerifySubmit = async (event) => {
+    event.preventDefault();
+    setStatus({ type: '', message: '' });
+
+    try {
+      const response = await axios.post('http://localhost:8081/api/auth/verify-email', verificationForm);
+      if (response.data.success) {
+        setStatus({ type: 'success', message: 'Konto zostało zweryfikowane. Możesz się teraz zalogować.' });
+        setVerificationForm({ email: '', code: '' });
+        setPendingVerificationEmail('');
+        setMode('login');
+      } else {
+        setStatus({ type: 'error', message: response.data.message || 'Weryfikacja nie powiodła się.' });
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Weryfikacja nie powiodła się.';
       setStatus({ type: 'error', message });
     }
   };
@@ -472,25 +499,33 @@ function App() {
       <div className="auth-page">
         <div className="auth-card">
           <h1>
-            <img src="/eventflow_icon.png" alt="EventFlow Icon" className="logo-icon" />
+            <img src="/image(1).ico" alt="EventFlow Icon" className="logo-icon" />
             EventFlow
           </h1>
-          <div className="auth-tabs">
-            <button
-              type="button"
-              className={mode === 'login' ? 'active' : ''}
-              onClick={() => setMode('login')}
-            >
-              Logowanie
-            </button>
-            <button
-              type="button"
-              className={mode === 'register' ? 'active' : ''}
-              onClick={() => setMode('register')}
-            >
-              Rejestracja
-            </button>
-          </div>
+          {mode !== 'verify' && (
+            <div className="auth-tabs">
+              <button
+                type="button"
+                className={mode === 'login' ? 'active' : ''}
+                onClick={() => {
+                  setMode('login');
+                  setStatus({ type: '', message: '' });
+                }}
+              >
+                Logowanie
+              </button>
+              <button
+                type="button"
+                className={mode === 'register' ? 'active' : ''}
+                onClick={() => {
+                  setMode('register');
+                  setStatus({ type: '', message: '' });
+                }}
+              >
+                Rejestracja
+              </button>
+            </div>
+          )}
 
           {mode === 'login' ? (
             <form onSubmit={onLoginSubmit} className="auth-form">
@@ -525,8 +560,24 @@ function App() {
               </div>
 
               <button type="submit">Zaloguj się</button>
+              {pendingVerificationEmail && (
+                <div className="verification-note">
+                  
+                  <button
+                    type="button"
+                    className="weryfikacja"
+                    onClick={() => {
+                      setMode('verify');
+                      setVerificationForm((prev) => ({ ...prev, email: pendingVerificationEmail, code: '' }));
+                      setStatus({ type: '', message: '' });
+                    }}
+                  >
+                    Naciśnij
+                  </button> aby zweryfikować.
+                </div>
+              )}
             </form>
-          ) : (
+          ) : mode === 'register' ? (
             <form onSubmit={onRegisterSubmit} className="auth-form">
               <label htmlFor="imie">Imie</label>
               <input
@@ -576,6 +627,38 @@ function App() {
 
               <button type="submit">Utwórz konto</button>
             </form>
+          ) : (
+            <form onSubmit={onVerifySubmit} className="auth-form">
+              <label htmlFor="verify-email">Email</label>
+              <input
+                id="verify-email"
+                type="email"
+                value={verificationForm.email}
+                onChange={(event) => setVerificationForm({ ...verificationForm, email: event.target.value })}
+                required
+              />
+
+              <label htmlFor="verify-code">Kod weryfikacyjny</label>
+              <input
+                id="verify-code"
+                type="text"
+                value={verificationForm.code}
+                onChange={(event) => setVerificationForm({ ...verificationForm, code: event.target.value })}
+                required
+              />
+
+              <button type="submit">Zweryfikuj konto</button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setMode('login');
+                  setStatus({ type: '', message: '' });
+                }}
+              >
+                Powrót do logowania
+              </button>
+            </form>
           )}
 
           {status.message && <p className={`status-message ${status.type}`}>{status.message}</p>}
@@ -586,7 +669,7 @@ function App() {
 
   const navItems = ['Panel główny', 'Wydarzenia', 'Bilety', 'Uczestnicy', 'Miejsca', 'Analityka', 'Ustawienia'];
   // Nie pokazujemy kont nieaktywnych w tabeli Uczestnicy.
-  const visibleParticipants = data.filter((user) => user.aktywnosc !== false);
+  const visibleParticipants = data.filter((user) => user.aktywnosc !== false && (!hideAdmins || user.rola !== 'ADMIN'));
   const filteredWydarzenia = myWydarzenia.filter((item) => {
     const matchesText = !wydarzeniaSearch
       || item.tytul?.toLowerCase().includes(wydarzeniaSearch.toLowerCase())
@@ -596,11 +679,13 @@ function App() {
     return matchesText && matchesStatus;
   });
 
+  const pendingOrganizerRequestCount = organizerRequests.filter((item) => !item.zweryfikow).length;
+
   return (
     <div className="app-layout">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <img src="/eventflow_icon.png" alt="EventFlow" />
+          <img src="/image(1).ico" alt="EventFlow" />
           <div className="logo-text">
             <span>EventFlow</span>
           </div>
@@ -697,16 +782,6 @@ function App() {
               </button>
             )}
 
-            {currentUserRole === 'ORG' && (
-              <button
-                type="button"
-                className="btn-quick-action"
-                onClick={() => setActiveTab('Dodaj miejsce ORG')}
-              >
-                Dodaj miejsce
-              </button>
-            )}
-
             <div className="account-menu-wrapper">
               <button
                 type="button"
@@ -759,6 +834,7 @@ function App() {
                       nowaKategoriaNazwa: '',
                       nowaKategoriaOpis: ''
                     });
+                    setHideAdmins(false);
                     setStatus({ type: '', message: '' });
                     setLoginForm({ login: '', password: '' });
                     setTabHistory([]);
@@ -783,14 +859,24 @@ function App() {
                 <h3>Trwające i nadchodzące wydarzenia</h3>
                 <div className="events-grid">
                   {/* Karty na dashboardzie celowo używają tego samego stylu co zakładka Wydarzenia. */}
-                  {openWydarzenia.length > 0 ? openWydarzenia.map((item) => (
+                  {openWydarzenia.length > 0 ? openWydarzenia.slice(0, 3).map((item) => (
                     <article key={item.id} className="event-card">
                       <span className="event-badge">{(item.status || 'aktywne').toLowerCase()}</span>
                       <h3>{item.tytul}</h3>
-                      <p>{item.miejsceNazwa}</p>
-                      <p>{item.dataRozp ? new Date(item.dataRozp).toLocaleString() : '-'}</p>
-                      <p>Do: {item.dataZamk ? new Date(item.dataZamk).toLocaleString() : '-'}</p>
-                      <p>Kategoria: {item.kategoriaNazwa}</p>
+                      <div className="event-card-grid">
+                        <div className="event-card-column event-card-column--labels">
+                          <div className="event-card-row"><strong>Nazwa</strong></div>
+                          <div className="event-card-row"><strong>Od</strong></div>
+                          <div className="event-card-row"><strong>Do</strong></div>
+                          <div className="event-card-row"><strong>Kategoria</strong></div>
+                        </div>
+                        <div className="event-card-column event-card-column--values">
+                          <div className="event-card-row">{item.miejsceNazwa}</div>
+                          <div className="event-card-row">{item.dataRozp ? new Date(item.dataRozp).toLocaleString() : '-'}</div>
+                          <div className="event-card-row">{item.dataZamk ? new Date(item.dataZamk).toLocaleString() : '-'}</div>
+                          <div className="event-card-row">{item.kategoriaNazwa}</div>
+                        </div>
+                      </div>
                     </article>
                   )) : (
                     <p>Brak wydarzeń, które jeszcze się nie zakończyły.</p>
@@ -999,7 +1085,7 @@ function App() {
               <h2>Uczestnicy</h2>
               {currentUserRole === 'ADMIN' && (
                 <div className="events-user-cta participants-admin-cta">
-                  <p>Rozważ proźby uczestników o zostanie organizatorem</p>
+                  <p>Rozważ prośby uczestników o zostanie organizatorem</p>
                   <button
                     type="button"
                     className="btn-new-event"
@@ -1008,8 +1094,19 @@ function App() {
                       setActiveTab('Wnioski organizatora');
                     }}
                   >
-                    Sprawdź proźby
+                    Sprawdź prośby
+                    {pendingOrganizerRequestCount > 0 && (
+                      <> ({pendingOrganizerRequestCount} aktywn{pendingOrganizerRequestCount === 1 ? 'y wniosek' : 'ych wniosków'})</>
+                    )}
                   </button>
+                  <button
+                    type="button"
+                    className="show-admins-toggle"
+                    onClick={() => setHideAdmins((prev) => !prev)}
+                  >
+                    {hideAdmins ? 'Pokaż adminów' : 'Schowaj adminów'}
+                  </button>
+                  
                 </div>
               )}
 
@@ -1168,6 +1265,15 @@ function App() {
             <div>
               <h2>Miejsca</h2>
               <p>Tutaj będą zarządzane miejsca.</p>
+              {currentUserRole === 'ORG' && (
+                <button
+                  type="button"
+                  className="btn-quick-action"
+                  onClick={() => setActiveTab('Dodaj miejsce ORG')}
+                >
+                  Dodaj miejsce
+                </button>
+              )}
             </div>
           )}
           

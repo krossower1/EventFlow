@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 9.6.0, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.45, for Win64 (x86_64)
 --
 -- Host: localhost    Database: event_flow
 -- ------------------------------------------------------
--- Server version	9.6.0
+-- Server version	8.0.45
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -90,7 +90,7 @@ CREATE TABLE `organizator` (
   `zweryfikow` bit(1) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UK_4gcjcqm4bx4fw68tl0jym5oaf` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -99,7 +99,7 @@ CREATE TABLE `organizator` (
 
 LOCK TABLES `organizator` WRITE;
 /*!40000 ALTER TABLE `organizator` DISABLE KEYS */;
-INSERT INTO `organizator` VALUES (1,'2026-04-08 11:34:07.635557','asd','null','a.com',6,_binary ''),(2,'2026-04-08 13:50:54.916522','MARBUD','Jakieś tam','www.google.com',8,_binary ''),(3,'2026-04-09 16:29:58.015035','A','A','A',10,_binary ''),(4,'2026-04-09 17:20:58.824777','Fakro','Niskie','8.8.8.8',13,_binary '');
+INSERT INTO `organizator` VALUES (1,'2026-04-08 11:34:07.635557','asd','null','a.com',6,_binary ''),(2,'2026-04-08 13:50:54.916522','MARBUD','Jakieś tam','www.google.com',8,_binary ''),(3,'2026-04-09 16:29:58.015035','A','A','A',10,_binary ''),(4,'2026-04-09 17:20:58.824777','Fakro','Niskie','8.8.8.8',13,_binary ''),(5,'2026-04-15 13:39:17.462067','ss','ss','ss',14,_binary '');
 /*!40000 ALTER TABLE `organizator` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -153,11 +153,14 @@ CREATE TABLE `users` (
   `rola` varchar(50) DEFAULT NULL,
   `data_utw` timestamp NULL DEFAULT NULL,
   `aktywnosc` tinyint(1) DEFAULT NULL,
+  `email_verified` bit(1) DEFAULT NULL,
+  `verification_code` text,
+  `verification_code_expires_at` datetime(6) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `UK_r43af9ap4edm43mmtq01oddj6` (`login`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -166,7 +169,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'Mateusz','Chochorowski','admin@example.com','admin','$2a$10$UOBujPQuCzaeCC5ok1lCIuLQ4lAn0PvYgv91bCNcKE6eNPsQkseFS','4046f48c-a02e-4680-9b3c-0c536cea0adc',NULL,'ADMIN','2026-03-25 15:08:36',1),(5,'Adam','Kowalski','an@gmail.com','AKowal','$2a$10$N5B5xCSXbYM1.L14/Dy8TOq6XmC5uJIY.u2i3DjliCyDSfFRR/Tiq','216c5ddf-666e-47f5-90c3-eec37c437897',NULL,'ADMIN','2026-04-08 08:53:14',1),(7,'Q','Q','Q@q.q','Q','$2a$10$wUJr39H3JdXbcV7aBJ.0TeTJ73HizpQEmlfJA9XMlXw1kBTwvRjqG','780c43fd-1f59-41ac-aed9-59abfb68d627',NULL,'USER','2026-04-08 09:40:47',0),(11,'Adam','Kowalski','admin@gmail.com','adm','$2a$10$sS4Te9WEyKCL2BY0ESBT0edfHIUNbuXlyNC1L7qfWJV.eWYndgoAK','06571e84-7541-45e4-9e8b-cf05f8ac9604',NULL,'ADMIN','2026-04-09 15:15:19',1),(12,'Jan','Kowalski','user@gmail.com','usr','$2a$10$Mby6U0S6M08sZdcCrf9aPufSdqK6ktKidwgdWwFQ8SCSMOHxbjOaO','f9acbba7-671b-46d8-8f38-55fb1897bbc2',NULL,'USER','2026-04-09 15:16:00',1),(13,'Adrian','Kowalski','organizator@gmail.com','org','$2a$10$J8T6uDr.arVEmqQTiItMrunLAxG.VPWnUQdHBTDdfcvkIGpwRet0u','7a4301f8-21b7-42b5-ab36-b4d6d0c5dac8',NULL,'ORG','2026-04-09 15:16:24',1);
+INSERT INTO `users` VALUES (1,'Mateusz','Chochorowski','admin@example.com','admin','$2a$10$UOBujPQuCzaeCC5ok1lCIuLQ4lAn0PvYgv91bCNcKE6eNPsQkseFS','4046f48c-a02e-4680-9b3c-0c536cea0adc',NULL,'ADMIN','2026-03-25 15:08:36',1,_binary '',NULL,NULL),(5,'Adam','Kowalski','an@gmail.com','AKowal','$2a$10$N5B5xCSXbYM1.L14/Dy8TOq6XmC5uJIY.u2i3DjliCyDSfFRR/Tiq','216c5ddf-666e-47f5-90c3-eec37c437897',NULL,'ADMIN','2026-04-08 08:53:14',1,NULL,NULL,NULL),(7,'Q','Q','Q@q.q','Q','$2a$10$wUJr39H3JdXbcV7aBJ.0TeTJ73HizpQEmlfJA9XMlXw1kBTwvRjqG','780c43fd-1f59-41ac-aed9-59abfb68d627',NULL,'USER','2026-04-08 09:40:47',0,NULL,NULL,NULL),(11,'Adam','Kowalski','admin@gmail.com','adm','$2a$10$sS4Te9WEyKCL2BY0ESBT0edfHIUNbuXlyNC1L7qfWJV.eWYndgoAK','06571e84-7541-45e4-9e8b-cf05f8ac9604',NULL,'ADMIN','2026-04-09 15:15:19',1,NULL,NULL,NULL),(12,'Jan','Kowalski','user@gmail.com','usr','$2a$10$Mby6U0S6M08sZdcCrf9aPufSdqK6ktKidwgdWwFQ8SCSMOHxbjOaO','f9acbba7-671b-46d8-8f38-55fb1897bbc2',NULL,'USER','2026-04-09 15:16:00',1,NULL,NULL,NULL),(13,'Adrian','Kowalski','organizator@gmail.com','org','$2a$10$J8T6uDr.arVEmqQTiItMrunLAxG.VPWnUQdHBTDdfcvkIGpwRet0u','7a4301f8-21b7-42b5-ab36-b4d6d0c5dac8',NULL,'ORG','2026-04-09 15:16:24',1,NULL,NULL,NULL),(14,'Jan','Chochorowski','jchochorowski@gmail.com','jchochorowski08102004','$2a$10$Zs9uEoXU4hKH9kfVx9kkqOQXzJc/xl.cW0Ij/rTF2zZW1aL4HXs8G','6a4ea4c8-fe99-49ce-a34a-f8b7772f6940',NULL,'ORG','2026-04-15 10:28:01',1,NULL,NULL,NULL),(24,'hh','hh','mch@gmail.com','user','$2a$10$JqjYiaEL.0OmuctMldNm4./fy7m/PdgHa6m2Uzm2WGx1agqIA29yS','98bb6a11-eaee-49b9-99a8-ce99426559c6',NULL,'USER','2026-04-15 13:14:06',1,NULL,NULL,NULL),(25,'ss','ss','s@gmail.com','ss','$2a$10$9B7iUmVfEnFlYJPy2ugsh.2tWBBu3axxRq48BTsXUbZ9ntEDp5NES','3d6d69f4-3607-4ccc-95a3-286bbff09124',NULL,'USER','2026-04-15 13:25:25',1,NULL,NULL,NULL),(26,'Test','User','eventflow.test.c2e00fed@example.com','test4e373fd4','$2a$10$x2rHk0Y0cT/KEk8ERzGLeOJ51PGGgFamaPruVSWU3DXXRtaZhCyTq','Y8GWQD3D35MYFWJ3V7QSU2CR4PGMV7EN',NULL,'USER','2026-04-15 14:32:18',1,_binary '',NULL,NULL),(28,'mm','mm','mchochorowski1@gmail.com','mm','$2a$10$z6Y5mdRuarycEGvembllVuOUmNdiNctvfFu6GsecSUSC.CQGcU88W','HCC3DPGW3YSVN8WHKMJQJKXLAY9DNC79',NULL,'USER','2026-04-15 14:47:16',1,_binary '',NULL,NULL);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -219,4 +222,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-09 19:35:06
+-- Dump completed on 2026-04-15 18:49:59

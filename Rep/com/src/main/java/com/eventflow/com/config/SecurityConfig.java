@@ -30,6 +30,7 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/login").permitAll() // Logowanie jest jawne
 						.requestMatchers("/api/auth/register").permitAll()
+						.requestMatchers("/api/auth/verify-email").permitAll()
 						.requestMatchers("/api/users/**").authenticated()
 						.anyRequest().authenticated()                  // Reszta nadal zablokowana
 				)
