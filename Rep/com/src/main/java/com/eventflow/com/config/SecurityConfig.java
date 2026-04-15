@@ -3,6 +3,8 @@ package com.eventflow.com.config;
 import com.eventflow.com.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -26,14 +28,22 @@ public class SecurityConfig {
 		http
 			.csrf(csrf -> csrf.disable())
 			.cors(Customizer.withDefaults())
-			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/login").permitAll() // Logowanie jest jawne
 						.requestMatchers("/api/auth/register").permitAll()
 						.requestMatchers("/api/auth/verify-email").permitAll()
+						.requestMatchers("/api/auth/logout").permitAll()
 						.requestMatchers("/api/users/**").authenticated()
 						.anyRequest().authenticated()                  // Reszta nadal zablokowana
 				)
+			.logout(logout -> logout
+				.logoutUrl("/api/auth/logout")
+				.invalidateHttpSession(true)
+				.clearAuthentication(true)
+				.deleteCookies("JSESSIONID")
+				.logoutSuccessHandler((request, response, authentication) -> response.setStatus(200))
+			)
 			.httpBasic(Customizer.withDefaults());
 
 		return http.build();
@@ -45,10 +55,16 @@ public class SecurityConfig {
 		configuration.setAllowedOrigins(List.of("http://localhost:3000"));
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		configuration.setAllowedHeaders(List.of("*"));
+		configuration.setAllowCredentials(true);
 
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", configuration);
 		return source;
+	}
+
+	@Bean
+	public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+		return configuration.getAuthenticationManager();
 	}
 
 	@Bean

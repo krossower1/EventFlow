@@ -35,6 +35,10 @@ public class AuthService {
 			.orElse(false);
 	}
 
+	public Optional<User> findUserByLogin(String login) {
+		return userRepository.findByLogin(login);
+	}
+
 	public String getUserRole(String login) {
 		return userRepository.findByLogin(login)
 			.map(User::getRola)

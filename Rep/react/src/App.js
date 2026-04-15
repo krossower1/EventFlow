@@ -2,11 +2,15 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import './App.css';
 
+const API_BASE_URL = 'http://localhost:8081/api';
+
 function App() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState('');
+  const [currentUserLogin, setCurrentUserLogin] = useState('');
   const [authCredentials, setAuthCredentials] = useState({ login: '', password: '' });
   const [currentUserName, setCurrentUserName] = useState({ imie: '', nazwisko: '' });
   const [mode, setMode] = useState('login');
@@ -117,12 +121,60 @@ function App() {
     return { Authorization: `Basic ${basicToken}` };
   };
 
+  const getRequestConfig = (includeBasicAuth = true) => {
+    const config = {
+      withCredentials: true
+    };
+
+    if (includeBasicAuth && authCredentials.login && authCredentials.password) {
+      config.headers = getAuthHeaders();
+    }
+
+    return config;
+  };
+
+  const applyAuthenticatedUser = useCallback((user, credentials = null) => {
+    if (credentials) {
+      setAuthCredentials(credentials);
+    }
+    setIsLoggedIn(true);
+    setCurrentUserLogin(user.login || '');
+    setCurrentUserRole(user.rola || '');
+    setCurrentUserName({
+      imie: user.imie || '',
+      nazwisko: user.nazwisko || ''
+    });
+  }, []);
+
+  const checkExistingSession = useCallback(async () => {
+  // Jeśli użytkownik wylogował się ręcznie, nie sprawdzaj sesji dopóki znowu się nie zaloguje
+  if (localStorage.getItem('explicitLogout') === 'true') {
+    setSessionLoading(false);
+    return;
+  }
+
+  try {
+    // Wysyłamy TYLKO JEDNO zapytanie, żeby sprawdzić czy serwer nas pamięta (ciasteczko)
+    const response = await axios.get(`${API_BASE_URL}/auth/me`, { withCredentials: true });
+    
+    if (response.data && response.data.login) {
+       applyAuthenticatedUser(response.data);
+    } else {
+       // Jeśli serwer zwrócił pusty obiekt, traktujemy jako brak sesji
+       setIsLoggedIn(false);
+    }
+  } catch (error) {
+    // 401 Unauthorized lub brak sesji - to normalne, ustawiamy stan na wylogowany
+    setIsLoggedIn(false);
+  } finally {
+    setSessionLoading(false);
+  }
+}, [applyAuthenticatedUser]);
+
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:8081/api/users', {
-        headers: getAuthHeaders()
-      });
+      const response = await axios.get(`${API_BASE_URL}/users`, getRequestConfig());
       setData(response.data);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -131,6 +183,10 @@ function App() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    checkExistingSession();
+  }, [checkExistingSession]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -151,9 +207,7 @@ function App() {
   const fetchOrganizerRequests = async () => {
     setOrganizerLoading(true);
     try {
-      const response = await axios.get('http://localhost:8081/api/organizator', {
-        headers: getAuthHeaders()
-      });
+      const response = await axios.get(`${API_BASE_URL}/organizator`, getRequestConfig());
       setOrganizerRequests(response.data);
     } catch (error) {
       const message = error.response?.data?.message || 'Nie udalo sie pobrac wnioskow organizatora.';
@@ -168,11 +222,18 @@ function App() {
     setStatus({ type: '', message: '' });
 
     try {
-      const response = await axios.post('http://localhost:8081/api/auth/login', loginForm);
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, loginForm, getRequestConfig(false));
       if (response.data.success) {
-        setAuthCredentials({ login: loginForm.login, password: loginForm.password });
-        setIsLoggedIn(true);
-        setCurrentUserRole(response.data.rola || '');
+        localStorage.removeItem('explicitLogout');
+        applyAuthenticatedUser(
+          {
+            login: loginForm.login,
+            rola: response.data.rola || '',
+            imie: response.data.imie || '',
+            nazwisko: response.data.nazwisko || ''
+          },
+          { login: loginForm.login, password: loginForm.password }
+        );
         setCurrentUserName({
           imie: response.data.imie || '',
           nazwisko: response.data.nazwisko || ''
@@ -201,7 +262,7 @@ function App() {
     setStatus({ type: '', message: '' });
 
     try {
-      const response = await axios.post('http://localhost:8081/api/auth/register', registerForm);
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, registerForm, getRequestConfig(false));
       if (response.data.success) {
         setStatus({ type: 'success', message: 'Konto utworzone poprawnie.' });
         setPendingVerificationEmail(registerForm.email);
@@ -224,7 +285,7 @@ function App() {
     setStatus({ type: '', message: '' });
 
     try {
-      const response = await axios.post('http://localhost:8081/api/auth/verify-email', verificationForm);
+      const response = await axios.post(`${API_BASE_URL}/auth/verify-email`, verificationForm, getRequestConfig(false));
       if (response.data.success) {
         setStatus({ type: 'success', message: 'Konto zostało zweryfikowane. Możesz się teraz zalogować.' });
         setVerificationForm({ email: '', code: '' });
@@ -244,11 +305,7 @@ function App() {
     setStatus({ type: '', message: '' });
 
     try {
-      const response = await axios.post(
-        'http://localhost:8081/api/organizator/request',
-        organizerForm,
-        { headers: getAuthHeaders() }
-      );
+      const response = await axios.post(`${API_BASE_URL}/organizator/request`, organizerForm, getRequestConfig());
       setStatus({ type: 'success', message: response.data || 'Wniosek zostal wyslany.' });
       setOrganizerForm({ firma: '', kwalifikacje: '', strona: '' });
     } catch (error) {
@@ -259,11 +316,7 @@ function App() {
 
   const onApproveOrganizer = async (id) => {
     try {
-      await axios.post(
-        `http://localhost:8081/api/organizator/${id}/approve`,
-        {},
-        { headers: getAuthHeaders() }
-      );
+      await axios.post(`${API_BASE_URL}/organizator/${id}/approve`, {}, getRequestConfig());
       setStatus({ type: 'success', message: 'Wniosek zatwierdzony.' });
       fetchOrganizerRequests();
       fetchUsers();
@@ -275,9 +328,7 @@ function App() {
 
   const onRejectOrganizer = async (id) => {
     try {
-      await axios.delete(`http://localhost:8081/api/organizator/${id}/reject`, {
-        headers: getAuthHeaders()
-      });
+      await axios.delete(`${API_BASE_URL}/organizator/${id}/reject`, getRequestConfig());
       setStatus({ type: 'success', message: 'Wniosek odrzucony i usuniety.' });
       fetchOrganizerRequests();
     } catch (error) {
@@ -292,9 +343,7 @@ function App() {
     }
 
     try {
-      await axios.delete(`http://localhost:8081/api/users/${userId}`, {
-        headers: getAuthHeaders()
-      });
+      await axios.delete(`${API_BASE_URL}/users/${userId}`, getRequestConfig());
       setStatus({ type: 'success', message: `Użytkownik ${userLogin} został usunięty.` });
       fetchUsers();
     } catch (error) {
@@ -309,9 +358,7 @@ function App() {
     }
 
     try {
-      await axios.put(`http://localhost:8081/api/users/${userId}/deactivate`, {}, {
-        headers: getAuthHeaders()
-      });
+      await axios.put(`${API_BASE_URL}/users/${userId}/deactivate`, {}, getRequestConfig());
       setStatus({ type: 'success', message: `Użytkownik ${userLogin} został dezaktywowany.` });
       fetchUsers();
     } catch (error) {
@@ -323,9 +370,7 @@ function App() {
   const fetchMyMiejsca = async () => {
     setMiejscaLoading(true);
     try {
-      const response = await axios.get('http://localhost:8081/api/miejsca/my', {
-        headers: getAuthHeaders()
-      });
+      const response = await axios.get(`${API_BASE_URL}/miejsca/my`, getRequestConfig());
       setMiejsca(response.data);
     } catch (error) {
       const message = error.response?.data?.message || 'Nie udalo sie pobrac miejsc.';
@@ -341,13 +386,13 @@ function App() {
 
     try {
       await axios.post(
-        'http://localhost:8081/api/miejsca',
+        `${API_BASE_URL}/miejsca`,
         {
           ...miejsceForm,
           pojemnosc: Number(miejsceForm.pojemnosc),
           panstwo: 'Polska'
         },
-        { headers: getAuthHeaders() }
+        getRequestConfig()
       );
       setStatus({ type: 'success', message: 'Miejsce zostalo dodane.' });
       setMiejsceForm({
@@ -387,14 +432,14 @@ function App() {
 
     try {
       await axios.post(
-        `http://localhost:8081/api/miejsca/${miejsceId}/sale`,
+        `${API_BASE_URL}/miejsca/${miejsceId}/sale`,
         {
           nazwa: form.nazwa,
           pojemnosc: Number(form.pojemnosc),
           pietro: Number(form.pietro),
           maPlan: Boolean(form.maPlan)
         },
-        { headers: getAuthHeaders() }
+        getRequestConfig()
       );
       setStatus({ type: 'success', message: 'Sala zostala dodana.' });
       setSalaForms((prev) => ({
@@ -411,9 +456,7 @@ function App() {
   const fetchWydarzeniaOptions = async () => {
     setWydarzenieLoading(true);
     try {
-      const response = await axios.get('http://localhost:8081/api/wydarzenia/options', {
-        headers: getAuthHeaders()
-      });
+      const response = await axios.get(`${API_BASE_URL}/wydarzenia/options`, getRequestConfig());
       setWydarzenieOptions(response.data);
     } catch (error) {
       const message = error.response?.data?.message || 'Nie udalo sie pobrac opcji formularza wydarzenia.';
@@ -425,9 +468,7 @@ function App() {
 
   const fetchMyWydarzenia = async () => {
     try {
-      const response = await axios.get('http://localhost:8081/api/wydarzenia/my', {
-        headers: getAuthHeaders()
-      });
+      const response = await axios.get(`${API_BASE_URL}/wydarzenia/my`, getRequestConfig());
       setMyWydarzenia(response.data);
     } catch (error) {
       const message = error.response?.data?.message || 'Nie udalo sie pobrac listy wydarzen.';
@@ -438,9 +479,7 @@ function App() {
   const fetchOpenWydarzenia = async () => {
     try {
       // Endpoint zwraca tylko wydarzenia, które jeszcze się nie zakończyły.
-      const response = await axios.get('http://localhost:8081/api/wydarzenia/open', {
-        headers: getAuthHeaders()
-      });
+      const response = await axios.get(`${API_BASE_URL}/wydarzenia/open`, getRequestConfig());
       setOpenWydarzenia(response.data);
     } catch (error) {
       const message = error.response?.data?.message || 'Nie udalo sie pobrac aktualnych wydarzen.';
@@ -454,7 +493,7 @@ function App() {
 
     try {
       await axios.post(
-        'http://localhost:8081/api/wydarzenia',
+        `${API_BASE_URL}/wydarzenia`,
         {
           miejsceId: Number(wydarzenieForm.miejsceId),
           tytul: wydarzenieForm.tytul,
@@ -468,7 +507,7 @@ function App() {
           nowaKategoriaNazwa: wydarzenieForm.nowaKategoriaNazwa,
           nowaKategoriaOpis: wydarzenieForm.nowaKategoriaOpis
         },
-        { headers: getAuthHeaders() }
+        getRequestConfig()
       );
 
       setStatus({ type: 'success', message: 'Wydarzenie zostalo dodane.' });
@@ -493,6 +532,62 @@ function App() {
       setStatus({ type: 'error', message });
     }
   };
+
+const onLogout = async () => {
+  try {
+    // 1. Informujemy backend o zakończeniu sesji
+    await axios.post(`${API_BASE_URL}/auth/logout`, {}, getRequestConfig(false));
+  } catch (error) {
+    console.error('Logout request failed:', error);
+  } finally {
+    // 2. CZYŚCIMY WSZYSTKO LOKALNIE
+    
+    // Usuwamy dane autologowania
+    localStorage.removeItem('rememberedLogin');
+    localStorage.removeItem('rememberMe');
+    
+    // Ustawiamy flagę, żeby checkExistingSession wiedziało, że wyszliśmy świadomie
+    localStorage.setItem('explicitLogout', 'true');
+
+    // Resetujemy stany autoryzacji w React
+    setIsLoggedIn(false);
+    setCurrentUserRole('');
+    setCurrentUserLogin('');
+    setAuthCredentials({ login: '', password: '' });
+    setCurrentUserName({ imie: '', nazwisko: '' });
+
+    // Czyścimy formularze i UI
+    setLoginForm({ login: '', password: '' });
+    setRememberMe(false);
+    setAccountMenuOpen(false);
+    setActiveTab('Panel główny');
+    setTabHistory([]);
+    
+    // Czyścimy dane pobrane z bazy, aby nie zostały w pamięci RAM
+    setData([]);
+    setOpenWydarzenia([]);
+    setMyWydarzenia([]);
+
+    // 3. Czyścimy ciasteczko po stronie przeglądarki
+    document.cookie = "JSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    
+    console.log("Wylogowano pomyślnie i wyczyszczono sesję.");
+  }
+};
+
+  if (sessionLoading) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card">
+          <h1>
+            <img src="/image(1).ico" alt="EventFlow Icon" className="logo-icon" />
+            EventFlow
+          </h1>
+          <p>Sprawdzanie aktywnej sesji...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
@@ -792,56 +887,12 @@ function App() {
                 <img src="/account.png" alt="Konto" />
               </button>
               <div className={`account-menu ${accountMenuOpen ? 'open' : ''}`}>
-                <button
-                  type="button"
-                  className="account-menu-item"
-                  onClick={() => {
-                    setAccountMenuOpen(false);
-                    setIsLoggedIn(false);
-                    setCurrentUserRole('');
-                    setAuthCredentials({ login: '', password: '' });
-                    setCurrentUserName({ imie: '', nazwisko: '' });
-                    setData([]);
-                    setOrganizerRequests([]);
-                    setOrganizerForm({ firma: '', kwalifikacje: '', strona: '' });
-                    setMiejsca([]);
-                    setMiejsceForm({
-                      nazwa: '',
-                      panstwo: 'Polska',
-                      miasto: '',
-                      ulica: '',
-                      kodPoczt: '',
-                      pojemnosc: '',
-                      opis: ''
-                    });
-                    setSalaForms({});
-                    setWydarzenieOptions({ miejsca: [], kategorie: [] });
-                    setMyWydarzenia([]);
-                    setOpenWydarzenia([]);
-                    setShowWydarzenieForm(false);
-                    setWydarzeniaSearch('');
-                    setWydarzeniaStatusFilter('ALL');
-                    setWydarzenieForm({
-                      miejsceId: '',
-                      tytul: '',
-                      opis: '',
-                      kategoriaId: '',
-                      rola: '',
-                      status: '',
-                      dataRozp: '',
-                      dataZamk: '',
-                      createNowaKategoria: false,
-                      nowaKategoriaNazwa: '',
-                      nowaKategoriaOpis: ''
-                    });
-                    setHideAdmins(false);
-                    setStatus({ type: '', message: '' });
-                    setLoginForm({ login: '', password: '' });
-                    setTabHistory([]);
-                    skipTabHistoryPushRef.current = true;
-                    prevActiveTabRef.current = 'Panel główny';
-                    setActiveTab('Panel główny');
-                  }}
+              <button
+                type="button"
+                className="account-menu-item"
+                onClick={() => {
+                  onLogout(); // To wystarczy, cała logika jest teraz wewnątrz onLogout
+                }}
                 >
                   Wyloguj
                 </button>
@@ -1145,7 +1196,7 @@ function App() {
                       {currentUserRole === 'ADMIN' && (
                         <td>
                           {/* Admin nie może modyfikować własnego konta ani kont innych adminów. */}
-                          {user.login !== authCredentials.login && user.rola !== 'ADMIN' && (
+                          {user.login !== currentUserLogin && user.rola !== 'ADMIN' && (
                             <>
                               <button
                                 type="button"
@@ -1244,7 +1295,7 @@ function App() {
                           </div>
                         </details>
 
-                        {selectedUser.login !== authCredentials.login && selectedUser.rola !== 'ADMIN' && (
+                        {selectedUser.login !== currentUserLogin && selectedUser.rola !== 'ADMIN' && (
                           <button
                             type="button"
                             className="btn-delete"
