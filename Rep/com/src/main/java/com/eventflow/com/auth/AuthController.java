@@ -3,6 +3,9 @@ package com.eventflow.com.auth;
 import com.eventflow.com.auth.dto.LoginRequest;
 import com.eventflow.com.auth.dto.LoginResponse;
 import com.eventflow.com.auth.dto.RegisterRequest;
+import com.eventflow.com.auth.dto.RegisterResponse;
+import com.eventflow.com.auth.dto.VerifyEmailRequest;
+import com.eventflow.com.auth.dto.VerifyEmailResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,10 +25,12 @@ public class AuthController {
 
 	@PostMapping("/login")
 	public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-		// Logowanie zwraca też podstawowe dane profilu potrzebne od razu w UI.
 		boolean isValid = authService.validateCredentials(request.login(), request.password());
 
 		if (isValid) {
+			if (!authService.isEmailVerified(request.login())) {
+				return ResponseEntity.status(403).body(new LoginResponse(false, "Email not verified", null, null, null));
+			}
 			String rola = authService.getUserRole(request.login());
 			String imie = authService.getUserImie(request.login());
 			String nazwisko = authService.getUserNazwisko(request.login());
@@ -36,9 +41,8 @@ public class AuthController {
 	}
 
 	@PostMapping("/register")
-	public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest request) {
-		// Serwis zwraca tekst błędu biznesowego albo null przy sukcesie.
-		String error = authService.registerUser(
+	public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
+		RegistrationResult result = authService.registerUser(
 			request.imie(),
 			request.nazwisko(),
 			request.email(),
@@ -46,10 +50,20 @@ public class AuthController {
 			request.password()
 		);
 
-		if (error != null) {
-			return ResponseEntity.badRequest().body(new LoginResponse(false, error, null, null, null));
+		if (result.error() != null) {
+			return ResponseEntity.badRequest().body(new RegisterResponse(false, result.error()));
 		}
 
-		return ResponseEntity.status(201).body(new LoginResponse(true, "Registration successful", null, null, null));
+		return ResponseEntity.status(201)
+			.body(new RegisterResponse(true, "Registration successful. Verify your email to activate the account."));
+	}
+
+	@PostMapping("/verify-email")
+	public ResponseEntity<VerifyEmailResponse> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+		String error = authService.verifyEmail(request.email(), request.code());
+		if (error != null) {
+			return ResponseEntity.badRequest().body(new VerifyEmailResponse(false, error));
+		}
+		return ResponseEntity.ok(new VerifyEmailResponse(true, "Weryfikacja email pozytywna"));
 	}
 }

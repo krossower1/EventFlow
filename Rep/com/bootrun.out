@@ -1,0 +1,61 @@
+> Task :compileJava UP-TO-DATE
+> Task :processResources
+> Task :classes
+> Task :resolveMainClassName
+
+> Task :bootRun
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.4)
+
+2026-04-15T18:31:47.971+02:00  INFO 21948 --- [com] [  restartedMain] com.eventflow.com.ComApplication         : Starting ComApplication using Java 21.0.10 with PID 21948 (C:\Users\mchoc\Documents\GitHub\EventFlow\Rep\com\build\classes\java\main started by mchoc in C:\Users\mchoc\Documents\GitHub\EventFlow\Rep\com)
+2026-04-15T18:31:47.977+02:00  INFO 21948 --- [com] [  restartedMain] com.eventflow.com.ComApplication         : No active profile set, falling back to 1 default profile: "default"
+2026-04-15T18:31:48.053+02:00  INFO 21948 --- [com] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-04-15T18:31:48.054+02:00  INFO 21948 --- [com] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-04-15T18:31:49.119+02:00  INFO 21948 --- [com] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T18:31:49.212+02:00  INFO 21948 --- [com] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 84 ms. Found 6 JPA repository interfaces.
+2026-04-15T18:31:49.933+02:00  INFO 21948 --- [com] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8081 (http)
+2026-04-15T18:31:49.951+02:00  INFO 21948 --- [com] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-15T18:31:49.952+02:00  INFO 21948 --- [com] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.19]
+2026-04-15T18:31:50.015+02:00  INFO 21948 --- [com] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-15T18:31:50.016+02:00  INFO 21948 --- [com] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1960 ms
+2026-04-15T18:31:50.219+02:00  INFO 21948 --- [com] [  restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T18:31:50.289+02:00  INFO 21948 --- [com] [  restartedMain] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.4.Final
+2026-04-15T18:31:50.326+02:00  INFO 21948 --- [com] [  restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T18:31:50.588+02:00  INFO 21948 --- [com] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T18:31:50.614+02:00  INFO 21948 --- [com] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T18:31:50.776+02:00  INFO 21948 --- [com] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@6a8d0dc2
+2026-04-15T18:31:50.779+02:00  INFO 21948 --- [com] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T18:31:52.242+02:00  INFO 21948 --- [com] [  restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T18:31:52.331+02:00  INFO 21948 --- [com] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T18:31:53.327+02:00  WARN 21948 --- [com] [  restartedMain] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T18:31:53.901+02:00  INFO 21948 --- [com] [  restartedMain] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@4a098698, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@45515875, org.springframework.security.web.context.SecurityContextHolderFilter@13fe1b5e, org.springframework.security.web.header.HeaderWriterFilter@4e68df13, org.springframework.web.filter.CorsFilter@59005385, org.springframework.security.web.authentication.logout.LogoutFilter@190e7735, org.springframework.security.web.authentication.www.BasicAuthenticationFilter@1cd260ac, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@6f36dea7, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@78cfc80b, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@4a215c07, org.springframework.security.web.session.SessionManagementFilter@10ffd8e2, org.springframework.security.web.access.ExceptionTranslationFilter@5e6aa584, org.springframework.security.web.access.intercept.AuthorizationFilter@249ac196]
+2026-04-15T18:31:54.197+02:00  WARN 21948 --- [com] [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : Unable to start LiveReload server
+2026-04-15T18:31:54.245+02:00  INFO 21948 --- [com] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8081 (http) with context path ''
+2026-04-15T18:31:54.258+02:00  INFO 21948 --- [com] [  restartedMain] com.eventflow.com.ComApplication         : Started ComApplication in 6.997 seconds (process running for 7.749)
+Hibernate: select u1_0.id,u1_0.aktywnosc,u1_0.data_utw,u1_0.email,u1_0.email_verified,u1_0.haslo,u1_0.imie,u1_0.login,u1_0.nazwisko,u1_0.platnosc,u1_0.rola,u1_0.salt,u1_0.verification_code,u1_0.verification_code_expires_at from users u1_0 where u1_0.login=?
+2026-04-15T18:32:17.213+02:00  INFO 21948 --- [com] [nio-8081-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-15T18:32:17.213+02:00  INFO 21948 --- [com] [nio-8081-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-15T18:32:17.216+02:00  INFO 21948 --- [com] [nio-8081-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+Hibernate: select u1_0.id,u1_0.aktywnosc,u1_0.data_utw,u1_0.email,u1_0.email_verified,u1_0.haslo,u1_0.imie,u1_0.login,u1_0.nazwisko,u1_0.platnosc,u1_0.rola,u1_0.salt,u1_0.verification_code,u1_0.verification_code_expires_at from users u1_0 where u1_0.login=?
+Hibernate: select u1_0.id from users u1_0 where u1_0.login=? limit ?
+Hibernate: select u1_0.id from users u1_0 where u1_0.email=? limit ?
+Hibernate: insert into users (aktywnosc,data_utw,email,email_verified,haslo,imie,login,nazwisko,platnosc,rola,salt,verification_code,verification_code_expires_at) values (?,?,?,?,?,?,?,?,?,?,?,?,?)
+2026-04-15T18:32:38.403+02:00  WARN 21948 --- [com] [nio-8081-exec-1] .w.s.m.s.DefaultHandlerExceptionResolver : Resolved [org.springframework.web.context.request.async.AsyncRequestNotUsableException: ServletOutputStream failed to flush: java.io.IOException: Connection reset by peer]
+Hibernate: select u1_0.id,u1_0.aktywnosc,u1_0.data_utw,u1_0.email,u1_0.email_verified,u1_0.haslo,u1_0.imie,u1_0.login,u1_0.nazwisko,u1_0.platnosc,u1_0.rola,u1_0.salt,u1_0.verification_code,u1_0.verification_code_expires_at from users u1_0 where u1_0.login=?
+Hibernate: select u1_0.id,u1_0.aktywnosc,u1_0.data_utw,u1_0.email,u1_0.email_verified,u1_0.haslo,u1_0.imie,u1_0.login,u1_0.nazwisko,u1_0.platnosc,u1_0.rola,u1_0.salt,u1_0.verification_code,u1_0.verification_code_expires_at from users u1_0 where u1_0.login=?
+Hibernate: select u1_0.id,u1_0.aktywnosc,u1_0.data_utw,u1_0.email,u1_0.email_verified,u1_0.haslo,u1_0.imie,u1_0.login,u1_0.nazwisko,u1_0.platnosc,u1_0.rola,u1_0.salt,u1_0.verification_code,u1_0.verification_code_expires_at from users u1_0 where u1_0.email=?
+Hibernate: update users set aktywnosc=?,data_utw=?,email=?,email_verified=?,haslo=?,imie=?,login=?,nazwisko=?,platnosc=?,rola=?,salt=?,verification_code=?,verification_code_expires_at=? where id=?
+Hibernate: select u1_0.id,u1_0.aktywnosc,u1_0.data_utw,u1_0.email,u1_0.email_verified,u1_0.haslo,u1_0.imie,u1_0.login,u1_0.nazwisko,u1_0.platnosc,u1_0.rola,u1_0.salt,u1_0.verification_code,u1_0.verification_code_expires_at from users u1_0 where u1_0.login=?
+Hibernate: select u1_0.id,u1_0.aktywnosc,u1_0.data_utw,u1_0.email,u1_0.email_verified,u1_0.haslo,u1_0.imie,u1_0.login,u1_0.nazwisko,u1_0.platnosc,u1_0.rola,u1_0.salt,u1_0.verification_code,u1_0.verification_code_expires_at from users u1_0 where u1_0.login=?
+Hibernate: select u1_0.id,u1_0.aktywnosc,u1_0.data_utw,u1_0.email,u1_0.email_verified,u1_0.haslo,u1_0.imie,u1_0.login,u1_0.nazwisko,u1_0.platnosc,u1_0.rola,u1_0.salt,u1_0.verification_code,u1_0.verification_code_expires_at from users u1_0 where u1_0.login=?
+Hibernate: select u1_0.id,u1_0.aktywnosc,u1_0.data_utw,u1_0.email,u1_0.email_verified,u1_0.haslo,u1_0.imie,u1_0.login,u1_0.nazwisko,u1_0.platnosc,u1_0.rola,u1_0.salt,u1_0.verification_code,u1_0.verification_code_expires_at from users u1_0 where u1_0.login=?
+Hibernate: select u1_0.id,u1_0.aktywnosc,u1_0.data_utw,u1_0.email,u1_0.email_verified,u1_0.haslo,u1_0.imie,u1_0.login,u1_0.nazwisko,u1_0.platnosc,u1_0.rola,u1_0.salt,u1_0.verification_code,u1_0.verification_code_expires_at from users u1_0 where u1_0.login=?
+
+> Task :bootRun FAILED
+4 actionable tasks: 3 executed, 1 up-to-date
