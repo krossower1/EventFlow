@@ -1,42 +1,73 @@
 package com.eventflow.com.controller;
 
-import com.eventflow.com.controller.dto.*;
-import com.eventflow.com.model.*;
-import com.eventflow.com.repository.*;
+import com.eventflow.com.controller.dto.KategoriaDto;
+import com.eventflow.com.controller.dto.MiejsceOptionDto;
+import com.eventflow.com.controller.dto.BiletCreateRequestDto;
+import com.eventflow.com.controller.dto.WydarzenieCreateRequestDto;
+import com.eventflow.com.controller.dto.WydarzenieListItemDto;
+import com.eventflow.com.controller.dto.WydarzenieOptionsDto;
+import com.eventflow.com.model.Bilet;
+import com.eventflow.com.model.Kategoria;
+import com.eventflow.com.model.Miejsce;
+import com.eventflow.com.model.Organizator;
+import com.eventflow.com.model.User;
+import com.eventflow.com.model.Wydarzenie;
+import com.eventflow.com.repository.BiletRepository;
+import com.eventflow.com.repository.KategoriaRepository;
+import com.eventflow.com.repository.MiejsceRepository;
+import com.eventflow.com.repository.OrganizatorRepository;
+import com.eventflow.com.repository.UserRepository;
+import com.eventflow.com.repository.WydarzenieRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
-import static org.springframework.http.HttpStatus.*;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @RestController
 @RequestMapping("/api/wydarzenia")
 @CrossOrigin(origins = "http://localhost:3000")
 public class WydarzenieController {
-	private static final String NOWA_KATEGORIA = "__NOWA_KATEGORIA__";
+	private static final String STATUS_AKTYWNY = "AKTYWNY";
+	private static final String STATUS_DRAFT = "DRAFT";
+	private static final String STATUS_NIEAKTYWNY = "NIEAKTYWNY";
 
 	private final UserRepository userRepository;
 	private final OrganizatorRepository organizatorRepository;
 	private final MiejsceRepository miejsceRepository;
 	private final KategoriaRepository kategoriaRepository;
 	private final WydarzenieRepository wydarzenieRepository;
+	private final BiletRepository biletRepository;
 
 	public WydarzenieController(
 		UserRepository userRepository,
 		OrganizatorRepository organizatorRepository,
 		MiejsceRepository miejsceRepository,
 		KategoriaRepository kategoriaRepository,
-		WydarzenieRepository wydarzenieRepository
+		WydarzenieRepository wydarzenieRepository,
+		BiletRepository biletRepository
 	) {
 		this.userRepository = userRepository;
 		this.organizatorRepository = organizatorRepository;
 		this.miejsceRepository = miejsceRepository;
 		this.kategoriaRepository = kategoriaRepository;
 		this.wydarzenieRepository = wydarzenieRepository;
+		this.biletRepository = biletRepository;
 	}
 
 	@GetMapping("/options")
@@ -57,20 +88,11 @@ public class WydarzenieController {
 	@GetMapping("/my")
 	public ResponseEntity<List<WydarzenieListItemDto>> getMyWydarzenia(Authentication authentication) {
 		User user = requireOrgUser(authentication);
-		// ORG widzi tylko wydarzenia powiązane z własnym profilem organizatora.
 		Organizator organizator = organizatorRepository.findByUserIdAndZweryfikowTrue(user.getId())
 			.orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "Brak aktywnego profilu organizatora."));
 
 		List<WydarzenieListItemDto> result = wydarzenieRepository.findByOrgId(organizator.getId()).stream()
-			.map(w -> new WydarzenieListItemDto(
-				w.getId(),
-				w.getTytul(),
-				w.getStatus(),
-				miejsceRepository.findById(w.getMiejsceId()).map(Miejsce::getNazwa).orElse("-"),
-				kategoriaRepository.findById(w.getKategoriaId()).map(Kategoria::getNazwa).orElse("-"),
-				w.getDataRozp(),
-				w.getDataZamk()
-			))
+			.map(this::toListItem)
 			.toList();
 
 		return ResponseEntity.ok(result);
@@ -78,29 +100,35 @@ public class WydarzenieController {
 
 	@GetMapping("/open")
 	public ResponseEntity<List<WydarzenieListItemDto>> getOpenWydarzenia(Authentication authentication) {
-		if (authentication == null) {
-			throw new ResponseStatusException(UNAUTHORIZED, "Brak uwierzytelnienia.");
+		User user = requireAuthenticatedUser(authentication);
+		LocalDateTime now = LocalDateTime.now();
+
+		List<Wydarzenie> wydarzeniaDoPokazania = new ArrayList<>(
+			wydarzenieRepository.findByDataZamkAfterOrderByDataRozpAsc(now).stream()
+				.filter(w -> STATUS_AKTYWNY.equals(normalizeStatus(w.getStatus())))
+				.toList()
+		);
+
+		if (isOrg(user)) {
+			organizatorRepository.findByUserIdAndZweryfikowTrue(user.getId()).ifPresent(organizator ->
+				wydarzenieRepository.findByOrgId(organizator.getId()).stream()
+					.filter(w -> w.getDataZamk() != null && w.getDataZamk().isAfter(now))
+					.filter(w -> STATUS_DRAFT.equals(normalizeStatus(w.getStatus())))
+					.filter(w -> wydarzeniaDoPokazania.stream().noneMatch(existing -> existing.getId().equals(w.getId())))
+					.forEach(wydarzeniaDoPokazania::add)
+			);
 		}
 
-		// Dashboard: zwracamy wydarzenia, których data zakończenia jest w przyszłości.
-		List<WydarzenieListItemDto> result = wydarzenieRepository
-			.findByDataZamkAfterOrderByDataRozpAsc(LocalDateTime.now())
-			.stream()
-			.map(w -> new WydarzenieListItemDto(
-				w.getId(),
-				w.getTytul(),
-				w.getStatus(),
-				miejsceRepository.findById(w.getMiejsceId()).map(Miejsce::getNazwa).orElse("-"),
-				kategoriaRepository.findById(w.getKategoriaId()).map(Kategoria::getNazwa).orElse("-"),
-				w.getDataRozp(),
-				w.getDataZamk()
-			))
+		List<WydarzenieListItemDto> result = wydarzeniaDoPokazania.stream()
+			.sorted(Comparator.comparing(Wydarzenie::getDataRozp, Comparator.nullsLast(LocalDateTime::compareTo)))
+			.map(this::toListItem)
 			.toList();
 
 		return ResponseEntity.ok(result);
 	}
 
 	@PostMapping
+	@Transactional
 	public ResponseEntity<String> createWydarzenie(
 		Authentication authentication,
 		@RequestBody WydarzenieCreateRequestDto request
@@ -115,6 +143,10 @@ public class WydarzenieController {
 			|| request.dataRozp() == null || request.dataZamk() == null) {
 			throw new ResponseStatusException(BAD_REQUEST, "Wypelnij wymagane pola wydarzenia.");
 		}
+
+		String normalizedStatus = normalizeStatus(request.status());
+		validateCreateStatus(user, normalizedStatus);
+		validateBilety(request.bilety());
 
 		Miejsce miejsce = miejsceRepository.findById(request.miejsceId())
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Wybrane miejsce nie istnieje."));
@@ -132,18 +164,18 @@ public class WydarzenieController {
 		wydarzenie.setKategoriaId(kategoriaId);
 		wydarzenie.setRola(request.rola());
 		wydarzenie.setDataUtw(LocalDateTime.now());
-		wydarzenie.setStatus(request.status());
+		wydarzenie.setStatus(normalizedStatus);
 		wydarzenie.setDataRozp(request.dataRozp());
 		wydarzenie.setDataZamk(request.dataZamk());
 
-		wydarzenieRepository.save(wydarzenie);
+		Wydarzenie savedWydarzenie = wydarzenieRepository.save(wydarzenie);
+		saveBilety(savedWydarzenie.getId(), request.bilety());
 		return ResponseEntity.status(CREATED).body("Wydarzenie zostalo dodane.");
 	}
 
 	private Long resolveKategoriaId(WydarzenieCreateRequestDto request) {
 		boolean createNowa = Boolean.TRUE.equals(request.createNowaKategoria());
 		if (createNowa) {
-			// Tworzymy kategorię "w locie" i zwracamy jej nowe ID do powiązania z wydarzeniem.
 			if (request.nowaKategoriaNazwa() == null || request.nowaKategoriaNazwa().isBlank()) {
 				throw new ResponseStatusException(BAD_REQUEST, "Podaj nazwe nowej kategorii.");
 			}
@@ -161,15 +193,108 @@ public class WydarzenieController {
 			.getId();
 	}
 
-	private User requireOrgUser(Authentication authentication) {
+	private WydarzenieListItemDto toListItem(Wydarzenie wydarzenie) {
+		return new WydarzenieListItemDto(
+			wydarzenie.getId(),
+			wydarzenie.getTytul(),
+			normalizeStatus(wydarzenie.getStatus()),
+			miejsceRepository.findById(wydarzenie.getMiejsceId()).map(Miejsce::getNazwa).orElse("-"),
+			kategoriaRepository.findById(wydarzenie.getKategoriaId()).map(Kategoria::getNazwa).orElse("-"),
+			wydarzenie.getDataRozp(),
+			wydarzenie.getDataZamk()
+		);
+	}
+
+	private void validateBilety(List<BiletCreateRequestDto> bilety) {
+		if (bilety == null || bilety.isEmpty()) {
+			throw new ResponseStatusException(BAD_REQUEST, "Dodaj co najmniej jeden typ biletu.");
+		}
+
+		for (BiletCreateRequestDto bilet : bilety) {
+			if (bilet == null
+				|| bilet.klasa() == null || bilet.klasa().isBlank()
+				|| bilet.cena() == null
+				|| bilet.ilosc() == null
+				|| bilet.startSprzedazy() == null
+				|| bilet.koniecSprzedazy() == null) {
+				throw new ResponseStatusException(BAD_REQUEST, "Wypelnij wszystkie wymagane pola biletu.");
+			}
+			if (bilet.cena().signum() < 0) {
+				throw new ResponseStatusException(BAD_REQUEST, "Cena biletu nie moze byc ujemna.");
+			}
+			if (bilet.ilosc() <= 0) {
+				throw new ResponseStatusException(BAD_REQUEST, "Ilosc biletow musi byc wieksza od zera.");
+			}
+			if (bilet.koniecSprzedazy().isBefore(bilet.startSprzedazy())) {
+				throw new ResponseStatusException(BAD_REQUEST, "Data konca sprzedazy biletu nie moze byc wczesniejsza niz data startu.");
+			}
+			if (bilet.waluta() != null && !bilet.waluta().isBlank() && !"PLN".equalsIgnoreCase(bilet.waluta())) {
+				throw new ResponseStatusException(BAD_REQUEST, "Waluta biletu musi byc ustawiona na PLN.");
+			}
+		}
+	}
+
+	private void saveBilety(Long wydarzenieId, List<BiletCreateRequestDto> bilety) {
+		for (BiletCreateRequestDto requestBilet : bilety) {
+			Bilet bilet = new Bilet();
+			bilet.setWydarzenieId(wydarzenieId);
+			bilet.setKlasa(requestBilet.klasa().trim());
+			bilet.setCena(requestBilet.cena());
+			bilet.setWaluta("PLN");
+			bilet.setIlosc(requestBilet.ilosc());
+			bilet.setStartSprzedazy(requestBilet.startSprzedazy());
+			bilet.setKoniecSprzedazy(requestBilet.koniecSprzedazy());
+			biletRepository.save(bilet);
+		}
+	}
+
+	private void validateCreateStatus(User user, String status) {
+		if (STATUS_AKTYWNY.equals(status) || STATUS_DRAFT.equals(status)) {
+			return;
+		}
+		if (STATUS_NIEAKTYWNY.equals(status)) {
+			if (!isAdmin(user)) {
+				throw new ResponseStatusException(FORBIDDEN, "Status NIEAKTYWNY moze nadac tylko administrator.");
+			}
+			return;
+		}
+		throw new ResponseStatusException(BAD_REQUEST, "Dozwolone statusy wydarzenia to: AKTYWNY, DRAFT, NIEAKTYWNY.");
+	}
+
+	private String normalizeStatus(String status) {
+		if (status == null) {
+			return "";
+		}
+
+		return switch (status.trim().toUpperCase()) {
+			case "AKTYWNY", "AKTYWNE" -> STATUS_AKTYWNY;
+			case "DRAFT", "SZKIC" -> STATUS_DRAFT;
+			case "NIEAKTYWNY", "NIEAKTYWNE" -> STATUS_NIEAKTYWNY;
+			default -> status.trim().toUpperCase();
+		};
+	}
+
+	private User requireAuthenticatedUser(Authentication authentication) {
 		if (authentication == null) {
 			throw new ResponseStatusException(UNAUTHORIZED, "Brak uwierzytelnienia.");
 		}
-		User user = userRepository.findByLogin(authentication.getName())
+		return userRepository.findByLogin(authentication.getName())
 			.orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Nie znaleziono uzytkownika."));
-		if (user.getRola() == null || !user.getRola().equalsIgnoreCase("ORG")) {
+	}
+
+	private User requireOrgUser(Authentication authentication) {
+		User user = requireAuthenticatedUser(authentication);
+		if (!isOrg(user)) {
 			throw new ResponseStatusException(FORBIDDEN, "Tylko konto ORG moze wykonac te akcje.");
 		}
 		return user;
+	}
+
+	private boolean isOrg(User user) {
+		return user.getRola() != null && user.getRola().equalsIgnoreCase("ORG");
+	}
+
+	private boolean isAdmin(User user) {
+		return user.getRola() != null && user.getRola().equalsIgnoreCase("ADMIN");
 	}
 }

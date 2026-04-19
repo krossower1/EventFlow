@@ -3,6 +3,14 @@ import axios from 'axios';
 import './App.css';
 
 const API_BASE_URL = 'http://localhost:8081/api';
+const createEmptyBiletForm = () => ({
+  klasa: '',
+  cena: '',
+  waluta: 'PLN',
+  ilosc: '',
+  startSprzedazy: '',
+  koniecSprzedazy: ''
+});
 
 function App() {
   const [data, setData] = useState([]);
@@ -108,12 +116,13 @@ function App() {
     opis: '',
     kategoriaId: '',
     rola: '',
-    status: '',
+    status: 'AKTYWNY',
     dataRozp: '',
     dataZamk: '',
     createNowaKategoria: false,
     nowaKategoriaNazwa: '',
-    nowaKategoriaOpis: ''
+    nowaKategoriaOpis: '',
+    bilety: [createEmptyBiletForm()]
   });
 
   const getAuthHeaders = () => {
@@ -505,7 +514,15 @@ function App() {
           dataZamk: wydarzenieForm.dataZamk,
           createNowaKategoria: wydarzenieForm.createNowaKategoria,
           nowaKategoriaNazwa: wydarzenieForm.nowaKategoriaNazwa,
-          nowaKategoriaOpis: wydarzenieForm.nowaKategoriaOpis
+          nowaKategoriaOpis: wydarzenieForm.nowaKategoriaOpis,
+          bilety: wydarzenieForm.bilety.map((bilet) => ({
+            klasa: bilet.klasa,
+            cena: Number(bilet.cena),
+            waluta: 'PLN',
+            ilosc: Number(bilet.ilosc),
+            startSprzedazy: bilet.startSprzedazy,
+            koniecSprzedazy: bilet.koniecSprzedazy
+          }))
         },
         getRequestConfig()
       );
@@ -518,19 +535,44 @@ function App() {
         opis: '',
         kategoriaId: '',
         rola: '',
-        status: '',
+        status: 'AKTYWNY',
         dataRozp: '',
         dataZamk: '',
         createNowaKategoria: false,
         nowaKategoriaNazwa: '',
-        nowaKategoriaOpis: ''
+        nowaKategoriaOpis: '',
+        bilety: [createEmptyBiletForm()]
       });
       fetchWydarzeniaOptions();
       fetchMyWydarzenia();
+      fetchOpenWydarzenia();
     } catch (error) {
       const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie dodac wydarzenia.';
       setStatus({ type: 'error', message });
     }
+  };
+
+  const addBiletForm = () => {
+    setWydarzenieForm((prev) => ({
+      ...prev,
+      bilety: [...prev.bilety, createEmptyBiletForm()]
+    }));
+  };
+
+  const removeBiletForm = (indexToRemove) => {
+    setWydarzenieForm((prev) => ({
+      ...prev,
+      bilety: prev.bilety.filter((_, index) => index !== indexToRemove)
+    }));
+  };
+
+  const updateBiletForm = (indexToUpdate, field, value) => {
+    setWydarzenieForm((prev) => ({
+      ...prev,
+      bilety: prev.bilety.map((bilet, index) => (
+        index === indexToUpdate ? { ...bilet, [field]: value } : bilet
+      ))
+    }));
   };
 
 const onLogout = async () => {
@@ -957,9 +999,9 @@ const onLogout = async () => {
                       onChange={(event) => setWydarzeniaStatusFilter(event.target.value)}
                     >
                       <option value="ALL">Filtry: wszystkie</option>
-                      <option value="AKTYWNE">aktywne</option>
-                      <option value="SZKIC">szkic</option>
-                      <option value="ZAMKNIETE">zamkniete</option>
+                      <option value="AKTYWNY">aktywny</option>
+                      <option value="DRAFT">draft</option>
+                      <option value="NIEAKTYWNY">nieaktywny</option>
                     </select>
                     <button
                       type="button"
@@ -1058,13 +1100,15 @@ const onLogout = async () => {
                       />
 
                       <label htmlFor="wyd-status">Status</label>
-                      <input
+                      <select
                         id="wyd-status"
-                        type="text"
                         value={wydarzenieForm.status}
                         onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, status: event.target.value })}
                         required
-                      />
+                      >
+                        <option value="AKTYWNY">aktywny</option>
+                        <option value="DRAFT">draft</option>
+                      </select>
 
                       <label htmlFor="wyd-start">Data rozpoczecia</label>
                       <input
@@ -1083,6 +1127,85 @@ const onLogout = async () => {
                         onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, dataZamk: event.target.value })}
                         required
                       />
+
+                      <div className="event-ticket-section">
+                        <div className="event-ticket-section-header">
+                          <label>Typy biletow</label>
+                          <button type="button" className="btn-secondary" onClick={addBiletForm}>
+                            + Dodaj klase biletu
+                          </button>
+                        </div>
+
+                        {wydarzenieForm.bilety.map((bilet, index) => (
+                          <div key={index} className="event-ticket-card">
+                            <label htmlFor={`bilet-klasa-${index}`}>Klasa biletu</label>
+                            <input
+                              id={`bilet-klasa-${index}`}
+                              type="text"
+                              value={bilet.klasa}
+                              onChange={(event) => updateBiletForm(index, 'klasa', event.target.value)}
+                              required
+                            />
+
+                            <label htmlFor={`bilet-cena-${index}`}>Cena</label>
+                            <input
+                              id={`bilet-cena-${index}`}
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={bilet.cena}
+                              onChange={(event) => updateBiletForm(index, 'cena', event.target.value)}
+                              required
+                            />
+
+                            <label htmlFor={`bilet-waluta-${index}`}>Waluta</label>
+                            <input
+                              id={`bilet-waluta-${index}`}
+                              type="text"
+                              value="PLN"
+                              disabled
+                            />
+
+                            <label htmlFor={`bilet-ilosc-${index}`}>Ilosc</label>
+                            <input
+                              id={`bilet-ilosc-${index}`}
+                              type="number"
+                              min="1"
+                              value={bilet.ilosc}
+                              onChange={(event) => updateBiletForm(index, 'ilosc', event.target.value)}
+                              required
+                            />
+
+                            <label htmlFor={`bilet-start-${index}`}>Start sprzedazy</label>
+                            <input
+                              id={`bilet-start-${index}`}
+                              type="datetime-local"
+                              value={bilet.startSprzedazy}
+                              onChange={(event) => updateBiletForm(index, 'startSprzedazy', event.target.value)}
+                              required
+                            />
+
+                            <label htmlFor={`bilet-koniec-${index}`}>Koniec sprzedazy</label>
+                            <input
+                              id={`bilet-koniec-${index}`}
+                              type="datetime-local"
+                              value={bilet.koniecSprzedazy}
+                              onChange={(event) => updateBiletForm(index, 'koniecSprzedazy', event.target.value)}
+                              required
+                            />
+
+                            {wydarzenieForm.bilety.length > 1 && (
+                              <button
+                                type="button"
+                                className="btn-delete"
+                                onClick={() => removeBiletForm(index)}
+                              >
+                                Usun te klase
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
 
                       <button type="submit">Dodaj wydarzenie</button>
                     </form>

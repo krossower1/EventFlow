@@ -1,6 +1,7 @@
 package com.eventflow.com.controller.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record WydarzenieCreateRequestDto(
 	Long miejsceId,
@@ -13,6 +14,7 @@ public record WydarzenieCreateRequestDto(
 	LocalDateTime dataZamk,
 	Boolean createNowaKategoria,
 	String nowaKategoriaNazwa,
-	String nowaKategoriaOpis
+	String nowaKategoriaOpis,
+	List<BiletCreateRequestDto> bilety
 ) {
 }
