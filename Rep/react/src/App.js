@@ -110,6 +110,15 @@ function App() {
   const [showWydarzenieForm, setShowWydarzenieForm] = useState(false);
   const [wydarzeniaSearch, setWydarzeniaSearch] = useState('');
   const [wydarzeniaStatusFilter, setWydarzeniaStatusFilter] = useState('ALL');
+  const [zakupLoading, setZakupLoading] = useState(false);
+  const [zakupFormOpen, setZakupFormOpen] = useState(false);
+  const [selectedZakupEvent, setSelectedZakupEvent] = useState(null);
+  const [dostepneBilety, setDostepneBilety] = useState([]);
+  const [zakupForm, setZakupForm] = useState({
+    biletId: '',
+    ilosc: '1',
+    potwierdzPlatnosc: false
+  });
   const [wydarzenieForm, setWydarzenieForm] = useState({
     miejsceId: '',
     tytul: '',
@@ -575,6 +584,69 @@ function App() {
     }));
   };
 
+  const openZakupForm = async (eventItem) => {
+    setZakupLoading(true);
+    setStatus({ type: '', message: '' });
+
+    try {
+      const response = await axios.get(`${API_BASE_URL}/zakupy/wydarzenia/${eventItem.id}/bilety`, getRequestConfig());
+      setDostepneBilety(response.data);
+      setSelectedZakupEvent(eventItem);
+      setZakupForm({
+        biletId: response.data[0]?.biletId ? String(response.data[0].biletId) : '',
+        ilosc: '1',
+        potwierdzPlatnosc: false
+      });
+      setZakupFormOpen(true);
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie pobrac dostepnych biletow.';
+      setStatus({ type: 'error', message });
+    } finally {
+      setZakupLoading(false);
+    }
+  };
+
+  const closeZakupForm = () => {
+    setZakupFormOpen(false);
+    setSelectedZakupEvent(null);
+    setDostepneBilety([]);
+    setZakupForm({
+      biletId: '',
+      ilosc: '1',
+      potwierdzPlatnosc: false
+    });
+  };
+
+  const onZakupSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedZakupEvent) {
+      return;
+    }
+
+    setZakupLoading(true);
+    setStatus({ type: '', message: '' });
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/zakupy/wydarzenia/${selectedZakupEvent.id}`,
+        {
+          biletId: Number(zakupForm.biletId),
+          ilosc: Number(zakupForm.ilosc),
+          potwierdzPlatnosc: zakupForm.potwierdzPlatnosc
+        },
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || 'Zakup zakonczony pomyslnie.' });
+      closeZakupForm();
+      fetchOpenWydarzenia();
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie zakonczyc zakupu.';
+      setStatus({ type: 'error', message });
+    } finally {
+      setZakupLoading(false);
+    }
+  };
+
 const onLogout = async () => {
   try {
     // 1. Informujemy backend o zakończeniu sesji
@@ -970,12 +1042,89 @@ const onLogout = async () => {
                           <div className="event-card-row">{item.kategoriaNazwa}</div>
                         </div>
                       </div>
+                      {currentUserRole !== 'ORG' && currentUserRole !== 'ADMIN' && item.maDostepneBilety && (
+                        <button
+                          type="button"
+                          className="btn-new-event"
+                          onClick={() => openZakupForm(item)}
+                        >
+                          Zakup
+                        </button>
+                      )}
                     </article>
                   )) : (
                     <p>Brak wydarzeń, które jeszcze się nie zakończyły.</p>
                   )}
                 </div>
               </div>
+
+              {zakupFormOpen && selectedZakupEvent && (
+                <div
+                  className="modal-overlay"
+                  role="dialog"
+                  aria-modal="true"
+                  onMouseDown={(e) => {
+                    if (e.target === e.currentTarget) closeZakupForm();
+                  }}
+                >
+                  <div className="modal-card">
+                    <div className="modal-header">
+                      <div className="modal-title">
+                        Zakup biletow: <span className="header-accent">{selectedZakupEvent.tytul}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="modal-close"
+                        onClick={closeZakupForm}
+                        aria-label="Zamknij"
+                      >
+                        Ă—
+                      </button>
+                    </div>
+
+                    <form onSubmit={onZakupSubmit} className="auth-form organizer-form">
+                      <label htmlFor="zakup-bilet">Klasa biletu</label>
+                      <select
+                        id="zakup-bilet"
+                        value={zakupForm.biletId}
+                        onChange={(event) => setZakupForm({ ...zakupForm, biletId: event.target.value })}
+                        required
+                      >
+                        <option value="">Wybierz klase biletu</option>
+                        {dostepneBilety.map((bilet) => (
+                          <option key={bilet.biletId} value={bilet.biletId}>
+                            {bilet.klasa} - {bilet.cena} {bilet.waluta} - dostepne: {bilet.dostepnaIlosc}
+                          </option>
+                        ))}
+                      </select>
+
+                      <label htmlFor="zakup-ilosc">Ilosc</label>
+                      <input
+                        id="zakup-ilosc"
+                        type="number"
+                        min="1"
+                        value={zakupForm.ilosc}
+                        onChange={(event) => setZakupForm({ ...zakupForm, ilosc: event.target.value })}
+                        required
+                      />
+
+                      <label htmlFor="zakup-potwierdzenie">
+                        <input
+                          id="zakup-potwierdzenie"
+                          type="checkbox"
+                          checked={zakupForm.potwierdzPlatnosc}
+                          onChange={(event) => setZakupForm({ ...zakupForm, potwierdzPlatnosc: event.target.checked })}
+                        />
+                        Potwierdzam platnosc testowa
+                      </label>
+
+                      <button type="submit" disabled={zakupLoading || dostepneBilety.length === 0}>
+                        Finalizuj zakup
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           

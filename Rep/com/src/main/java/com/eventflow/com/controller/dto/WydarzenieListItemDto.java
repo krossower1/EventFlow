@@ -9,6 +9,7 @@ public record WydarzenieListItemDto(
 	String miejsceNazwa,
 	String kategoriaNazwa,
 	LocalDateTime dataRozp,
-	LocalDateTime dataZamk
+	LocalDateTime dataZamk,
+	Boolean maDostepneBilety
 ) {
 }

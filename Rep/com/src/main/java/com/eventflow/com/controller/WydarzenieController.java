@@ -10,12 +10,14 @@ import com.eventflow.com.model.Bilet;
 import com.eventflow.com.model.Kategoria;
 import com.eventflow.com.model.Miejsce;
 import com.eventflow.com.model.Organizator;
+import com.eventflow.com.model.PozZam;
 import com.eventflow.com.model.User;
 import com.eventflow.com.model.Wydarzenie;
 import com.eventflow.com.repository.BiletRepository;
 import com.eventflow.com.repository.KategoriaRepository;
 import com.eventflow.com.repository.MiejsceRepository;
 import com.eventflow.com.repository.OrganizatorRepository;
+import com.eventflow.com.repository.PozZamRepository;
 import com.eventflow.com.repository.UserRepository;
 import com.eventflow.com.repository.WydarzenieRepository;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +35,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CREATED;
@@ -53,6 +56,7 @@ public class WydarzenieController {
 	private final KategoriaRepository kategoriaRepository;
 	private final WydarzenieRepository wydarzenieRepository;
 	private final BiletRepository biletRepository;
+	private final PozZamRepository pozZamRepository;
 
 	public WydarzenieController(
 		UserRepository userRepository,
@@ -60,7 +64,8 @@ public class WydarzenieController {
 		MiejsceRepository miejsceRepository,
 		KategoriaRepository kategoriaRepository,
 		WydarzenieRepository wydarzenieRepository,
-		BiletRepository biletRepository
+		BiletRepository biletRepository,
+		PozZamRepository pozZamRepository
 	) {
 		this.userRepository = userRepository;
 		this.organizatorRepository = organizatorRepository;
@@ -68,6 +73,7 @@ public class WydarzenieController {
 		this.kategoriaRepository = kategoriaRepository;
 		this.wydarzenieRepository = wydarzenieRepository;
 		this.biletRepository = biletRepository;
+		this.pozZamRepository = pozZamRepository;
 	}
 
 	@GetMapping("/options")
@@ -194,6 +200,14 @@ public class WydarzenieController {
 	}
 
 	private WydarzenieListItemDto toListItem(Wydarzenie wydarzenie) {
+		boolean maDostepneBilety = biletRepository.findByWydarzenieId(wydarzenie.getId()).stream()
+			.map(Bilet::getId)
+			.toList()
+			.stream()
+			.map(pozZamRepository::findByBiletId)
+			.flatMap(Optional::stream)
+			.anyMatch(pozZam -> pozZam.getIlosc() != null && pozZam.getIlosc() > 0);
+
 		return new WydarzenieListItemDto(
 			wydarzenie.getId(),
 			wydarzenie.getTytul(),
@@ -201,7 +215,8 @@ public class WydarzenieController {
 			miejsceRepository.findById(wydarzenie.getMiejsceId()).map(Miejsce::getNazwa).orElse("-"),
 			kategoriaRepository.findById(wydarzenie.getKategoriaId()).map(Kategoria::getNazwa).orElse("-"),
 			wydarzenie.getDataRozp(),
-			wydarzenie.getDataZamk()
+			wydarzenie.getDataZamk(),
+			maDostepneBilety
 		);
 	}
 
@@ -244,7 +259,13 @@ public class WydarzenieController {
 			bilet.setIlosc(requestBilet.ilosc());
 			bilet.setStartSprzedazy(requestBilet.startSprzedazy());
 			bilet.setKoniecSprzedazy(requestBilet.koniecSprzedazy());
-			biletRepository.save(bilet);
+			Bilet savedBilet = biletRepository.save(bilet);
+
+			PozZam pozZam = new PozZam();
+			pozZam.setBiletId(savedBilet.getId());
+			pozZam.setIlosc(requestBilet.ilosc());
+			pozZam.setCena(requestBilet.cena());
+			pozZamRepository.save(pozZam);
 		}
 	}
 
