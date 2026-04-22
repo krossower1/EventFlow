@@ -3,6 +3,7 @@ import axios from 'axios';
 import './App.css';
 
 const API_BASE_URL = 'http://localhost:8081/api';
+const SESSION_TIMEOUT_SECONDS = 10 * 60;
 const createEmptyBiletForm = () => ({
   klasa: '',
   cena: '',
@@ -16,6 +17,7 @@ function App() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
+  const [sessionTimeLeft, setSessionTimeLeft] = useState(SESSION_TIMEOUT_SECONDS);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState('');
   const [currentUserLogin, setCurrentUserLogin] = useState('');
@@ -26,6 +28,8 @@ function App() {
   const [loginForm, setLoginForm] = useState({ login: '', password: '' });
   const [rememberMe, setRememberMe] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const sessionDeadlineRef = useRef(null);
+  const sessionLogoutInProgressRef = useRef(false);
   const [registerForm, setRegisterForm] = useState({
     imie: '',
     nazwisko: '',
@@ -133,6 +137,13 @@ function App() {
     nowaKategoriaOpis: '',
     bilety: [createEmptyBiletForm()]
   });
+
+  const formatSessionTime = (totalSeconds) => {
+    const safeSeconds = Math.max(0, totalSeconds);
+    const minutes = Math.floor(safeSeconds / 60);
+    const seconds = safeSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
 
   const getAuthHeaders = () => {
     const basicToken = btoa(`${authCredentials.login}:${authCredentials.password}`);
@@ -647,7 +658,14 @@ function App() {
     }
   };
 
-const onLogout = async () => {
+  // Kończy sesję po stronie backendu i czyści cały lokalny stan autoryzacji w aplikacji.
+const onLogout = useCallback(async () => {
+  if (sessionLogoutInProgressRef.current) {
+    return;
+  }
+
+  sessionLogoutInProgressRef.current = true;
+
   try {
     // 1. Informujemy backend o zakończeniu sesji
     await axios.post(`${API_BASE_URL}/auth/logout`, {}, getRequestConfig(false));
@@ -662,8 +680,10 @@ const onLogout = async () => {
     
     // Ustawiamy flagę, żeby checkExistingSession wiedziało, że wyszliśmy świadomie
     localStorage.setItem('explicitLogout', 'true');
+    sessionDeadlineRef.current = null;
 
     // Resetujemy stany autoryzacji w React
+    setSessionTimeLeft(SESSION_TIMEOUT_SECONDS);
     setIsLoggedIn(false);
     setCurrentUserRole('');
     setCurrentUserLogin('');
@@ -684,10 +704,55 @@ const onLogout = async () => {
 
     // 3. Czyścimy ciasteczko po stronie przeglądarki
     document.cookie = "JSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    sessionLogoutInProgressRef.current = false;
     
     console.log("Wylogowano pomyślnie i wyczyszczono sesję.");
   }
-};
+}, []);
+
+  // Uruchamia licznik bezczynności sesji, resetuje go po aktywności użytkownika i wylogowuje po przekroczeniu limitu.
+  useEffect(() => {
+    if (!isLoggedIn) {
+      sessionDeadlineRef.current = null;
+      setSessionTimeLeft(SESSION_TIMEOUT_SECONDS);
+      return undefined;
+    }
+
+    const resetSessionCountdown = () => {
+      sessionDeadlineRef.current = Date.now() + SESSION_TIMEOUT_SECONDS * 1000;
+      setSessionTimeLeft(SESSION_TIMEOUT_SECONDS);
+    };
+
+    const updateSessionCountdown = () => {
+      if (!sessionDeadlineRef.current || sessionLogoutInProgressRef.current) {
+        return;
+      }
+
+      const secondsLeft = Math.max(0, Math.ceil((sessionDeadlineRef.current - Date.now()) / 1000));
+      setSessionTimeLeft(secondsLeft);
+
+      if (secondsLeft <= 0) {
+        setStatus({ type: 'info', message: 'Sesja wygasla z powodu braku aktywnosci.' });
+        onLogout();
+      }
+    };
+
+    resetSessionCountdown();
+
+    const activityEvents = ['click', 'keydown', 'mousemove', 'mousedown', 'scroll', 'touchstart'];
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, resetSessionCountdown, { passive: true });
+    });
+
+    const countdownInterval = window.setInterval(updateSessionCountdown, 1000);
+
+    return () => {
+      window.clearInterval(countdownInterval);
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, resetSessionCountdown);
+      });
+    };
+  }, [isLoggedIn, onLogout]);
 
   if (sessionLoading) {
     return (
@@ -911,6 +976,10 @@ const onLogout = async () => {
             </button>
           ))}
         </nav>
+        <div className="sidebar-session">
+          <span className="sidebar-session-label">Sesja wygasa za</span>
+          <strong className="sidebar-session-time">{formatSessionTime(sessionTimeLeft)}</strong>
+        </div>
       </aside>
 
       <main className="main-area">
