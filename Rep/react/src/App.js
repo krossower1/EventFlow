@@ -18,6 +18,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [sessionTimeLeft, setSessionTimeLeft] = useState(SESSION_TIMEOUT_SECONDS);
+  const [registerSubmitting, setRegisterSubmitting] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState('');
   const [currentUserLogin, setCurrentUserLogin] = useState('');
@@ -233,6 +234,17 @@ function App() {
     }
   }, [isLoggedIn, currentUserRole, authCredentials]);
 
+  useEffect(() => {
+    if (isLoggedIn && currentUserRole === 'ADMIN') {
+      fetchOrganizerRequests();
+      return;
+    }
+
+    if (currentUserRole !== 'ADMIN') {
+      setOrganizerRequests([]);
+    }
+  }, [isLoggedIn, currentUserRole, authCredentials]);
+
   const fetchOrganizerRequests = async () => {
     setOrganizerLoading(true);
     try {
@@ -289,6 +301,7 @@ function App() {
   const onRegisterSubmit = async (event) => {
     event.preventDefault();
     setStatus({ type: '', message: '' });
+    setRegisterSubmitting(true);
 
     try {
       const response = await axios.post(`${API_BASE_URL}/auth/register`, registerForm, getRequestConfig(false));
@@ -306,6 +319,8 @@ function App() {
     } catch (error) {
       const message = error.response?.data?.message || 'Registration failed.';
       setStatus({ type: 'error', message });
+    } finally {
+      setRegisterSubmitting(false);
     }
   };
 
@@ -899,7 +914,18 @@ const onLogout = useCallback(async () => {
                 required
               />
 
-              <button type="submit">Utwórz konto</button>
+              <button type="submit" disabled={registerSubmitting} className={registerSubmitting ? 'auth-submit-loading' : ''}>
+                {registerSubmitting ? (
+                  <>
+                    Tworzenie konta
+                    <span className="loading-dots" aria-hidden="true">
+                      <span>.</span>
+                      <span>.</span>
+                      <span>.</span>
+                    </span>
+                  </>
+                ) : 'Utwórz konto'}
+              </button>
             </form>
           ) : (
             <form onSubmit={onVerifySubmit} className="auth-form">
