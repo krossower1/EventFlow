@@ -1166,8 +1166,12 @@ const onLogout = async () => {
                     </button>
                   </div>
 
+                  {/* -----------Dodaj nowe wydarzenie------------ */}
+
                   {showWydarzenieForm && (
                     <form onSubmit={onWydarzenieSubmit} className="auth-form organizer-form event-form">
+                      <div className="event-form-layout">
+                        <div className="event-form-panel">
                       <label htmlFor="wyd-miejsce">Miejsce</label>
                       <select
                         id="wyd-miejsce"
@@ -1277,86 +1281,97 @@ const onLogout = async () => {
                         required
                       />
 
+                      {/* -----------Sekcja dodawania biletów------------ */}
+
+                        </div>
+                        <div className="event-form-panel event-form-panel--tickets">
                       <div className="event-ticket-section">
                         <div className="event-ticket-section-header">
                           <label>Typy biletow</label>
-                          <button type="button" className="btn-secondary" onClick={addBiletForm}>
-                            + Dodaj klase biletu
-                          </button>
+                          <div className="event-ticket-actions">
+                            <button type="button" className="btn-secondary" onClick={addBiletForm}>
+                              + Dodaj klase biletu
+                            </button>
+                            <button type="submit">Dodaj wydarzenie</button>
+                          </div>
                         </div>
 
-                        {wydarzenieForm.bilety.map((bilet, index) => (
-                          <div key={index} className="event-ticket-card">
-                            <label htmlFor={`bilet-klasa-${index}`}>Klasa biletu</label>
-                            <input
-                              id={`bilet-klasa-${index}`}
-                              type="text"
-                              value={bilet.klasa}
-                              onChange={(event) => updateBiletForm(index, 'klasa', event.target.value)}
-                              required
-                            />
+                        <div className="event-ticket-grid">
+                          {wydarzenieForm.bilety.map((bilet, index) => (
+                            <div key={index} className="event-ticket-card">
+                              <label htmlFor={`bilet-klasa-${index}`}>Klasa biletu</label>
+                              <input
+                                id={`bilet-klasa-${index}`}
+                                type="text"
+                                value={bilet.klasa}
+                                onChange={(event) => updateBiletForm(index, 'klasa', event.target.value)}
+                                required
+                              />
 
-                            <label htmlFor={`bilet-cena-${index}`}>Cena</label>
-                            <input
-                              id={`bilet-cena-${index}`}
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={bilet.cena}
-                              onChange={(event) => updateBiletForm(index, 'cena', event.target.value)}
-                              required
-                            />
+                              <label htmlFor={`bilet-cena-${index}`}>Cena</label>
+                              <input
+                                id={`bilet-cena-${index}`}
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={bilet.cena}
+                                onChange={(event) => updateBiletForm(index, 'cena', event.target.value)}
+                                required
+                              />
 
-                            <label htmlFor={`bilet-waluta-${index}`}>Waluta</label>
-                            <input
-                              id={`bilet-waluta-${index}`}
-                              type="text"
-                              value="PLN"
-                              disabled
-                            />
+                              <label htmlFor={`bilet-waluta-${index}`}>Waluta</label>
+                              <input
+                                id={`bilet-waluta-${index}`}
+                                type="text"
+                                value="PLN"
+                                disabled
+                              />
 
-                            <label htmlFor={`bilet-ilosc-${index}`}>Ilosc</label>
-                            <input
-                              id={`bilet-ilosc-${index}`}
-                              type="number"
-                              min="1"
-                              value={bilet.ilosc}
-                              onChange={(event) => updateBiletForm(index, 'ilosc', event.target.value)}
-                              required
-                            />
+                              <label htmlFor={`bilet-ilosc-${index}`}>Ilosc</label>
+                              <input
+                                id={`bilet-ilosc-${index}`}
+                                type="number"
+                                min="1"
+                                value={bilet.ilosc}
+                                onChange={(event) => updateBiletForm(index, 'ilosc', event.target.value)}
+                                required
+                              />
 
-                            <label htmlFor={`bilet-start-${index}`}>Start sprzedazy</label>
-                            <input
-                              id={`bilet-start-${index}`}
-                              type="datetime-local"
-                              value={bilet.startSprzedazy}
-                              onChange={(event) => updateBiletForm(index, 'startSprzedazy', event.target.value)}
-                              required
-                            />
+                              <label htmlFor={`bilet-start-${index}`}>Start sprzedazy</label>
+                              <input
+                                id={`bilet-start-${index}`}
+                                type="datetime-local"
+                                value={bilet.startSprzedazy}
+                                onChange={(event) => updateBiletForm(index, 'startSprzedazy', event.target.value)}
+                                required
+                              />
 
-                            <label htmlFor={`bilet-koniec-${index}`}>Koniec sprzedazy</label>
-                            <input
-                              id={`bilet-koniec-${index}`}
-                              type="datetime-local"
-                              value={bilet.koniecSprzedazy}
-                              onChange={(event) => updateBiletForm(index, 'koniecSprzedazy', event.target.value)}
-                              required
-                            />
+                              <label htmlFor={`bilet-koniec-${index}`}>Koniec sprzedazy</label>
+                              <input
+                                id={`bilet-koniec-${index}`}
+                                type="datetime-local"
+                                value={bilet.koniecSprzedazy}
+                                onChange={(event) => updateBiletForm(index, 'koniecSprzedazy', event.target.value)}
+                                required
+                              />
 
-                            {wydarzenieForm.bilety.length > 1 && (
-                              <button
-                                type="button"
-                                className="btn-delete"
-                                onClick={() => removeBiletForm(index)}
-                              >
-                                Usun te klase
-                              </button>
-                            )}
-                          </div>
-                        ))}
+                              {wydarzenieForm.bilety.length > 1 && (
+                                <button
+                                  type="button"
+                                  className="btn-delete"
+                                  onClick={() => removeBiletForm(index)}
+                                >
+                                  Usun te klase
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
 
-                      <button type="submit">Dodaj wydarzenie</button>
+                        </div>
+                      </div>
+
                     </form>
                   )}
 

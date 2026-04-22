@@ -21,7 +21,7 @@ SET @@SESSION.SQL_LOG_BIN= 0;
 -- GTID state at the beginning of the backup 
 --
 
-SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '09d8d5f4-2076-11f1-87b7-b42e991066cf:1-510';
+-- SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '09d8d5f4-2076-11f1-87b7-b42e991066cf:1-510';
 
 --
 -- Table structure for table `bilety`
