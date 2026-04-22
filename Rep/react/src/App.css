@@ -868,9 +868,80 @@ background:
   margin-left: 10px;
 }
 
+/* -------[WYDARZENIA]------Dodaj nowe wydarzenie & bilet------[START]------ */
+
 .event-form {
   margin-bottom: 16px;
+  max-width: none;
+  width: 100%;
 }
+
+.event-form-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  gap: 48px;
+  align-items: start;
+}
+
+.event-form-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.event-form-panel--tickets {
+  align-self: stretch;
+  min-width: 0;
+}
+
+.event-ticket-section {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+}
+
+.event-ticket-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.event-ticket-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.event-ticket-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.event-ticket-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+@media (max-width: 980px) {
+  .event-form-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .event-ticket-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* -------[WYDARZENIA]------Dodaj nowe wydarzenie & bilet------[END]------ */
+
 
 .events-grid {
   display: grid;
