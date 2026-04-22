@@ -922,6 +922,13 @@ background:
   background: linear-gradient(90deg, #09d5ff 0%, #78283e 100%);
 }
 
+.btn-new-event:disabled {
+  opacity: 0.45;
+  filter: grayscale(0.35);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .show-admins-toggle {
   border: none;
   border-radius: 12px;
@@ -931,6 +938,13 @@ background:
   color: #fff;
   background: linear-gradient(90deg, #09d5ff 0%, #78283e 100%);
   margin-left: 10px;
+}
+
+.show-admins-toggle:disabled {
+  opacity: 0.45;
+  filter: grayscale(0.35);
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* -------[WYDARZENIA]------Dodaj nowe wydarzenie & bilet------[START]------ */
@@ -1012,6 +1026,7 @@ background:
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 14px;
+  margin-top: 10px;
 }
 
 .dashboard-events {

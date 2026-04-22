@@ -104,6 +104,18 @@ public class WydarzenieController {
 		return ResponseEntity.ok(result);
 	}
 
+	@GetMapping
+	public ResponseEntity<List<WydarzenieListItemDto>> getAllWydarzenia(Authentication authentication) {
+		requireAuthenticatedUser(authentication);
+
+		List<WydarzenieListItemDto> result = wydarzenieRepository.findAll().stream()
+			.sorted(Comparator.comparing(Wydarzenie::getDataRozp, Comparator.nullsLast(LocalDateTime::compareTo)))
+			.map(this::toListItem)
+			.toList();
+
+		return ResponseEntity.ok(result);
+	}
+
 	@GetMapping("/open")
 	public ResponseEntity<List<WydarzenieListItemDto>> getOpenWydarzenia(Authentication authentication) {
 		User user = requireAuthenticatedUser(authentication);

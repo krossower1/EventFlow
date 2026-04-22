@@ -223,6 +223,7 @@ function App() {
       // Dane globalne dostępne dla wszystkich ról po zalogowaniu.
       fetchUsers();
       fetchOpenWydarzenia();
+      fetchMyWydarzenia();
     }
   }, [isLoggedIn, authCredentials]);
 
@@ -230,7 +231,6 @@ function App() {
     if (isLoggedIn && currentUserRole === 'ORG') {
       fetchMyMiejsca();
       fetchWydarzeniaOptions();
-      fetchMyWydarzenia();
     }
   }, [isLoggedIn, currentUserRole, authCredentials]);
 
@@ -512,7 +512,7 @@ function App() {
 
   const fetchMyWydarzenia = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/wydarzenia/my`, getRequestConfig());
+      const response = await axios.get(`${API_BASE_URL}/wydarzenia`, getRequestConfig());
       setMyWydarzenia(response.data);
     } catch (error) {
       const message = error.response?.data?.message || 'Nie udalo sie pobrac listy wydarzen.';
@@ -1223,12 +1223,18 @@ const onLogout = useCallback(async () => {
             </div>
           )}
           
+
+
+
+          {/* Jak będzie działać ta zakładka: powinna wyświetlać wszystkie wydarzenia w bazie, niezależnie od stanu aktywności (to będzie można samemu filtrować) */}
+
           {activeTab === 'Wydarzenia' && (
             <div>
               <h2>Wydarzenia</h2>
-              {currentUserRole === 'ORG' ? (
-                <div className="events-view">
-                  <p>Zarzadzaj wszystkimi swoimi wydarzeniami w jednym miejscu.</p>
+              <div className="events-view">
+                  <p>{currentUserRole === 'ORG'
+                    ? 'Zarzadzaj wszystkimi swoimi wydarzeniami w jednym miejscu.'
+                    : 'Przegladaj wszystkie wydarzenia dostepne w systemie.'}</p>
                   <div className="events-toolbar">
                     <input
                       type="text"
@@ -1250,7 +1256,12 @@ const onLogout = useCallback(async () => {
                     <button
                       type="button"
                       className="btn-new-event"
+                      disabled={currentUserRole !== 'ORG'}
+                      title={currentUserRole === 'ORG' ? 'Dodaj nowe wydarzenie' : 'Tylko organizator moze dodawac wydarzenia'}
                       onClick={() => {
+                        if (currentUserRole !== 'ORG') {
+                          return;
+                        }
                         setShowWydarzenieForm((prev) => !prev);
                         if (!showWydarzenieForm) {
                           fetchWydarzeniaOptions();
@@ -1261,9 +1272,22 @@ const onLogout = useCallback(async () => {
                     </button>
                   </div>
 
+                  {currentUserRole === 'USER' && (
+                    <div className="events-user-cta">
+                      <p>Tylko organizator moze tworzyc wydarzenia.</p>
+                      <button
+                        type="button"
+                        className="btn-new-event"
+                        onClick={() => setActiveTab('Wniosek organizatora')}
+                      >
+                        Zostan Organizatorem
+                      </button>
+                    </div>
+                  )}
+
                   {/* -----------Dodaj nowe wydarzenie------------ */}
 
-                  {showWydarzenieForm && (
+                  {currentUserRole === 'ORG' && showWydarzenieForm && (
                     <form onSubmit={onWydarzenieSubmit} className="auth-form organizer-form event-form">
                       <div className="event-form-layout">
                         <div className="event-form-panel">
@@ -1470,37 +1494,34 @@ const onLogout = useCallback(async () => {
                     </form>
                   )}
 
+                  {/* -----------Sekcja wyswietlania wydarzen------------ */}
+
                   {wydarzenieLoading && <h3>Ladowanie opcji...</h3>}
                   <div className="events-grid">
                     {filteredWydarzenia.length > 0 ? filteredWydarzenia.map((item) => (
                       <article key={item.id} className="event-card">
                         <span className="event-badge">{(item.status || 'szkic').toLowerCase()}</span>
                         <h3>{item.tytul}</h3>
-                        <p>{item.miejsceNazwa}</p>
-                        <p>{item.dataRozp ? new Date(item.dataRozp).toLocaleString() : '-'}</p>
-                        <p>Kategoria: {item.kategoriaNazwa}</p>
+                        <div className="event-card-grid">
+                          <div className="event-card-column event-card-column--labels">
+                            <div className="event-card-row"><strong>Nazwa</strong></div>
+                            <div className="event-card-row"><strong>Od</strong></div>
+                            <div className="event-card-row"><strong>Do</strong></div>
+                            <div className="event-card-row"><strong>Kategoria</strong></div>
+                          </div>
+                          <div className="event-card-column event-card-column--values">
+                            <div className="event-card-row">{item.miejsceNazwa}</div>
+                            <div className="event-card-row">{item.dataRozp ? new Date(item.dataRozp).toLocaleString() : '-'}</div>
+                            <div className="event-card-row">{item.dataZamk ? new Date(item.dataZamk).toLocaleString() : '-'}</div>
+                            <div className="event-card-row">{item.kategoriaNazwa}</div>
+                          </div>
+                        </div>
                       </article>
                     )) : (
                       <p>Brak wydarzen do wyswietlenia.</p>
                     )}
                   </div>
                 </div>
-              ) : currentUserRole === 'USER' ? (
-                <div className="events-user-cta">
-                  <p>Tylko organizator moze tworzyc wydarzenia.</p>
-                  <button
-                    type="button"
-                    className="btn-new-event"
-                    onClick={() => setActiveTab('Wniosek organizatora')}
-                  >
-                    Zostan Organizatorem
-                  </button>
-                </div>
-              ) : currentUserRole === 'ADMIN' ? (
-                <p>Administratorzy nie mogą tworzyć wydarzeń.</p>
-              ) : (
-                <p>Tutaj będą zarządzane wydarzenia.</p>
-              )}
             </div>
           )}
           
