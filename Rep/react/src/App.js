@@ -4,6 +4,7 @@ import './App.css';
 
 const API_BASE_URL = 'http://localhost:8081/api';
 const SESSION_TIMEOUT_SECONDS = 10 * 60;
+const PERSONEL_ROLE_OPTIONS = ['ochrona', 'konferansjer', 'manager', 'prelegent', 'partner finansowy', 'gastronomia', 'animator', 'inne'];
 const createEmptyBiletForm = () => ({
   klasa: '',
   cena: '',
@@ -114,6 +115,8 @@ function App() {
   const [openWydarzenia, setOpenWydarzenia] = useState([]);
   const [selectedWydarzenieDetail, setSelectedWydarzenieDetail] = useState(null);
   const [opiniaForm, setOpiniaForm] = useState({ ocena: '5', opis: '' });
+  const [zgloszenieForm, setZgloszenieForm] = useState({ tytul: '', opis: '' });
+  const [personelForm, setPersonelForm] = useState({ userId: '', rola: 'ochrona' });
   const [showWydarzenieForm, setShowWydarzenieForm] = useState(false);
   const [wydarzeniaSearch, setWydarzeniaSearch] = useState('');
   const [wydarzeniaStatusFilter, setWydarzeniaStatusFilter] = useState('ALL');
@@ -547,6 +550,100 @@ function App() {
       fetchWydarzenieDetail(selectedWydarzenieDetail.id);
     } catch (error) {
       const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie usunac opinii.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const openZgloszeniePage = () => {
+    setZgloszenieForm({ tytul: '', opis: '' });
+    setActiveTab('Zglos wydarzenie');
+  };
+
+  const onZgloszenieSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedWydarzenieDetail) {
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/wydarzenia/${selectedWydarzenieDetail.id}/zgloszenia`,
+        zgloszenieForm,
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || 'Zgloszenie zostalo zapisane.' });
+      setZgloszenieForm({ tytul: '', opis: '' });
+      fetchWydarzenieDetail(selectedWydarzenieDetail.id);
+      setActiveTab('Szczegoly wydarzenia');
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie zapisac zgloszenia.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const onCloseZgloszenie = async (zgloszenieId) => {
+    if (!selectedWydarzenieDetail) {
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/wydarzenia/${selectedWydarzenieDetail.id}/zgloszenia/${zgloszenieId}/close`,
+        {},
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || 'Zgloszenie zostalo zamkniete.' });
+      fetchWydarzenieDetail(selectedWydarzenieDetail.id);
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie zamknac zgloszenia.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const openPersonelPage = () => {
+    setPersonelForm({ userId: '', rola: 'ochrona' });
+    setActiveTab('Dodaj personel');
+  };
+
+  const onPersonelSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedWydarzenieDetail) {
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/wydarzenia/${selectedWydarzenieDetail.id}/personel`,
+        {
+          userId: Number(personelForm.userId),
+          rola: personelForm.rola
+        },
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || 'Personel zostal dodany.' });
+      setPersonelForm({ userId: '', rola: 'ochrona' });
+      fetchWydarzenieDetail(selectedWydarzenieDetail.id);
+      setActiveTab('Szczegoly wydarzenia');
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie dodac personelu.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const onDeletePersonel = async (personelId) => {
+    if (!selectedWydarzenieDetail) {
+      return;
+    }
+
+    try {
+      const response = await axios.delete(
+        `${API_BASE_URL}/wydarzenia/${selectedWydarzenieDetail.id}/personel/${personelId}`,
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || 'Rola personelu zostala anulowana.' });
+      fetchWydarzenieDetail(selectedWydarzenieDetail.id);
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie anulowac roli.';
       setStatus({ type: 'error', message });
     }
   };
@@ -1756,6 +1853,100 @@ const onLogout = useCallback(async () => {
                 </button>
               )}
 
+              {currentUserRole === 'USER' && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={openZgloszeniePage}
+                >
+                  Zgłoś wydarzenie
+                </button>
+              )}
+
+              {selectedWydarzenieDetail.canManagePersonel && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={openPersonelPage}
+                >
+                  Dodaj personel
+                </button>
+              )}
+
+              {selectedWydarzenieDetail.personel?.length > 0 && (
+                <div className="event-detail-opinie">
+                  <h3>Personel</h3>
+                  <table className="participants-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Użytkownik</th>
+                        <th>Rola</th>
+                        <th>Data zajęcia</th>
+                        <th>Akcje</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedWydarzenieDetail.personel.map((item) => (
+                        <tr key={item.id}>
+                          <td>{item.id}</td>
+                          <td>{item.userLogin} ({item.userImie} {item.userNazwisko})</td>
+                          <td>{item.rola}</td>
+                          <td>{item.dataZajet ? new Date(item.dataZajet).toLocaleString() : '-'}</td>
+                          <td>
+                            {(selectedWydarzenieDetail.canManagePersonel || item.userLogin === currentUserLogin) && (
+                              <button type="button" onClick={() => onDeletePersonel(item.id)}>
+                                Anuluj
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {selectedWydarzenieDetail.zgloszenia?.length > 0 && (
+                <div className="event-detail-opinie">
+                  <h3>Zgłoszenia</h3>
+                  <table className="participants-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Użytkownik</th>
+                        <th>Tytuł</th>
+                        <th>Opis</th>
+                        <th>Stan</th>
+                        <th>Utworzony</th>
+                        <th>Zamknięty</th>
+                        <th>Akcje</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedWydarzenieDetail.zgloszenia.map((zgloszenie) => (
+                        <tr key={zgloszenie.id}>
+                          <td>{zgloszenie.id}</td>
+                          <td>{zgloszenie.userLogin}</td>
+                          <td>{zgloszenie.tytul}</td>
+                          <td>{zgloszenie.opis}</td>
+                          <td>{zgloszenie.stan}</td>
+                          <td>{zgloszenie.utworzony ? new Date(zgloszenie.utworzony).toLocaleString() : '-'}</td>
+                          <td>{zgloszenie.zamkniety ? new Date(zgloszenie.zamkniety).toLocaleString() : '-'}</td>
+                          <td>
+                            {zgloszenie.stan !== 'zamkniete' && (
+                              <button type="button" onClick={() => onCloseZgloszenie(zgloszenie.id)}>
+                                Zamknij
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
               <div className="event-detail-opinie">
                 <h3>Opinie</h3>
                 <form onSubmit={onOpiniaSubmit} className="auth-form organizer-form">
@@ -1805,6 +1996,69 @@ const onLogout = useCallback(async () => {
                   )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'Dodaj personel' && selectedWydarzenieDetail && (
+            <div>
+              <h2>Dodaj personel</h2>
+              <p>{selectedWydarzenieDetail.tytul}</p>
+              <form onSubmit={onPersonelSubmit} className="auth-form organizer-form">
+                <label htmlFor="personel-user">Użytkownik</label>
+                <select
+                  id="personel-user"
+                  value={personelForm.userId}
+                  onChange={(event) => setPersonelForm({ ...personelForm, userId: event.target.value })}
+                  required
+                >
+                  <option value="">Wybierz użytkownika</option>
+                  {visibleParticipants.filter((user) => user.rola !== 'ADMIN').map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.login} ({user.imie || '-'} {user.nazwisko || '-'})
+                    </option>
+                  ))}
+                </select>
+
+                <label htmlFor="personel-rola">Rola</label>
+                <select
+                  id="personel-rola"
+                  value={personelForm.rola}
+                  onChange={(event) => setPersonelForm({ ...personelForm, rola: event.target.value })}
+                >
+                  {PERSONEL_ROLE_OPTIONS.map((role) => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
+                </select>
+
+                <button type="submit">Dodaj personel</button>
+              </form>
+            </div>
+          )}
+
+          {activeTab === 'Zglos wydarzenie' && selectedWydarzenieDetail && (
+            <div>
+              <h2>Zgłoszenie wydarzenia</h2>
+              <p>{selectedWydarzenieDetail.tytul}</p>
+              <form onSubmit={onZgloszenieSubmit} className="auth-form organizer-form">
+                <label htmlFor="zgloszenie-tytul">Tytuł</label>
+                <input
+                  id="zgloszenie-tytul"
+                  type="text"
+                  value={zgloszenieForm.tytul}
+                  onChange={(event) => setZgloszenieForm({ ...zgloszenieForm, tytul: event.target.value })}
+                  required
+                />
+
+                <label htmlFor="zgloszenie-opis">Opis</label>
+                <textarea
+                  id="zgloszenie-opis"
+                  value={zgloszenieForm.opis}
+                  onChange={(event) => setZgloszenieForm({ ...zgloszenieForm, opis: event.target.value })}
+                  required
+                />
+
+                <button type="submit">Wyślij zgłoszenie</button>
+              </form>
             </div>
           )}
 

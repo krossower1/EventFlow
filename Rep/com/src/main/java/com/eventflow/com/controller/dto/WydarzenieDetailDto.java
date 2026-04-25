@@ -13,7 +13,10 @@ public record WydarzenieDetailDto(
 	LocalDateTime dataRozp,
 	LocalDateTime dataZamk,
 	Boolean maDostepneBilety,
+	Boolean canManagePersonel,
 	List<BiletPostepDto> postepyBiletow,
-	List<OpiniaDto> opinie
+	List<PersonelDto> personel,
+	List<OpiniaDto> opinie,
+	List<ZgloszenieDto> zgloszenia
 ) {
 }

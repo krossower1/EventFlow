@@ -6,26 +6,34 @@ import com.eventflow.com.controller.dto.BiletCreateRequestDto;
 import com.eventflow.com.controller.dto.BiletPostepDto;
 import com.eventflow.com.controller.dto.OpiniaDto;
 import com.eventflow.com.controller.dto.OpiniaRequestDto;
+import com.eventflow.com.controller.dto.PersonelDto;
+import com.eventflow.com.controller.dto.PersonelRequestDto;
 import com.eventflow.com.controller.dto.WydarzenieCreateRequestDto;
 import com.eventflow.com.controller.dto.WydarzenieDetailDto;
 import com.eventflow.com.controller.dto.WydarzenieListItemDto;
 import com.eventflow.com.controller.dto.WydarzenieOptionsDto;
+import com.eventflow.com.controller.dto.ZgloszenieDto;
+import com.eventflow.com.controller.dto.ZgloszenieRequestDto;
 import com.eventflow.com.model.Bilet;
 import com.eventflow.com.model.Kategoria;
 import com.eventflow.com.model.Miejsce;
 import com.eventflow.com.model.Opinia;
 import com.eventflow.com.model.Organizator;
+import com.eventflow.com.model.Personel;
 import com.eventflow.com.model.PozZam;
 import com.eventflow.com.model.User;
 import com.eventflow.com.model.Wydarzenie;
+import com.eventflow.com.model.Zgloszenie;
 import com.eventflow.com.repository.BiletRepository;
 import com.eventflow.com.repository.KategoriaRepository;
 import com.eventflow.com.repository.MiejsceRepository;
 import com.eventflow.com.repository.OpiniaRepository;
 import com.eventflow.com.repository.OrganizatorRepository;
+import com.eventflow.com.repository.PersonelRepository;
 import com.eventflow.com.repository.PozZamRepository;
 import com.eventflow.com.repository.UserRepository;
 import com.eventflow.com.repository.WydarzenieRepository;
+import com.eventflow.com.repository.ZgloszenieRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -66,6 +74,8 @@ public class WydarzenieController {
 	private final BiletRepository biletRepository;
 	private final PozZamRepository pozZamRepository;
 	private final OpiniaRepository opiniaRepository;
+	private final ZgloszenieRepository zgloszenieRepository;
+	private final PersonelRepository personelRepository;
 
 	public WydarzenieController(
 		UserRepository userRepository,
@@ -75,7 +85,9 @@ public class WydarzenieController {
 		WydarzenieRepository wydarzenieRepository,
 		BiletRepository biletRepository,
 		PozZamRepository pozZamRepository,
-		OpiniaRepository opiniaRepository
+		OpiniaRepository opiniaRepository,
+		ZgloszenieRepository zgloszenieRepository,
+		PersonelRepository personelRepository
 	) {
 		this.userRepository = userRepository;
 		this.organizatorRepository = organizatorRepository;
@@ -85,6 +97,8 @@ public class WydarzenieController {
 		this.biletRepository = biletRepository;
 		this.pozZamRepository = pozZamRepository;
 		this.opiniaRepository = opiniaRepository;
+		this.zgloszenieRepository = zgloszenieRepository;
+		this.personelRepository = personelRepository;
 	}
 
 	@GetMapping("/options")
@@ -158,12 +172,120 @@ public class WydarzenieController {
 
 	@GetMapping("/{id}")
 	public ResponseEntity<WydarzenieDetailDto> getWydarzenieDetails(@PathVariable Long id, Authentication authentication) {
-		requireAuthenticatedUser(authentication);
+		User user = requireAuthenticatedUser(authentication);
 
 		Wydarzenie wydarzenie = wydarzenieRepository.findById(id)
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono wydarzenia."));
 
-		return ResponseEntity.ok(toDetailItem(wydarzenie));
+		return ResponseEntity.ok(toDetailItem(wydarzenie, user));
+	}
+
+	@PostMapping("/{id}/personel")
+	public ResponseEntity<String> addPersonel(
+		@PathVariable Long id,
+		Authentication authentication,
+		@RequestBody PersonelRequestDto request
+	) {
+		User user = requireAuthenticatedUser(authentication);
+		Wydarzenie wydarzenie = wydarzenieRepository.findById(id)
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono wydarzenia."));
+		if (!canManagePersonel(user, wydarzenie)) {
+			throw new ResponseStatusException(FORBIDDEN, "Brak uprawnien do zarzadzania personelem.");
+		}
+		if (request.userId() == null || request.rola() == null || request.rola().isBlank()) {
+			throw new ResponseStatusException(BAD_REQUEST, "Wybierz uzytkownika i role.");
+		}
+		User selectedUser = userRepository.findById(request.userId())
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono wybranego uzytkownika."));
+		if (personelRepository.existsByWydIdAndUserIdAndRolaIgnoreCase(id, request.userId(), request.rola().trim())) {
+			throw new ResponseStatusException(BAD_REQUEST, "Ta rola jest juz przypisana temu uzytkownikowi.");
+		}
+
+		Personel personel = new Personel();
+		personel.setWydId(id);
+		personel.setUserId(selectedUser.getId());
+		personel.setRola(request.rola().trim());
+		personel.setDataZajet(LocalDateTime.now());
+		personelRepository.save(personel);
+		return ResponseEntity.ok("Personel zostal dodany.");
+	}
+
+	@DeleteMapping("/{wydarzenieId}/personel/{personelId}")
+	public ResponseEntity<String> deletePersonel(
+		@PathVariable Long wydarzenieId,
+		@PathVariable Long personelId,
+		Authentication authentication
+	) {
+		User user = requireAuthenticatedUser(authentication);
+		Wydarzenie wydarzenie = wydarzenieRepository.findById(wydarzenieId)
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono wydarzenia."));
+		Personel personel = personelRepository.findById(personelId)
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono przypisania personelu."));
+		if (!personel.getWydId().equals(wydarzenieId)) {
+			throw new ResponseStatusException(BAD_REQUEST, "To przypisanie nie nalezy do tego wydarzenia.");
+		}
+		boolean canDeleteOwn = personel.getUserId().equals(user.getId());
+		if (!canDeleteOwn && !canManagePersonel(user, wydarzenie) && !isAdmin(user)) {
+			throw new ResponseStatusException(FORBIDDEN, "Brak uprawnien do usuniecia tej roli.");
+		}
+
+		personelRepository.delete(personel);
+		return ResponseEntity.ok("Rola personelu zostala anulowana.");
+	}
+
+	@PostMapping("/{id}/zgloszenia")
+	public ResponseEntity<String> addZgloszenie(
+		@PathVariable Long id,
+		Authentication authentication,
+		@RequestBody ZgloszenieRequestDto request
+	) {
+		User user = requireAuthenticatedUser(authentication);
+		if (!isUser(user)) {
+			throw new ResponseStatusException(FORBIDDEN, "Tylko zwykly uzytkownik moze zglaszac wydarzenia.");
+		}
+		if (request.tytul() == null || request.tytul().isBlank() || request.opis() == null || request.opis().isBlank()) {
+			throw new ResponseStatusException(BAD_REQUEST, "Wypelnij tytul i opis zgloszenia.");
+		}
+
+		wydarzenieRepository.findById(id)
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono wydarzenia."));
+
+		Zgloszenie zgloszenie = new Zgloszenie();
+		zgloszenie.setUserId(user.getId());
+		zgloszenie.setWydId(id);
+		zgloszenie.setTytul(request.tytul().trim());
+		zgloszenie.setOpis(request.opis().trim());
+		zgloszenie.setStan("otwarte");
+		zgloszenie.setUtworzony(LocalDateTime.now());
+		zgloszenie.setZamkniety(null);
+		zgloszenieRepository.save(zgloszenie);
+
+		return ResponseEntity.ok("Zgloszenie zostalo zapisane.");
+	}
+
+	@PostMapping("/{wydarzenieId}/zgloszenia/{zgloszenieId}/close")
+	public ResponseEntity<String> closeZgloszenie(
+		@PathVariable Long wydarzenieId,
+		@PathVariable Long zgloszenieId,
+		Authentication authentication
+	) {
+		User user = requireAuthenticatedUser(authentication);
+		Wydarzenie wydarzenie = wydarzenieRepository.findById(wydarzenieId)
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono wydarzenia."));
+		if (!canManageZgloszenia(user, wydarzenie)) {
+			throw new ResponseStatusException(FORBIDDEN, "Brak uprawnien do zamkniecia zgloszenia.");
+		}
+
+		Zgloszenie zgloszenie = zgloszenieRepository.findById(zgloszenieId)
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono zgloszenia."));
+		if (!zgloszenie.getWydId().equals(wydarzenieId)) {
+			throw new ResponseStatusException(BAD_REQUEST, "Zgloszenie nie nalezy do tego wydarzenia.");
+		}
+
+		zgloszenie.setStan("zamkniete");
+		zgloszenie.setZamkniety(LocalDateTime.now());
+		zgloszenieRepository.save(zgloszenie);
+		return ResponseEntity.ok("Zgloszenie zostalo zamkniete.");
 	}
 
 	@PostMapping("/{id}/opinie")
@@ -299,9 +421,11 @@ public class WydarzenieController {
 		);
 	}
 
-	private WydarzenieDetailDto toDetailItem(Wydarzenie wydarzenie) {
+	private WydarzenieDetailDto toDetailItem(Wydarzenie wydarzenie, User user) {
 		List<BiletPostepDto> postepyBiletow = getBiletPostepy(wydarzenie.getId());
 		boolean maDostepneBilety = postepyBiletow.stream().anyMatch(item -> item.wszystkie() > item.sprzedane());
+		List<ZgloszenieDto> zgloszenia = canManageZgloszenia(user, wydarzenie) ? getZgloszenia(wydarzenie.getId()) : List.of();
+		boolean canManagePersonel = canManagePersonel(user, wydarzenie);
 
 		return new WydarzenieDetailDto(
 			wydarzenie.getId(),
@@ -313,8 +437,11 @@ public class WydarzenieController {
 			wydarzenie.getDataRozp(),
 			wydarzenie.getDataZamk(),
 			maDostepneBilety,
+			canManagePersonel,
 			postepyBiletow,
-			getOpinie(wydarzenie.getId())
+			getPersonel(wydarzenie.getId()),
+			getOpinie(wydarzenie.getId()),
+			zgloszenia
 		);
 	}
 
@@ -341,6 +468,38 @@ public class WydarzenieController {
 				opinia.getOpis(),
 				opinia.getData()
 			))
+			.toList();
+	}
+
+	private List<ZgloszenieDto> getZgloszenia(Long wydarzenieId) {
+		return zgloszenieRepository.findByWydIdOrderByUtworzonyDesc(wydarzenieId).stream()
+			.map(zgloszenie -> new ZgloszenieDto(
+				zgloszenie.getId(),
+				zgloszenie.getUserId(),
+				userRepository.findById(zgloszenie.getUserId()).map(User::getLogin).orElse("-"),
+				zgloszenie.getTytul(),
+				zgloszenie.getOpis(),
+				zgloszenie.getStan(),
+				zgloszenie.getUtworzony(),
+				zgloszenie.getZamkniety()
+			))
+			.toList();
+	}
+
+	private List<PersonelDto> getPersonel(Long wydarzenieId) {
+		return personelRepository.findByWydIdOrderByDataZajetDesc(wydarzenieId).stream()
+			.map(item -> {
+				User person = userRepository.findById(item.getUserId()).orElse(null);
+				return new PersonelDto(
+					item.getId(),
+					item.getUserId(),
+					person != null ? person.getLogin() : "-",
+					person != null ? person.getImie() : "-",
+					person != null ? person.getNazwisko() : "-",
+					item.getRola(),
+					item.getDataZajet()
+				);
+			})
 			.toList();
 	}
 
@@ -441,5 +600,32 @@ public class WydarzenieController {
 
 	private boolean isAdmin(User user) {
 		return user.getRola() != null && user.getRola().equalsIgnoreCase("ADMIN");
+	}
+
+	private boolean isUser(User user) {
+		return user.getRola() != null && user.getRola().equalsIgnoreCase("USER");
+	}
+
+	private boolean canManageZgloszenia(User user, Wydarzenie wydarzenie) {
+		if (isAdmin(user)) {
+			return true;
+		}
+		if (!isOrg(user)) {
+			return false;
+		}
+		return organizatorRepository.findByUserIdAndZweryfikowTrue(user.getId())
+			.map(Organizator::getId)
+			.map(id -> id.equals(wydarzenie.getOrgId()))
+			.orElse(false);
+	}
+
+	private boolean canManagePersonel(User user, Wydarzenie wydarzenie) {
+		if (!isOrg(user)) {
+			return false;
+		}
+		return organizatorRepository.findByUserIdAndZweryfikowTrue(user.getId())
+			.map(Organizator::getId)
+			.map(id -> id.equals(wydarzenie.getOrgId()))
+			.orElse(false);
 	}
 }
