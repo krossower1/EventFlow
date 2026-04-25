@@ -112,6 +112,8 @@ function App() {
   const [wydarzenieLoading, setWydarzenieLoading] = useState(false);
   const [myWydarzenia, setMyWydarzenia] = useState([]);
   const [openWydarzenia, setOpenWydarzenia] = useState([]);
+  const [selectedWydarzenieDetail, setSelectedWydarzenieDetail] = useState(null);
+  const [opiniaForm, setOpiniaForm] = useState({ ocena: '5', opis: '' });
   const [showWydarzenieForm, setShowWydarzenieForm] = useState(false);
   const [wydarzeniaSearch, setWydarzeniaSearch] = useState('');
   const [wydarzeniaStatusFilter, setWydarzeniaStatusFilter] = useState('ALL');
@@ -119,6 +121,10 @@ function App() {
   const [zakupFormOpen, setZakupFormOpen] = useState(false);
   const [selectedZakupEvent, setSelectedZakupEvent] = useState(null);
   const [dostepneBilety, setDostepneBilety] = useState([]);
+  const [myBilety, setMyBilety] = useState([]);
+  const [zwroty, setZwroty] = useState([]);
+  const [selectedZwrotBilet, setSelectedZwrotBilet] = useState(null);
+  const [zwrotForm, setZwrotForm] = useState({ powod: '' });
   const [zakupForm, setZakupForm] = useState({
     biletId: '',
     ilosc: '1',
@@ -232,6 +238,23 @@ function App() {
       fetchMyMiejsca();
       fetchWydarzeniaOptions();
     }
+  }, [isLoggedIn, currentUserRole, authCredentials]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setMyBilety([]);
+      setZwroty([]);
+      return;
+    }
+
+    if (currentUserRole === 'ADMIN') {
+      fetchZwroty();
+      setMyBilety([]);
+      return;
+    }
+
+    fetchMyBilety();
+    setZwroty([]);
   }, [isLoggedIn, currentUserRole, authCredentials]);
 
   useEffect(() => {
@@ -392,6 +415,138 @@ function App() {
       fetchUsers();
     } catch (error) {
       const message = error.response?.data?.message || error.response?.data || 'Nie udało się usunąć użytkownika.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const fetchMyBilety = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/bilety/my`, getRequestConfig());
+      setMyBilety(response.data);
+    } catch (error) {
+      const message = error.response?.data?.message || 'Nie udalo sie pobrac biletow.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const fetchZwroty = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/zwroty`, getRequestConfig());
+      setZwroty(response.data);
+    } catch (error) {
+      const message = error.response?.data?.message || 'Nie udalo sie pobrac prosb o zwrot.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const fetchWydarzenieDetail = async (wydarzenieId) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/wydarzenia/${wydarzenieId}`, getRequestConfig());
+      setSelectedWydarzenieDetail(response.data);
+      setActiveTab('Szczegoly wydarzenia');
+    } catch (error) {
+      const message = error.response?.data?.message || 'Nie udalo sie pobrac szczegolow wydarzenia.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const onDeleteOwnAccount = async () => {
+    if (!window.confirm('Czy na pewno chcesz usunąć własne konto?')) {
+      return;
+    }
+
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/users/me`, getRequestConfig());
+      await onLogout();
+      setStatus({ type: 'success', message: response.data || 'Twoje konto zostało usunięte.' });
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udało się usunąć konta.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const onZwrotSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedZwrotBilet) {
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/zwroty/wyst-bilety/${selectedZwrotBilet.id}`,
+        { powod: zwrotForm.powod },
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || 'Prosba o zwrot zostala wyslana.' });
+      setSelectedZwrotBilet(null);
+      setZwrotForm({ powod: '' });
+      fetchMyBilety();
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie wyslac prosby o zwrot.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const onApproveZwrot = async (zwrotId) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/zwroty/${zwrotId}/approve`, {}, getRequestConfig());
+      setStatus({ type: 'success', message: response.data || 'Prosba o zwrot zostala zaakceptowana.' });
+      fetchZwroty();
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie zaakceptowac zwrotu.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const onRejectZwrot = async (zwrotId) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/zwroty/${zwrotId}/reject`, {}, getRequestConfig());
+      setStatus({ type: 'success', message: response.data || 'Prosba o zwrot zostala odrzucona.' });
+      fetchZwroty();
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie odrzucic zwrotu.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const onOpiniaSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedWydarzenieDetail) {
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/wydarzenia/${selectedWydarzenieDetail.id}/opinie`,
+        {
+          ocena: Number(opiniaForm.ocena),
+          opis: opiniaForm.opis
+        },
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || 'Opinia zostala dodana.' });
+      setOpiniaForm({ ocena: '5', opis: '' });
+      fetchWydarzenieDetail(selectedWydarzenieDetail.id);
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie dodac opinii.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const onDeleteOpinia = async (opiniaId) => {
+    if (!selectedWydarzenieDetail) {
+      return;
+    }
+
+    try {
+      const response = await axios.delete(
+        `${API_BASE_URL}/wydarzenia/${selectedWydarzenieDetail.id}/opinie/${opiniaId}`,
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || 'Opinia zostala usunieta.' });
+      fetchWydarzenieDetail(selectedWydarzenieDetail.id);
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie usunac opinii.';
       setStatus({ type: 'error', message });
     }
   };
@@ -980,6 +1135,27 @@ const onLogout = useCallback(async () => {
   });
 
   const pendingOrganizerRequestCount = organizerRequests.filter((item) => !item.zweryfikow).length;
+  const renderBiletPostepy = (postepy = []) => (
+    <div className="ticket-progress-list">
+      {postepy.map((postep) => {
+        const wszystkie = postep.wszystkie || 0;
+        const sprzedane = postep.sprzedane || 0;
+        const percentage = wszystkie > 0 ? Math.min((sprzedane / wszystkie) * 100, 100) : 0;
+
+        return (
+          <div key={postep.biletId || postep.klasa} className="ticket-progress-item">
+            <div className="ticket-progress-meta">
+              <span>{postep.klasa}</span>
+              <span>{sprzedane}/{wszystkie}</span>
+            </div>
+            <div className="ticket-progress-bar">
+              <span className="ticket-progress-fill" style={{ width: `${percentage}%` }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div className="app-layout">
@@ -1096,14 +1272,21 @@ const onLogout = useCallback(async () => {
                 <img src="/account.png" alt="Konto" />
               </button>
               <div className={`account-menu ${accountMenuOpen ? 'open' : ''}`}>
-              <button
-                type="button"
-                className="account-menu-item"
-                onClick={() => {
-                  onLogout(); // To wystarczy, cała logika jest teraz wewnątrz onLogout
-                }}
+                <button
+                  type="button"
+                  className="account-menu-item"
+                  onClick={() => {
+                    onLogout(); // To wystarczy, cała logika jest teraz wewnątrz onLogout
+                  }}
                 >
                   Wyloguj
+                </button>
+                <button
+                  type="button"
+                  className="account-menu-item account-menu-item--danger"
+                  onClick={onDeleteOwnAccount}
+                >
+                  Usuń konto
                 </button>
               </div>
             </div>
@@ -1137,6 +1320,14 @@ const onLogout = useCallback(async () => {
                           <div className="event-card-row">{item.kategoriaNazwa}</div>
                         </div>
                       </div>
+                      {renderBiletPostepy(item.postepyBiletow)}
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => fetchWydarzenieDetail(item.id)}
+                      >
+                        Więcej informacji
+                      </button>
                       {currentUserRole !== 'ORG' && currentUserRole !== 'ADMIN' && item.maDostepneBilety && (
                         <button
                           type="button"
@@ -1516,6 +1707,14 @@ const onLogout = useCallback(async () => {
                             <div className="event-card-row">{item.kategoriaNazwa}</div>
                           </div>
                         </div>
+                        {renderBiletPostepy(item.postepyBiletow)}
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={() => fetchWydarzenieDetail(item.id)}
+                        >
+                          Więcej informacji
+                        </button>
                       </article>
                     )) : (
                       <p>Brak wydarzen do wyswietlenia.</p>
@@ -1526,10 +1725,210 @@ const onLogout = useCallback(async () => {
           )}
           
           
+          {activeTab === 'Szczegoly wydarzenia' && selectedWydarzenieDetail && (
+            <div>
+              <h2>{selectedWydarzenieDetail.tytul}</h2>
+              <p>{selectedWydarzenieDetail.opis || 'Brak dodatkowego opisu.'}</p>
+              <div className="event-card-grid">
+                <div className="event-card-column event-card-column--labels">
+                  <div className="event-card-row"><strong>Miejsce</strong></div>
+                  <div className="event-card-row"><strong>Kategoria</strong></div>
+                  <div className="event-card-row"><strong>Od</strong></div>
+                  <div className="event-card-row"><strong>Do</strong></div>
+                </div>
+                <div className="event-card-column event-card-column--values">
+                  <div className="event-card-row">{selectedWydarzenieDetail.miejsceNazwa}</div>
+                  <div className="event-card-row">{selectedWydarzenieDetail.kategoriaNazwa}</div>
+                  <div className="event-card-row">{selectedWydarzenieDetail.dataRozp ? new Date(selectedWydarzenieDetail.dataRozp).toLocaleString() : '-'}</div>
+                  <div className="event-card-row">{selectedWydarzenieDetail.dataZamk ? new Date(selectedWydarzenieDetail.dataZamk).toLocaleString() : '-'}</div>
+                </div>
+              </div>
+
+              {renderBiletPostepy(selectedWydarzenieDetail.postepyBiletow)}
+
+              {currentUserRole !== 'ORG' && currentUserRole !== 'ADMIN' && selectedWydarzenieDetail.maDostepneBilety && (
+                <button
+                  type="button"
+                  className="btn-new-event"
+                  onClick={() => openZakupForm(selectedWydarzenieDetail)}
+                >
+                  Zakup
+                </button>
+              )}
+
+              <div className="event-detail-opinie">
+                <h3>Opinie</h3>
+                <form onSubmit={onOpiniaSubmit} className="auth-form organizer-form">
+                  <label htmlFor="opinia-ocena">Ocena</label>
+                  <select
+                    id="opinia-ocena"
+                    value={opiniaForm.ocena}
+                    onChange={(event) => setOpiniaForm({ ...opiniaForm, ocena: event.target.value })}
+                  >
+                    <option value="5">5</option>
+                    <option value="4">4</option>
+                    <option value="3">3</option>
+                    <option value="2">2</option>
+                    <option value="1">1</option>
+                  </select>
+
+                  <label htmlFor="opinia-opis">Opis</label>
+                  <textarea
+                    id="opinia-opis"
+                    value={opiniaForm.opis}
+                    onChange={(event) => setOpiniaForm({ ...opiniaForm, opis: event.target.value })}
+                    required
+                  />
+
+                  <button type="submit">Dodaj opinię</button>
+                </form>
+
+                <div className="events-grid">
+                  {selectedWydarzenieDetail.opinie?.length > 0 ? selectedWydarzenieDetail.opinie.map((opinia) => (
+                    <article key={opinia.id} className="event-card">
+                      <span className="event-badge">ocena {opinia.ocena}/5</span>
+                      <h3>{opinia.userLogin}</h3>
+                      <p>{opinia.opis}</p>
+                      <p>{opinia.data ? new Date(opinia.data).toLocaleString() : '-'}</p>
+                      {(opinia.userLogin === currentUserLogin || currentUserRole === 'ADMIN') && (
+                        <button
+                          type="button"
+                          className="btn-delete"
+                          onClick={() => onDeleteOpinia(opinia.id)}
+                        >
+                          Usuń opinię
+                        </button>
+                      )}
+                    </article>
+                  )) : (
+                    <p>Brak opinii dla tego wydarzenia.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'Bilety' && (
             <div>
               <h2>Bilety</h2>
-              <p>Tutaj będą zarządzane bilety.</p>
+              {currentUserRole === 'ADMIN' ? (
+                <>
+                  <p>Przeglad prosb o zwrot.</p>
+                  <table className="participants-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Uzytkownik</th>
+                        <th>Wydarzenie</th>
+                        <th>Klasa</th>
+                        <th>Kwota</th>
+                        <th>Waluta</th>
+                        <th>Powod</th>
+                        <th>Stan</th>
+                        <th>Przyznany</th>
+                        <th>Akcje</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {zwroty.length > 0 ? zwroty.map((zwrot) => (
+                        <tr key={zwrot.id}>
+                          <td>{zwrot.id}</td>
+                          <td>{zwrot.userLogin}</td>
+                          <td>{zwrot.wydarzenieTytul}</td>
+                          <td>{zwrot.klasa}</td>
+                          <td>{zwrot.kwota ?? '-'}</td>
+                          <td>{zwrot.waluta || '-'}</td>
+                          <td>{zwrot.powod}</td>
+                          <td>{zwrot.stan || '-'}</td>
+                          <td>{zwrot.przyznany ? 'Tak' : 'Nie'}</td>
+                          <td>
+                            <button type="button" onClick={() => onApproveZwrot(zwrot.id)}>
+                              Akceptuj
+                            </button>
+                            <button type="button" onClick={() => onRejectZwrot(zwrot.id)} style={{ marginLeft: '8px' }}>
+                              Odrzuc
+                            </button>
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr><td colSpan="10">Brak prosb o zwrot.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </>
+              ) : (
+                <>
+                  <p>Tutaj widzisz swoje zakupione bilety.</p>
+                  <div className="events-grid">
+                    {myBilety.length > 0 ? myBilety.map((bilet) => (
+                      <article key={bilet.id} className="event-card">
+                        <span className="event-badge">{(bilet.stan || 'aktywny').toLowerCase()}</span>
+                        <h3>{bilet.wydarzenieTytul}</h3>
+                        <p>Kod: {bilet.kod}</p>
+                        <p>Klasa: {bilet.klasa}</p>
+                        <p>Cena: {bilet.cena ?? '-'} {bilet.waluta || 'PLN'}</p>
+                        <p>Wydano: {bilet.wydanyData ? new Date(bilet.wydanyData).toLocaleString() : '-'}</p>
+                        {bilet.maProsbeZwrotu ? (
+                          <p>Zwrot: {bilet.stanZwrotu || 'zgloszony'}</p>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-new-event"
+                            onClick={() => {
+                              setSelectedZwrotBilet(bilet);
+                              setZwrotForm({ powod: '' });
+                            }}
+                          >
+                            Prośba o zwrot
+                          </button>
+                        )}
+                      </article>
+                    )) : (
+                      <p>Nie masz jeszcze zadnych biletow.</p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {selectedZwrotBilet && (
+                <div
+                  className="modal-overlay"
+                  role="dialog"
+                  aria-modal="true"
+                  onMouseDown={(e) => {
+                    if (e.target === e.currentTarget) {
+                      setSelectedZwrotBilet(null);
+                    }
+                  }}
+                >
+                  <div className="modal-card">
+                    <div className="modal-header">
+                      <div className="modal-title">
+                        Prosba o zwrot: <span className="header-accent">{selectedZwrotBilet.wydarzenieTytul}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="modal-close"
+                        onClick={() => setSelectedZwrotBilet(null)}
+                        aria-label="Zamknij"
+                      >
+                        Ă—
+                      </button>
+                    </div>
+
+                    <form onSubmit={onZwrotSubmit} className="auth-form organizer-form">
+                      <label htmlFor="zwrot-powod">Powod prosby</label>
+                      <textarea
+                        id="zwrot-powod"
+                        value={zwrotForm.powod}
+                        onChange={(event) => setZwrotForm({ powod: event.target.value })}
+                        required
+                      />
+                      <button type="submit">Wyslij prosbe</button>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           

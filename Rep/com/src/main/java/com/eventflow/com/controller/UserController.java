@@ -29,6 +29,19 @@ public class UserController {
             .toList();
     }
 
+    @DeleteMapping("/me")
+    public String deleteOwnAccount(Authentication authentication) {
+        if (authentication == null) {
+            throw new RuntimeException("Brak uwierzytelnienia");
+        }
+
+        User currentUser = userRepository.findByLogin(authentication.getName())
+            .orElseThrow(() -> new RuntimeException("Nie znaleziono aktualnego użytkownika"));
+
+        userRepository.delete(currentUser);
+        return "Twoje konto zostało usunięte";
+    }
+
     @DeleteMapping("/{id}")
     public String deleteUser(@PathVariable Long id, Authentication authentication) {
         // Operacje usuwania/dezaktywacji są zarezerwowane tylko dla ADMIN.
