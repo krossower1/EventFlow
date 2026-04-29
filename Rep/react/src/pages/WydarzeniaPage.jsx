@@ -207,10 +207,9 @@ const WydarzeniaPage = () => {
       <h2>Wydarzenia</h2>
       {status.message && <p className={`status-message ${status.type}`}>{status.message}</p>}
       
-      {currentUser?.rola === 'ORG' ? (
-        <div className="events-view">
-          <p>Zarzadzaj wszystkimi swoimi wydarzeniami w jednym miejscu.</p>
-          <div className="events-toolbar">
+      <div className="events-view">
+        <p>{currentUser?.rola === 'ORG' ? 'Zarzadzaj wszystkimi swoimi wydarzeniami w jednym miejscu.' : 'Przeglądaj wydarzenia (dostęp do zarządzania tylko dla organizatorów).'}</p>
+        <div className="events-toolbar">
             <input
               type="text"
               className="events-search"
@@ -231,12 +230,15 @@ const WydarzeniaPage = () => {
             <button
               type="button"
               className="btn-new-event"
+              disabled={currentUser?.rola !== 'ORG'}
               onClick={() => {
+                if (currentUser?.rola !== 'ORG') return;
                 setShowWydarzenieForm((prev) => !prev);
                 if (!showWydarzenieForm) fetchWydarzeniaOptions();
               }}
             >
               {showWydarzenieForm ? 'Zamknij formularz' : '+ Nowe wydarzenie'}
+              {currentUser?.rola !== 'ORG' && ' (tylko organizator)'}
             </button>
           </div>
 
@@ -347,11 +349,12 @@ const WydarzeniaPage = () => {
                 {/* DOSTOSOWANY FORMULARZ NOWEJ PULI BILETÓW */}
                 <div style={{ marginTop: '20px', padding: '20px', background: '#1a1d24', borderRadius: '10px', border: '1px solid #e0e0e0' }}>
                   <h5 style={{ margin: '0 0 15px 0', color: '#333', fontWeight: 'bold' }}>+ Nowa pula biletów</h5>
-                  <form 
-                    onSubmit={e => onTicketSubmit(e, item.id)} 
-                    className="auth-form organizer-form event-form"
-                    style={{ display: 'grid', gap: '15px', padding: '0' }}
-                  >
+
+                  <form
+                      onSubmit={e => onTicketSubmit(e, item.id)}
+                      className="auth-form organizer-form event-form"
+                      style={{ display: 'grid', gap: '15px', padding: '0', opacity: currentUser?.rola === 'ORG' ? 1 : 0.5 }}
+                    >
                     <div>
                       <label htmlFor={`t-klasa-${item.id}`}>Klasa biletu (np. VIP)</label>
                       <input
@@ -360,6 +363,7 @@ const WydarzeniaPage = () => {
                         placeholder="Wpisz klasę..."
                         value={ticketForms[item.id]?.klasa || ''}
                         onChange={e => updateTicketForm(item.id, 'klasa', e.target.value)}
+                        disabled={currentUser?.rola !== 'ORG'}
                         required
                       />
                     </div>
@@ -421,8 +425,9 @@ const WydarzeniaPage = () => {
                       </div>
                     </div>
 
-                    <button type="submit" className="btn-new-event" style={{ width: '100%' }}>
+                    <button type="submit" className="btn-new-event" style={{ width: '100%' }} disabled={currentUser?.rola !== 'ORG'}>
                       Dodaj pulę biletów
+                      {currentUser?.rola !== 'ORG' && ' (tylko organizator)'}
                     </button>
                   </form>
                 </div>
@@ -432,10 +437,7 @@ const WydarzeniaPage = () => {
             )}
           </div>
         </div>
-      ) : (
-        <p>Brak uprawnień lub nie jesteś zalogowany jako organizator.</p>
-      )}
-    </div>
+      </div>
   );
 };
 

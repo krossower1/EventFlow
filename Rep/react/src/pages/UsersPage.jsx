@@ -61,9 +61,10 @@ const UsersPage = () => {
       {status.message && <p className={`status-message ${status.type}`}>{status.message}</p>}
       
       <div className={`events-user-cta participants-admin-cta ${currentUser.rola !== 'ADMIN' ? 'disabled-area' : ''}`}>
-        <p>Zarządzaj rolami i użytkownikami.</p>
-        <button type="button" className="show-admins-toggle" onClick={() => setHideAdmins(!hideAdmins)}>
+        <p>{currentUser.rola === 'ADMIN' ? 'Zarządzaj rolami i użytkownikami.' : 'Przeglądaj listę uczestników (zarządzanie tylko dla administratorów).'}</p>
+        <button type="button" className="show-admins-toggle" onClick={() => setHideAdmins(!hideAdmins)} disabled={currentUser.rola !== 'ADMIN'}>
           {hideAdmins ? 'Pokaż adminów' : 'Schowaj adminów'}
+          {currentUser.rola !== 'ADMIN' && ' (tylko admin)'}
         </button>
       </div>
 
@@ -81,16 +82,16 @@ const UsersPage = () => {
               <td>{user.email}</td>
               <td>{user.login}</td>
               <td>{user.rola}</td>
-              {currentUser.rola === 'ADMIN' && (
-                <td>
-                  {user.login !== currentUser.login && user.rola !== 'ADMIN' && (
-                    <>
-                      <button type="button" className="btn-delete" onClick={(e) => { e.stopPropagation(); onDeactivateUser(user.id, user.login); }}>Dezaktywuj</button>
-                      <button type="button" className="btn-delete" onClick={(e) => { e.stopPropagation(); onDeleteUser(user.id, user.login); }} style={{ marginLeft: '8px' }}>Usuń</button>
-                    </>
-                  )}
-                </td>
-              )}
+              <td>
+                {currentUser.rola === 'ADMIN' && user.login !== currentUser.login && user.rola !== 'ADMIN' ? (
+                  <>
+                    <button type="button" className="btn-delete" onClick={(e) => { e.stopPropagation(); onDeactivateUser(user.id, user.login); }}>Dezaktywuj</button>
+                    <button type="button" className="btn-delete" onClick={(e) => { e.stopPropagation(); onDeleteUser(user.id, user.login); }} style={{ marginLeft: '8px' }}>Usuń</button>
+                  </>
+                ) : (
+                  <span style={{ color: '#666' }}>Tylko dla administratorów</span>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>

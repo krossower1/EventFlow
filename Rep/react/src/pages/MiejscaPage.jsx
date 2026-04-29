@@ -43,6 +43,9 @@ const MiejscaPage = () => {
   useEffect(() => {
     if (currentUser?.rola === 'ORG') {
       fetchMyMiejsca();
+    } else {
+      // Dla nie-ORG, ustawiamy puste miejsca
+      setMiejsca([]);
     }
   }, [currentUser, fetchMyMiejsca]);
 
@@ -92,21 +95,24 @@ const MiejscaPage = () => {
     }
   };
 
-  if (currentUser?.rola !== 'ORG') {
-    return <div style={{padding: '20px'}}>Tylko organizatorzy mogą zarządzać miejscami.</div>;
-  }
+  // Strona dostępna dla wszystkich, ale zarządzanie tylko dla organizatorów
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>Zarządzaj miejscami</h2>
+        <h2>{currentUser?.rola === 'ORG' ? 'Zarządzaj miejscami' : 'Przeglądaj miejsca (zarządzanie tylko dla organizatorów)'}</h2>
         <div>
-          <button className="btn-refresh" onClick={fetchMyMiejsca} style={{marginRight: '10px'}}>Odśwież</button>
-          <button 
-            className="btn-new-event" 
+          <button className="btn-refresh" onClick={fetchMyMiejsca} style={{marginRight: '10px'}} disabled={currentUser?.rola !== 'ORG'}>
+            Odśwież
+            {currentUser?.rola !== 'ORG' && ' (tylko org)'}
+          </button>
+          <button
+            className="btn-new-event"
             onClick={() => setView(view === 'list' ? 'add' : 'list')}
+            disabled={currentUser?.rola !== 'ORG'}
           >
             {view === 'list' ? '+ Dodaj miejsce' : 'Powrót do listy'}
+            {currentUser?.rola !== 'ORG' && ' (tylko org)'}
           </button>
         </div>
       </div>
@@ -114,33 +120,39 @@ const MiejscaPage = () => {
       {status.message && <p className={`status-message ${status.type}`}>{status.message}</p>}
 
       {view === 'add' ? (
-        <div className="auth-form organizer-form">
-          <h3>Nowe miejsce</h3>
-          <form onSubmit={onMiejsceSubmit}>
-            <label>Nazwa</label>
-            <input type="text" value={miejsceForm.nazwa} onChange={e => setMiejsceForm({...miejsceForm, nazwa: e.target.value})} required />
-            
-            <label>Państwo</label>
-            <input type="text" value="Polska" disabled />
+        currentUser?.rola === 'ORG' ? (
+          <div className="auth-form organizer-form">
+            <h3>Nowe miejsce</h3>
+            <form onSubmit={onMiejsceSubmit}>
+              <label>Nazwa</label>
+              <input type="text" value={miejsceForm.nazwa} onChange={e => setMiejsceForm({...miejsceForm, nazwa: e.target.value})} required />
 
-            <label>Miasto</label>
-            <input type="text" value={miejsceForm.miasto} onChange={e => setMiejsceForm({...miejsceForm, miasto: e.target.value})} required />
+              <label>Państwo</label>
+              <input type="text" value="Polska" disabled />
 
-            <label>Ulica</label>
-            <input type="text" value={miejsceForm.ulica} onChange={e => setMiejsceForm({...miejsceForm, ulica: e.target.value})} required />
+              <label>Miasto</label>
+              <input type="text" value={miejsceForm.miasto} onChange={e => setMiejsceForm({...miejsceForm, miasto: e.target.value})} required />
 
-            <label>Kod pocztowy</label>
-            <input type="text" value={miejsceForm.kodPoczt} onChange={e => setMiejsceForm({...miejsceForm, kodPoczt: e.target.value})} required />
+              <label>Ulica</label>
+              <input type="text" value={miejsceForm.ulica} onChange={e => setMiejsceForm({...miejsceForm, ulica: e.target.value})} required />
 
-            <label>Pojemność całkowita</label>
-            <input type="number" value={miejsceForm.pojemnosc} onChange={e => setMiejsceForm({...miejsceForm, pojemnosc: e.target.value})} required />
+              <label>Kod pocztowy</label>
+              <input type="text" value={miejsceForm.kodPoczt} onChange={e => setMiejsceForm({...miejsceForm, kodPoczt: e.target.value})} required />
 
-            <label>Opis</label>
-            <textarea value={miejsceForm.opis} onChange={e => setMiejsceForm({...miejsceForm, opis: e.target.value})} />
+              <label>Pojemność całkowita</label>
+              <input type="number" value={miejsceForm.pojemnosc} onChange={e => setMiejsceForm({...miejsceForm, pojemnosc: e.target.value})} required />
 
-            <button type="submit">Zapisz miejsce</button>
-          </form>
-        </div>
+              <label>Opis</label>
+              <textarea value={miejsceForm.opis} onChange={e => setMiejsceForm({...miejsceForm, opis: e.target.value})} />
+
+              <button type="submit">Zapisz miejsce</button>
+            </form>
+          </div>
+        ) : (
+          <div style={{padding: '20px', textAlign: 'center', color: '#666'}}>
+            <p>Dodawanie nowych miejsc dostępne tylko dla organizatorów.</p>
+          </div>
+        )
       ) : (
         <div className="miejsca-list">
           {loading && <h3>Ładowanie...</h3>}
@@ -184,7 +196,8 @@ const MiejscaPage = () => {
 
               <div style={{ marginTop: '15px', color: 'white', border: '1px solid white', backgroundColor: '#0d0f14', padding: '15px', borderRadius: '5px' }}>
                 <h5>+ Dodaj salę do {miejsce.nazwa}</h5>
-                <form onSubmit={e => onSalaSubmit(e, miejsce.id)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '10px', alignItems: 'end' }}>
+                {currentUser?.rola === 'ORG' ? (
+                  <form onSubmit={e => onSalaSubmit(e, miejsce.id)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '10px', alignItems: 'end' }}>
                   <div>
                     <label style={{fontSize: '12px'}}>Nazwa</label>
                     <input 
@@ -224,6 +237,9 @@ const MiejscaPage = () => {
                   </div>
                   <button type="submit" style={{ padding: '8px 15px' }}>Dodaj</button>
                 </form>
+                ) : (
+                  <p style={{ color: '#666', textAlign: 'center' }}>Dodawanie sal dostępne tylko dla organizatorów.</p>
+                )}
               </div>
             </div>
           )) : (
