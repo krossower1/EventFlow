@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
 import { AuthContext } from '../context/AuthContext';
 import WydarzenieCard from '../components/WydarzenieCard';
+import PurchaseModal from '../components/PurchaseModal';
 
 const WydarzeniaPage = () => {
   const { currentUser, authCredentials } = useContext(AuthContext);
@@ -30,6 +31,22 @@ const WydarzeniaPage = () => {
   });
   const [status, setStatus] = useState({ type: '', message: '' });
   const [ticketForms, setTicketForms] = useState({});
+  const [openTicketFormEventId, setOpenTicketFormEventId] = useState(null);
+  const [zakupFormOpen, setZakupFormOpen] = useState(false);
+  const [selectedZakupEvent, setSelectedZakupEvent] = useState(null);
+  const [dostepneBilety, setDostepneBilety] = useState([]);
+  const [zakupLoading, setZakupLoading] = useState(false);
+  const [zakupForm, setZakupForm] = useState({ biletId: '', ilosc: '1', potwierdzPlatnosc: false });
+  const [selectedInfoEvent, setSelectedInfoEvent] = useState(null);
+  const [selectedPersonelEvent, setSelectedPersonelEvent] = useState(null);
+  const [infoLoading, setInfoLoading] = useState(false);
+  const [opiniaForm, setOpiniaForm] = useState({ ocena: '5', opis: '' });
+  const [organizerRequestOpen, setOrganizerRequestOpen] = useState(false);
+  const [organizerForm, setOrganizerForm] = useState({ firma: '', kwalifikacje: '', strona: '' });
+  const [personelForm, setPersonelForm] = useState({ userId: '', rola: 'ochrona' });
+  const [personelUsers, setPersonelUsers] = useState([]);
+
+  const PERSONEL_ROLE_OPTIONS = ['ochrona', 'konferansjer', 'manager', 'prelegent', 'partner finansowy', 'gastronomia', 'animator', 'inne'];
 
   const getRequestConfig = useCallback(() => {
     const config = { withCredentials: true };
@@ -53,7 +70,7 @@ const WydarzeniaPage = () => {
 
   const fetchMyWydarzenia = useCallback(async () => {
     try {
-      const response = await apiClient.get('/wydarzenia/my', getRequestConfig());
+      const response = await apiClient.get('/wydarzenia', getRequestConfig());
       setMyWydarzenia(response.data);
     } catch (error) {
       setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie pobrac listy wydarzen.' });
@@ -180,16 +197,171 @@ const WydarzeniaPage = () => {
       }, getRequestConfig());
       setStatus({ type: 'success', message: 'Pula biletów została dodana.' });
       setTicketForms(prev => ({ ...prev, [eventId]: { klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '' } }));
+      setOpenTicketFormEventId(null);
       fetchMyWydarzenia(); // Odśwież listę, by zobaczyć zmiany
     } catch (error) {
       setStatus({ type: 'error', message: 'Nie udało się dodać biletów.' });
     }
   };
 
+  const openZakupForm = async (eventItem) => {
+    setZakupLoading(true);
+    setStatus({ type: '', message: '' });
+
+    try {
+      const response = await apiClient.get(`/zakupy/wydarzenia/${eventItem.id}/bilety`, getRequestConfig());
+      setDostepneBilety(response.data);
+      setSelectedZakupEvent(eventItem);
+      setZakupForm({
+        biletId: response.data[0]?.biletId ? String(response.data[0].biletId) : '',
+        ilosc: '1',
+        potwierdzPlatnosc: false
+      });
+      setZakupFormOpen(true);
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udało się pobrać dostępnych biletów.' });
+    } finally {
+      setZakupLoading(false);
+    }
+  };
+
+  const onZakupSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedZakupEvent) return;
+    setZakupLoading(true);
+
+    try {
+      await apiClient.post(`/zakupy/wydarzenia/${selectedZakupEvent.id}`, {
+        biletId: Number(zakupForm.biletId),
+        ilosc: Number(zakupForm.ilosc),
+        potwierdzPlatnosc: zakupForm.potwierdzPlatnosc
+      }, getRequestConfig());
+      setStatus({ type: 'success', message: 'Zakup zakończony pomyślnie.' });
+      setZakupFormOpen(false);
+      setSelectedZakupEvent(null);
+      fetchMyWydarzenia();
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udało się zakończyć zakupu.' });
+    } finally {
+      setZakupLoading(false);
+    }
+  };
+
+  const openInfoModal = async (eventId) => {
+    setInfoLoading(true);
+    try {
+      const eventResponse = await apiClient.get(`/wydarzenia/${eventId}`, getRequestConfig());
+      setSelectedInfoEvent(eventResponse.data);
+      setOpiniaForm({ ocena: '5', opis: '' });
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie pobrac szczegolow wydarzenia.' });
+    } finally {
+      setInfoLoading(false);
+    }
+  };
+
+  const openPersonelModal = async (eventId) => {
+    setInfoLoading(true);
+    try {
+      const [eventResponse, usersResponse] = await Promise.all([
+        apiClient.get(`/wydarzenia/${eventId}`, getRequestConfig()),
+        apiClient.get('/users', getRequestConfig())
+      ]);
+      setSelectedPersonelEvent(eventResponse.data);
+      setPersonelUsers(usersResponse.data || []);
+      setPersonelForm({ userId: '', rola: 'ochrona' });
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie pobrac danych personelu.' });
+    } finally {
+      setInfoLoading(false);
+    }
+  };
+
+  const onOpiniaSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedInfoEvent) return;
+
+    try {
+      const response = await apiClient.post(
+        `/wydarzenia/${selectedInfoEvent.id}/opinie`,
+        { ocena: Number(opiniaForm.ocena), opis: opiniaForm.opis },
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || 'Opinia zostala dodana.' });
+      setOpiniaForm({ ocena: '5', opis: '' });
+      await openInfoModal(selectedInfoEvent.id);
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie dodac opinii.' });
+    }
+  };
+
+  const onDeleteOpinia = async (opiniaId) => {
+    if (!selectedInfoEvent) return;
+
+    try {
+      const response = await apiClient.delete(
+        `/wydarzenia/${selectedInfoEvent.id}/opinie/${opiniaId}`,
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || 'Opinia zostala usunieta.' });
+      await openInfoModal(selectedInfoEvent.id);
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie usunac opinii.' });
+    }
+  };
+
+  const onPersonelSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedPersonelEvent || currentUser?.rola !== 'ORG') return;
+
+    try {
+      const response = await apiClient.post(
+        `/wydarzenia/${selectedPersonelEvent.id}/personel`,
+        { userId: Number(personelForm.userId), rola: personelForm.rola },
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || 'Personel zostal dodany.' });
+      setPersonelForm({ userId: '', rola: 'ochrona' });
+      await openPersonelModal(selectedPersonelEvent.id);
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie dodac personelu.' });
+    }
+  };
+
+  const onDeletePersonel = async (personelId) => {
+    if (!selectedPersonelEvent || currentUser?.rola !== 'ORG') return;
+
+    try {
+      const response = await apiClient.delete(
+        `/wydarzenia/${selectedPersonelEvent.id}/personel/${personelId}`,
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || 'Rola personelu zostala anulowana.' });
+      await openPersonelModal(selectedPersonelEvent.id);
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie anulowac roli.' });
+    }
+  };
+
+  const onOrganizerRequestSubmit = async (event) => {
+    event.preventDefault();
+    if (currentUser?.rola !== 'USER') return;
+
+    try {
+      const response = await apiClient.post('/organizator/request', organizerForm, getRequestConfig());
+      setStatus({ type: 'success', message: response.data || 'Wniosek zostal wyslany.' });
+      setOrganizerForm({ firma: '', kwalifikacje: '', strona: '' });
+      setOrganizerRequestOpen(false);
+    } catch (error) {
+      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie wyslac wniosku.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
   useEffect(() => {
+    fetchMyWydarzenia();
     if (currentUser?.rola === 'ORG') {
       fetchWydarzeniaOptions();
-      fetchMyWydarzenia();
     }
   }, [currentUser, fetchWydarzeniaOptions, fetchMyWydarzenia]);
 
@@ -203,12 +375,13 @@ const WydarzeniaPage = () => {
   });
 
   return (
+    <>
     <div>
       <h2>Wydarzenia</h2>
       {status.message && <p className={`status-message ${status.type}`}>{status.message}</p>}
       
       <div className="events-view">
-        <p>{currentUser?.rola === 'ORG' ? 'Zarzadzaj wszystkimi swoimi wydarzeniami w jednym miejscu.' : 'Przeglądaj wydarzenia (dostęp do zarządzania tylko dla organizatorów).'}</p>
+        <p>{currentUser?.rola === 'ORG' ? 'Zarzadzaj wszystkimi swoimi wydarzeniami w jednym miejscu.' : 'Przeglądaj wszystkie wydarzenia dostępne w systemie.'}</p>
         <div className="events-toolbar">
             <input
               type="text"
@@ -244,192 +417,152 @@ const WydarzeniaPage = () => {
 
           {showWydarzenieForm && (
             <form onSubmit={onWydarzenieSubmit} className="auth-form organizer-form event-form">
-              <label htmlFor="wyd-miejsce">Miejsce</label>
-              <select
-                id="wyd-miejsce"
-                value={wydarzenieForm.miejsceId}
-                onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, miejsceId: event.target.value })}
-                required
-              >
-                <option value="">Wybierz miejsce</option>
-                {wydarzenieOptions.miejsca.map((item) => (
-                  <option key={item.id} value={item.id}>{item.nazwa}</option>
-                ))}
-              </select>
+              <div className="event-form-layout">
+                <div className="event-form-panel">
+                  <label htmlFor="wyd-miejsce">Miejsce</label>
+                  <select
+                    id="wyd-miejsce"
+                    value={wydarzenieForm.miejsceId}
+                    onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, miejsceId: event.target.value })}
+                    required
+                  >
+                    <option value="">Wybierz miejsce</option>
+                    {wydarzenieOptions.miejsca.map((item) => (
+                      <option key={item.id} value={item.id}>{item.nazwa}</option>
+                    ))}
+                  </select>
 
-              <label htmlFor="wyd-tytul">Tytul</label>
-              <input
-                id="wyd-tytul"
-                type="text"
-                value={wydarzenieForm.tytul}
-                onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, tytul: event.target.value })}
-                required
-              />
+                  <label htmlFor="wyd-tytul">Tytul</label>
+                  <input
+                    id="wyd-tytul"
+                    type="text"
+                    value={wydarzenieForm.tytul}
+                    onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, tytul: event.target.value })}
+                    required
+                  />
 
-              <label htmlFor="wyd-opis">Opis</label>
-              <input
-                id="wyd-opis"
-                type="text"
-                value={wydarzenieForm.opis}
-                onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, opis: event.target.value })}
-              />
+                  <label htmlFor="wyd-opis">Opis</label>
+                  <input
+                    id="wyd-opis"
+                    type="text"
+                    value={wydarzenieForm.opis}
+                    onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, opis: event.target.value })}
+                  />
 
-              <label htmlFor="wyd-kategoria">Kategoria</label>
-              <select
-                id="wyd-kategoria"
-                value={wydarzenieForm.createNowaKategoria ? '__NOWA_KATEGORIA__' : wydarzenieForm.kategoriaId}
-                onChange={(event) => {
-                  const isNew = event.target.value === '__NOWA_KATEGORIA__';
-                  setWydarzenieForm({
-                    ...wydarzenieForm,
-                    createNowaKategoria: isNew,
-                    kategoriaId: isNew ? '' : event.target.value
-                  });
-                }}
-                required
-              >
-                <option value="">Wybierz kategorie</option>
-                {wydarzenieOptions.kategorie.map((item) => (
-                  <option key={item.id} value={item.id}>{item.nazwa}</option>
-                ))}
-                <option value="__NOWA_KATEGORIA__">+ Utworz nowa kategorie</option>
-              </select>
+                  <label htmlFor="wyd-kategoria">Kategoria</label>
+                  <select
+                    id="wyd-kategoria"
+                    value={wydarzenieForm.createNowaKategoria ? '__NOWA_KATEGORIA__' : wydarzenieForm.kategoriaId}
+                    onChange={(event) => {
+                      const isNew = event.target.value === '__NOWA_KATEGORIA__';
+                      setWydarzenieForm({
+                        ...wydarzenieForm,
+                        createNowaKategoria: isNew,
+                        kategoriaId: isNew ? '' : event.target.value
+                      });
+                    }}
+                    required
+                  >
+                    <option value="">Wybierz kategorie</option>
+                    {wydarzenieOptions.kategorie.map((item) => (
+                      <option key={item.id} value={item.id}>{item.nazwa}</option>
+                    ))}
+                    <option value="__NOWA_KATEGORIA__">+ Utworz nowa kategorie</option>
+                  </select>
 
-              {/* ... Nowa kategoria inputs ... */}
+                  <label htmlFor="wyd-rola">Rola</label>
+                  <input id="wyd-rola" type="text" value={wydarzenieForm.rola} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, rola: e.target.value })} required />
 
-              <label htmlFor="wyd-rola">Rola</label>
-              <input id="wyd-rola" type="text" value={wydarzenieForm.rola} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, rola: e.target.value })} required />
+                  <label htmlFor="wyd-status">Status</label>
+                  <input id="wyd-status" type="text" value={wydarzenieForm.status} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, status: e.target.value })} required />
 
-              <label htmlFor="wyd-status">Status</label>
-              <input id="wyd-status" type="text" value={wydarzenieForm.status} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, status: e.target.value })} required />
+                  <label htmlFor="wyd-start">Data rozpoczecia</label>
+                  <input id="wyd-start" type="datetime-local" value={wydarzenieForm.dataRozp} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, dataRozp: e.target.value })} required />
 
-              <label htmlFor="wyd-start">Data rozpoczecia</label>
-              <input id="wyd-start" type="datetime-local" value={wydarzenieForm.dataRozp} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, dataRozp: e.target.value })} required />
-
-              <label htmlFor="wyd-end">Data zakonczenia</label>
-              <input id="wyd-end" type="datetime-local" value={wydarzenieForm.dataZamk} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, dataZamk: e.target.value })} required />
-
-              {/* Sekcja biletów w głównym formularzu */}
-              <div className="event-ticket-creation-section" style={{ gridColumn: '1 / -1', marginTop: '20px', padding: '25px', background: '#1a1d24', borderRadius: '10px', border: '1px solid #e0e0e0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                  <h4 style={{ margin: 0 }}>Konfiguracja Biletów</h4>
-                  <button type="button" onClick={addBiletForm} className="btn-refresh">+ Dodaj pulę</button>
+                  <label htmlFor="wyd-end">Data zakonczenia</label>
+                  <input id="wyd-end" type="datetime-local" value={wydarzenieForm.dataZamk} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, dataZamk: e.target.value })} required />
                 </div>
-                {wydarzenieForm.bilety.map((bilet, index) => (
-                  <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto auto auto', gap: '10px', marginBottom: '10px' }}>
-                    <input placeholder="Klasa biletu" value={bilet.klasa} onChange={(e) => updateBiletInForm(index, 'klasa', e.target.value)} required />
-                    <input type="number" step="0.01" placeholder="Cena" value={bilet.cena} onChange={(e) => updateBiletInForm(index, 'cena', e.target.value)} required />
-                    <input type="number" placeholder="Ilość" value={bilet.ilosc} onChange={(e) => updateBiletInForm(index, 'ilosc', e.target.value)} required />
-                    <select value={bilet.waluta} onChange={(e) => updateBiletInForm(index, 'waluta', e.target.value)} required>
-                      <option value="PLN">PLN</option>
-                      <option value="EUR">EUR</option>
-                      <option value="USD">USD</option>
-                    </select>
-                    <input type="datetime-local" placeholder="Start sprzedaży" value={bilet.start_sprzedazy} onChange={(e) => updateBiletInForm(index, 'start_sprzedazy', e.target.value)} />
-                    <input type="datetime-local" placeholder="Koniec sprzedaży" value={bilet.koniec_sprzedazy} onChange={(e) => updateBiletInForm(index, 'koniec_sprzedazy', e.target.value)} />
-                    <button type="button" onClick={() => removeBiletForm(index)} className="btn-delete">X</button>
+
+                <div className="event-form-panel event-form-panel--tickets">
+                  <div className="event-ticket-section">
+                    <div className="event-ticket-section-header">
+                      <h4 style={{ margin: 0 }}>Konfiguracja Biletów</h4>
+                      <div className="event-ticket-actions">
+                        <button type="button" onClick={addBiletForm} className="btn-refresh">+ Dodaj pulę</button>
+                        <button type="submit">Dodaj wydarzenie</button>
+                      </div>
+                    </div>
+                    <div className="event-ticket-grid">
+                      {wydarzenieForm.bilety.map((bilet, index) => (
+                        <div key={index} className="event-ticket-card">
+                          <label htmlFor={`bilet-klasa-${index}`}>Klasa biletu</label>
+                          <input id={`bilet-klasa-${index}`} placeholder="Klasa biletu" value={bilet.klasa} onChange={(e) => updateBiletInForm(index, 'klasa', e.target.value)} required />
+
+                          <label htmlFor={`bilet-cena-${index}`}>Cena</label>
+                          <input id={`bilet-cena-${index}`} type="number" step="0.01" placeholder="Cena" value={bilet.cena} onChange={(e) => updateBiletInForm(index, 'cena', e.target.value)} required />
+
+                          <label htmlFor={`bilet-ilosc-${index}`}>Ilość</label>
+                          <input id={`bilet-ilosc-${index}`} type="number" placeholder="Ilość" value={bilet.ilosc} onChange={(e) => updateBiletInForm(index, 'ilosc', e.target.value)} required />
+
+                          <label htmlFor={`bilet-waluta-${index}`}>Waluta</label>
+                          <select id={`bilet-waluta-${index}`} value={bilet.waluta} onChange={(e) => updateBiletInForm(index, 'waluta', e.target.value)} required>
+                            <option value="PLN">PLN</option>
+                            <option value="EUR">EUR</option>
+                            <option value="USD">USD</option>
+                          </select>
+
+                          <label htmlFor={`bilet-start-${index}`}>Start sprzedaży</label>
+                          <input id={`bilet-start-${index}`} type="datetime-local" value={bilet.start_sprzedazy} onChange={(e) => updateBiletInForm(index, 'start_sprzedazy', e.target.value)} />
+
+                          <label htmlFor={`bilet-koniec-${index}`}>Koniec sprzedaży</label>
+                          <input id={`bilet-koniec-${index}`} type="datetime-local" value={bilet.koniec_sprzedazy} onChange={(e) => updateBiletInForm(index, 'koniec_sprzedazy', e.target.value)} />
+
+                          <button type="button" onClick={() => removeBiletForm(index)} className="btn-delete">X</button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                </div>
               </div>
-              <button type="submit" style={{ marginTop: '20px' }}>Dodaj wydarzenie</button>
             </form>
           )}
 
           {wydarzenieLoading && <h3>Ladowanie...</h3>}
 
+          <div className="events-user-cta" style={{ maxWidth: '100%', marginBottom: '12px' }}>
+            <p>Wniosek o rolę organizatora jest dostępny dla wszystkich, ale wysłać może go tylko użytkownik z rolą USER.</p>
+            <button
+              type="button"
+              className="btn-new-event"
+              disabled={currentUser?.rola !== 'USER'}
+              onClick={() => setOrganizerRequestOpen(true)}
+            >
+              Wyślij wniosek o rolę organizatora
+              {currentUser?.rola !== 'USER' && ' (tylko USER)'}
+            </button>
+          </div>
+
           <div className="events-grid">
             {filteredWydarzenia.length > 0 ? filteredWydarzenia.map((item) => (
-              <div key={item.id} className="event-management-wrapper" style={{ border: '1px solid #ddd', borderRadius: '12px', padding: '15px', backgroundColor: '#1a1d24' }}>
+              <div key={item.id} className="event-management-wrapper" style={{ border: '1px solid #ddd', borderRadius: '12px', padding: '15px', backgroundColor: '#1a1d24', minWidth: 0, overflow: 'hidden' }}>
                 <WydarzenieCard
                   item={item}
                   currentUserRole={currentUser?.rola}
-                  onMoreInfo={(id) => navigate(`/wydarzenia/${id}`)}
+                  onMoreInfo={openInfoModal}
+                  onPersonel={openPersonelModal}
+                  onPurchase={openZakupForm}
                 />
                 
-                {/* DOSTOSOWANY FORMULARZ NOWEJ PULI BILETÓW */}
-                <div style={{ marginTop: '20px', padding: '20px', background: '#1a1d24', borderRadius: '10px', border: '1px solid #e0e0e0' }}>
-                  <h5 style={{ margin: '0 0 15px 0', color: '#333', fontWeight: 'bold' }}>+ Nowa pula biletów</h5>
-
-                  <form
-                      onSubmit={e => onTicketSubmit(e, item.id)}
-                      className="auth-form organizer-form event-form"
-                      style={{ display: 'grid', gap: '15px', padding: '0', opacity: currentUser?.rola === 'ORG' ? 1 : 0.5 }}
-                    >
-                    <div>
-                      <label htmlFor={`t-klasa-${item.id}`}>Klasa biletu (np. VIP)</label>
-                      <input
-                        id={`t-klasa-${item.id}`}
-                        type="text"
-                        placeholder="Wpisz klasę..."
-                        value={ticketForms[item.id]?.klasa || ''}
-                        onChange={e => updateTicketForm(item.id, 'klasa', e.target.value)}
-                        disabled={currentUser?.rola !== 'ORG'}
-                        required
-                      />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
-                      <div>
-                        <label htmlFor={`t-cena-${item.id}`}>Cena</label>
-                        <input 
-                          id={`t-cena-${item.id}`}
-                          type="number" step="0.01" placeholder="0.00" 
-                          value={ticketForms[item.id]?.cena || ''} 
-                          onChange={e => updateTicketForm(item.id, 'cena', e.target.value)} 
-                          required 
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor={`t-qty-${item.id}`}>Liczba biletów</label>
-                        <input
-                          id={`t-qty-${item.id}`}
-                          type="number" placeholder="np. 50"
-                          value={ticketForms[item.id]?.ilosc || ''}
-                          onChange={e => updateTicketForm(item.id, 'ilosc', e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor={`t-waluta-${item.id}`}>Waluta</label>
-                        <select
-                          id={`t-waluta-${item.id}`}
-                          value={ticketForms[item.id]?.waluta || 'PLN'}
-                          onChange={e => updateTicketForm(item.id, 'waluta', e.target.value)}
-                          required
-                        >
-                          <option value="PLN">PLN</option>
-                          <option value="EUR">EUR</option>
-                          <option value="USD">USD</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
-                      <div>
-                        <label htmlFor={`t-start-${item.id}`}>Start sprzedaży</label>
-                        <input
-                          id={`t-start-${item.id}`}
-                          type="datetime-local"
-                          value={ticketForms[item.id]?.start_sprzedazy || ''}
-                          onChange={e => updateTicketForm(item.id, 'start_sprzedazy', e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor={`t-end-${item.id}`}>Koniec sprzedaży</label>
-                        <input
-                          id={`t-end-${item.id}`}
-                          type="datetime-local"
-                          value={ticketForms[item.id]?.koniec_sprzedazy || ''}
-                          onChange={e => updateTicketForm(item.id, 'koniec_sprzedazy', e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <button type="submit" className="btn-new-event" style={{ width: '100%' }} disabled={currentUser?.rola !== 'ORG'}>
-                      Dodaj pulę biletów
-                      {currentUser?.rola !== 'ORG' && ' (tylko organizator)'}
-                    </button>
-                  </form>
+                <div style={{ marginTop: '20px' }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={currentUser?.rola !== 'ORG'}
+                    onClick={() => setOpenTicketFormEventId(item.id)}
+                  >
+                    + Nowa pula biletów
+                    {currentUser?.rola !== 'ORG' && ' (tylko organizator)'}
+                  </button>
                 </div>
               </div>
             )) : (
@@ -438,6 +571,369 @@ const WydarzeniaPage = () => {
           </div>
         </div>
       </div>
+      <PurchaseModal
+        isOpen={zakupFormOpen}
+        onClose={() => setZakupFormOpen(false)}
+        selectedEvent={selectedZakupEvent}
+        dostepneBilety={dostepneBilety}
+        zakupForm={zakupForm}
+        setZakupForm={setZakupForm}
+        onSubmit={onZakupSubmit}
+        loading={zakupLoading}
+      />
+      {openTicketFormEventId && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setOpenTicketFormEventId(null);
+          }}
+        >
+          <div className="modal-card info-modal-card">
+            <div className="modal-header">
+              <div className="modal-title">Formularz nowej puli biletów</div>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setOpenTicketFormEventId(null)}
+                aria-label="Zamknij"
+              >
+                ×
+              </button>
+            </div>
+
+            <form
+              onSubmit={e => onTicketSubmit(e, openTicketFormEventId)}
+              className="auth-form organizer-form event-form"
+              style={{ display: 'grid', gap: '15px', padding: '0', opacity: currentUser?.rola === 'ORG' ? 1 : 0.5 }}
+            >
+              <div>
+                <label htmlFor={`t-klasa-${openTicketFormEventId}`}>Klasa biletu (np. VIP)</label>
+                <input
+                  id={`t-klasa-${openTicketFormEventId}`}
+                  type="text"
+                  placeholder="Wpisz klasę..."
+                  value={ticketForms[openTicketFormEventId]?.klasa || ''}
+                  onChange={e => updateTicketForm(openTicketFormEventId, 'klasa', e.target.value)}
+                  disabled={currentUser?.rola !== 'ORG'}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
+                <div>
+                  <label htmlFor={`t-cena-${openTicketFormEventId}`}>Cena</label>
+                  <input
+                    id={`t-cena-${openTicketFormEventId}`}
+                    type="number" step="0.01" placeholder="0.00"
+                    value={ticketForms[openTicketFormEventId]?.cena || ''}
+                    onChange={e => updateTicketForm(openTicketFormEventId, 'cena', e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor={`t-qty-${openTicketFormEventId}`}>Liczba biletów</label>
+                  <input
+                    id={`t-qty-${openTicketFormEventId}`}
+                    type="number" placeholder="np. 50"
+                    value={ticketForms[openTicketFormEventId]?.ilosc || ''}
+                    onChange={e => updateTicketForm(openTicketFormEventId, 'ilosc', e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor={`t-waluta-${openTicketFormEventId}`}>Waluta</label>
+                  <select
+                    id={`t-waluta-${openTicketFormEventId}`}
+                    value={ticketForms[openTicketFormEventId]?.waluta || 'PLN'}
+                    onChange={e => updateTicketForm(openTicketFormEventId, 'waluta', e.target.value)}
+                    required
+                  >
+                    <option value="PLN">PLN</option>
+                    <option value="EUR">EUR</option>
+                    <option value="USD">USD</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
+                <div>
+                  <label htmlFor={`t-start-${openTicketFormEventId}`}>Start sprzedaży</label>
+                  <input
+                    id={`t-start-${openTicketFormEventId}`}
+                    type="datetime-local"
+                    value={ticketForms[openTicketFormEventId]?.start_sprzedazy || ''}
+                    onChange={e => updateTicketForm(openTicketFormEventId, 'start_sprzedazy', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor={`t-end-${openTicketFormEventId}`}>Koniec sprzedaży</label>
+                  <input
+                    id={`t-end-${openTicketFormEventId}`}
+                    type="datetime-local"
+                    value={ticketForms[openTicketFormEventId]?.koniec_sprzedazy || ''}
+                    onChange={e => updateTicketForm(openTicketFormEventId, 'koniec_sprzedazy', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <button type="submit" className="btn-new-event" style={{ width: '100%' }} disabled={currentUser?.rola !== 'ORG'}>
+                Dodaj pulę biletów
+                {currentUser?.rola !== 'ORG' && ' (tylko organizator)'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+      {selectedInfoEvent && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setSelectedInfoEvent(null);
+          }}
+        >
+          <div className="modal-card info-modal-card">
+            <div className="modal-header">
+              <div className="modal-title">Więcej informacji</div>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setSelectedInfoEvent(null)}
+                aria-label="Zamknij"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-grid info-modal-layout">
+              <div className="info-top-section">
+                <p>Szczegóły na temat: {selectedInfoEvent.tytul}</p>
+                <p>do rozbudowania</p>
+                {infoLoading && <p>Ladowanie szczegolow...</p>}
+              </div>
+
+              <div className="event-detail-opinie info-left-section">
+                <h3>Opinie</h3>
+                <form onSubmit={onOpiniaSubmit} className="auth-form organizer-form">
+                  <label htmlFor="opinia-ocena">Ocena</label>
+                  <select
+                    id="opinia-ocena"
+                    value={opiniaForm.ocena}
+                    onChange={(event) => setOpiniaForm({ ...opiniaForm, ocena: event.target.value })}
+                  >
+                    <option value="5">5</option>
+                    <option value="4">4</option>
+                    <option value="3">3</option>
+                    <option value="2">2</option>
+                    <option value="1">1</option>
+                  </select>
+
+                  <label htmlFor="opinia-opis">Opis</label>
+                  <textarea
+                    id="opinia-opis"
+                    value={opiniaForm.opis}
+                    onChange={(event) => setOpiniaForm({ ...opiniaForm, opis: event.target.value })}
+                    required
+                  />
+
+                  <button type="submit">Dodaj opinię</button>
+                </form>
+
+                <div className="events-grid">
+                  {selectedInfoEvent.opinie?.length > 0 ? selectedInfoEvent.opinie.map((opinia) => (
+                    <article key={opinia.id} className="event-card">
+                      <span className="event-badge">ocena {opinia.ocena}/5</span>
+                      <h3>{opinia.userLogin}</h3>
+                      <p>{opinia.opis}</p>
+                      <p>{opinia.data ? new Date(opinia.data).toLocaleString() : '-'}</p>
+                      {(opinia.userLogin === currentUser.login || currentUser.rola === 'ADMIN') && (
+                        <button
+                          type="button"
+                          className="btn-delete"
+                          onClick={() => onDeleteOpinia(opinia.id)}
+                        >
+                          Usuń opinię
+                        </button>
+                      )}
+                    </article>
+                  )) : (
+                    <p>Brak opinii dla tego wydarzenia.</p>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedPersonelEvent && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setSelectedPersonelEvent(null);
+          }}
+        >
+          <div className="modal-card info-modal-card">
+            <div className="modal-header">
+              <div className="modal-title">Personel</div>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setSelectedPersonelEvent(null)}
+                aria-label="Zamknij"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-grid info-modal-layout">
+              <div className="info-top-section">
+                <p>Personel dla wydarzenia: {selectedPersonelEvent.tytul}</p>
+                {infoLoading && <p>Ladowanie danych...</p>}
+              </div>
+              <div className="event-detail-opinie info-left-section">
+                <h3>Zarządzanie personelem</h3>
+                <p>{currentUser?.rola === 'ORG' ? 'Możesz dodawać i usuwać personel.' : 'Edycja tylko dla organizatora.'}</p>
+                <form onSubmit={onPersonelSubmit} className="auth-form organizer-form">
+                  <label htmlFor="personel-user">Użytkownik</label>
+                  <select
+                    id="personel-user"
+                    value={personelForm.userId}
+                    onChange={(event) => setPersonelForm({ ...personelForm, userId: event.target.value })}
+                    required
+                    disabled={currentUser?.rola !== 'ORG'}
+                  >
+                    <option value="">Wybierz użytkownika</option>
+                    {personelUsers
+                      .filter((user) => user.rola !== 'ADMIN' && user.aktywnosc !== false)
+                      .map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.login} ({user.imie || '-'} {user.nazwisko || '-'})
+                        </option>
+                      ))}
+                  </select>
+
+                  <label htmlFor="personel-rola">Rola</label>
+                  <select
+                    id="personel-rola"
+                    value={personelForm.rola}
+                    onChange={(event) => setPersonelForm({ ...personelForm, rola: event.target.value })}
+                    disabled={currentUser?.rola !== 'ORG'}
+                  >
+                    {PERSONEL_ROLE_OPTIONS.map((role) => (
+                      <option key={role} value={role}>{role}</option>
+                    ))}
+                  </select>
+
+                  <button type="submit" disabled={currentUser?.rola !== 'ORG'}>
+                    Dodaj personel
+                  </button>
+                </form>
+              </div>
+              <div className="event-detail-opinie info-right-section">
+                <h3>Aktualny personel</h3>
+                {selectedPersonelEvent.personel?.length > 0 ? (
+                  <table className="participants-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Użytkownik</th>
+                        <th>Rola</th>
+                        <th>Data zajęcia</th>
+                        <th>Akcje</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedPersonelEvent.personel.map((item) => (
+                        <tr key={item.id}>
+                          <td>{item.id}</td>
+                          <td>{item.userLogin} ({item.userImie} {item.userNazwisko})</td>
+                          <td>{item.rola}</td>
+                          <td>{item.dataZajet ? new Date(item.dataZajet).toLocaleString() : '-'}</td>
+                          <td>
+                            <button
+                              type="button"
+                              onClick={() => onDeletePersonel(item.id)}
+                              disabled={currentUser?.rola !== 'ORG'}
+                            >
+                              Anuluj
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p>Brak przypisanego personelu.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {organizerRequestOpen && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setOrganizerRequestOpen(false);
+          }}
+        >
+          <div className="modal-card">
+            <div className="modal-header">
+              <div className="modal-title">Wniosek o rolę organizatora</div>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setOrganizerRequestOpen(false)}
+                aria-label="Zamknij"
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={onOrganizerRequestSubmit} className="auth-form organizer-form" style={{ padding: '16px' }}>
+              <label htmlFor="org-firma">Firma</label>
+              <input
+                id="org-firma"
+                type="text"
+                value={organizerForm.firma}
+                onChange={(event) => setOrganizerForm({ ...organizerForm, firma: event.target.value })}
+                required
+                disabled={currentUser?.rola !== 'USER'}
+              />
+
+              <label htmlFor="org-kwalifikacje">Kwalifikacje</label>
+              <input
+                id="org-kwalifikacje"
+                type="text"
+                value={organizerForm.kwalifikacje}
+                onChange={(event) => setOrganizerForm({ ...organizerForm, kwalifikacje: event.target.value })}
+                required
+                disabled={currentUser?.rola !== 'USER'}
+              />
+
+              <label htmlFor="org-strona">Strona</label>
+              <input
+                id="org-strona"
+                type="text"
+                value={organizerForm.strona}
+                onChange={(event) => setOrganizerForm({ ...organizerForm, strona: event.target.value })}
+                required
+                disabled={currentUser?.rola !== 'USER'}
+              />
+
+              <button type="submit" disabled={currentUser?.rola !== 'USER'}>
+                Wyślij wniosek
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

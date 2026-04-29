@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 
 const Topbar = () => {
-  const { currentUser, handleLogout } = useContext(AuthContext);
+  const { currentUser, handleLogout, handleDeleteOwnAccount } = useContext(AuthContext);
   const navigate = useNavigate();
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
@@ -36,6 +36,21 @@ const Topbar = () => {
           <div className={`account-menu ${accountMenuOpen ? 'open' : ''}`}>
             <button type="button" className="account-menu-item" onClick={handleLogout}>
               Wyloguj
+            </button>
+            <button
+              type="button"
+              className="account-menu-item account-menu-item--danger"
+              onClick={async () => {
+                if (!window.confirm('Czy na pewno chcesz usunąć własne konto?')) return;
+                try {
+                  await handleDeleteOwnAccount();
+                } catch (error) {
+                  // eslint-disable-next-line no-alert
+                  window.alert(error.response?.data?.message || 'Nie udało się usunąć konta.');
+                }
+              }}
+            >
+              Usuń konto
             </button>
           </div>
         </div>

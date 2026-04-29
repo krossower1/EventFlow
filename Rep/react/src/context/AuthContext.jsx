@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { authService } from '../services/authService';
 
 export const AuthContext = createContext();
+const SESSION_TIMEOUT_SECONDS = 10 * 60;
 
 export const AuthProvider = ({ children }) => {
   // Stan autoryzacji
@@ -18,6 +19,7 @@ export const AuthProvider = ({ children }) => {
   
   // Poświadczenia potrzebne do Basic Auth w innych zapytaniach
   const [authCredentials, setAuthCredentials] = useState({ login: '', password: '' });
+  const [sessionTimeLeft, setSessionTimeLeft] = useState(SESSION_TIMEOUT_SECONDS);
 
   // Funkcja aplikująca usera (przeniesiona z App.js)
   const applyAuthenticatedUser = useCallback((user, credentials = null) => {
@@ -55,7 +57,7 @@ export const AuthProvider = ({ children }) => {
     checkExistingSession();
   }, [checkExistingSession]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await authService.logout();
     } catch (error) {
@@ -68,9 +70,50 @@ export const AuthProvider = ({ children }) => {
       setIsLoggedIn(false);
       setCurrentUser({ login: '', rola: '', imie: '', nazwisko: '' });
       setAuthCredentials({ login: '', password: '' });
+      setSessionTimeLeft(SESSION_TIMEOUT_SECONDS);
       document.cookie = "JSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     }
-  };
+  }, []);
+
+  const handleDeleteOwnAccount = useCallback(async () => {
+    await authService.deleteOwnAccount();
+    await handleLogout();
+  }, [handleLogout]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setSessionTimeLeft(SESSION_TIMEOUT_SECONDS);
+      return undefined;
+    }
+
+    let deadline = Date.now() + SESSION_TIMEOUT_SECONDS * 1000;
+    const resetSessionCountdown = () => {
+      deadline = Date.now() + SESSION_TIMEOUT_SECONDS * 1000;
+      setSessionTimeLeft(SESSION_TIMEOUT_SECONDS);
+    };
+
+    const tick = () => {
+      const secondsLeft = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      setSessionTimeLeft(secondsLeft);
+      if (secondsLeft <= 0) {
+        handleLogout();
+      }
+    };
+
+    const activityEvents = ['click', 'keydown', 'mousemove', 'mousedown', 'scroll', 'touchstart'];
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, resetSessionCountdown, { passive: true });
+    });
+
+    const countdownInterval = window.setInterval(tick, 1000);
+
+    return () => {
+      window.clearInterval(countdownInterval);
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, resetSessionCountdown);
+      });
+    };
+  }, [isLoggedIn, handleLogout]);
 
   return (
     <AuthContext.Provider value={{
@@ -78,8 +121,10 @@ export const AuthProvider = ({ children }) => {
       sessionLoading,
       currentUser,
       authCredentials,
+      sessionTimeLeft,
       applyAuthenticatedUser,
-      handleLogout
+      handleLogout,
+      handleDeleteOwnAccount
     }}>
       {children}
     </AuthContext.Provider>

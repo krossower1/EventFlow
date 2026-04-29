@@ -1,7 +1,7 @@
 import React from 'react';
 import TicketProgress from './TicketProgress';
 
-const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPurchase }) => {
+const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurchase }) => {
   const isUser = currentUserRole === 'USER';
 
   return (
@@ -23,13 +23,22 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPurchase }) => {
         </div>
       </div>
       <TicketProgress postepy={item.postepyBiletow} />
-      <button
-        type="button"
-        className="btn-secondary"
-        onClick={() => onMoreInfo(item.id)}
-      >
-        Więcej informacji
-      </button>
+      <div className="event-card-actions">
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => onMoreInfo(item.id)}
+        >
+          Więcej informacji
+        </button>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => onPersonel(item.id)}
+        >
+          Personel
+        </button>
+      </div>
       <button 
         type="button" 
         className="btn-new-event" 

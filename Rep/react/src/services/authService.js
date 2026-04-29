@@ -23,5 +23,10 @@ export const authService = {
 
   logout: async () => {
     await apiClient.post('/auth/logout');
+  },
+
+  deleteOwnAccount: async () => {
+    const response = await apiClient.delete('/users/me', { withCredentials: true });
+    return response.data;
   }
 };
