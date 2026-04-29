@@ -566,10 +566,18 @@ background:
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 600;
+  margin-left: 10px;
 }
 
 .btn-quick-action:hover {
   filter: brightness(1.05);
+}
+
+.btn-quick-action:disabled {
+  opacity: 0.45;
+  filter: grayscale(0.35);
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn-icon {
@@ -734,13 +742,17 @@ background:
 
 .content-area h1,
 .content-area h2,
-.content-area h3,
+.content-area h3 {
+  color: var(--text-main);
+  padding-top: 10px;
+}
 .content-area h4 {
   color: var(--text-main);
 }
 
 .content-area p {
   color: var(--text-muted);
+  margin-left: 10px;
 }
 
 .content-area table td {
@@ -970,6 +982,7 @@ background:
   cursor: pointer;
   color: #fff;
   background: linear-gradient(90deg, #09d5ff 0%, #78283e 100%);
+  margin-left: 10px;
 }
 
 .btn-new-event:disabled {
@@ -1149,4 +1162,11 @@ background:
   color: var(--text-main) !important;
   -webkit-text-fill-color: var(--text-main) !important;
   box-shadow: 0 0 0px 1000px var(--card-bg) inset;
+}
+
+.disabled-area {
+  opacity: 0.6;
+  filter: grayscale(0.5);
+  cursor: not-allowed;
+  pointer-events: all;
 }

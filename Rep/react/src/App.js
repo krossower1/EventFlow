@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import './App.css';
+import TicketProgress from './components/TicketProgress';
+import WydarzenieCard from './components/WydarzenieCard';
+import BiletyTab from './components/BiletyTab';
+import PurchaseModal from './components/PurchaseModal'; // Zakładając istnienie lub podobną strukturę
 
 const API_BASE_URL = 'http://localhost:8081/api';
 const SESSION_TIMEOUT_SECONDS = 10 * 60;
@@ -124,10 +128,6 @@ function App() {
   const [zakupFormOpen, setZakupFormOpen] = useState(false);
   const [selectedZakupEvent, setSelectedZakupEvent] = useState(null);
   const [dostepneBilety, setDostepneBilety] = useState([]);
-  const [myBilety, setMyBilety] = useState([]);
-  const [zwroty, setZwroty] = useState([]);
-  const [selectedZwrotBilet, setSelectedZwrotBilet] = useState(null);
-  const [zwrotForm, setZwrotForm] = useState({ powod: '' });
   const [zakupForm, setZakupForm] = useState({
     biletId: '',
     ilosc: '1',
@@ -241,23 +241,6 @@ function App() {
       fetchMyMiejsca();
       fetchWydarzeniaOptions();
     }
-  }, [isLoggedIn, currentUserRole, authCredentials]);
-
-  useEffect(() => {
-    if (!isLoggedIn) {
-      setMyBilety([]);
-      setZwroty([]);
-      return;
-    }
-
-    if (currentUserRole === 'ADMIN') {
-      fetchZwroty();
-      setMyBilety([]);
-      return;
-    }
-
-    fetchMyBilety();
-    setZwroty([]);
   }, [isLoggedIn, currentUserRole, authCredentials]);
 
   useEffect(() => {
@@ -422,26 +405,6 @@ function App() {
     }
   };
 
-  const fetchMyBilety = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/bilety/my`, getRequestConfig());
-      setMyBilety(response.data);
-    } catch (error) {
-      const message = error.response?.data?.message || 'Nie udalo sie pobrac biletow.';
-      setStatus({ type: 'error', message });
-    }
-  };
-
-  const fetchZwroty = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/zwroty`, getRequestConfig());
-      setZwroty(response.data);
-    } catch (error) {
-      const message = error.response?.data?.message || 'Nie udalo sie pobrac prosb o zwrot.';
-      setStatus({ type: 'error', message });
-    }
-  };
-
   const fetchWydarzenieDetail = async (wydarzenieId) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/wydarzenia/${wydarzenieId}`, getRequestConfig());
@@ -464,50 +427,6 @@ function App() {
       setStatus({ type: 'success', message: response.data || 'Twoje konto zostało usunięte.' });
     } catch (error) {
       const message = error.response?.data?.message || error.response?.data || 'Nie udało się usunąć konta.';
-      setStatus({ type: 'error', message });
-    }
-  };
-
-  const onZwrotSubmit = async (event) => {
-    event.preventDefault();
-    if (!selectedZwrotBilet) {
-      return;
-    }
-
-    try {
-      const response = await axios.post(
-        `${API_BASE_URL}/zwroty/wyst-bilety/${selectedZwrotBilet.id}`,
-        { powod: zwrotForm.powod },
-        getRequestConfig()
-      );
-      setStatus({ type: 'success', message: response.data || 'Prosba o zwrot zostala wyslana.' });
-      setSelectedZwrotBilet(null);
-      setZwrotForm({ powod: '' });
-      fetchMyBilety();
-    } catch (error) {
-      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie wyslac prosby o zwrot.';
-      setStatus({ type: 'error', message });
-    }
-  };
-
-  const onApproveZwrot = async (zwrotId) => {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/zwroty/${zwrotId}/approve`, {}, getRequestConfig());
-      setStatus({ type: 'success', message: response.data || 'Prosba o zwrot zostala zaakceptowana.' });
-      fetchZwroty();
-    } catch (error) {
-      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie zaakceptowac zwrotu.';
-      setStatus({ type: 'error', message });
-    }
-  };
-
-  const onRejectZwrot = async (zwrotId) => {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/zwroty/${zwrotId}/reject`, {}, getRequestConfig());
-      setStatus({ type: 'success', message: response.data || 'Prosba o zwrot zostala odrzucona.' });
-      fetchZwroty();
-    } catch (error) {
-      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie odrzucic zwrotu.';
       setStatus({ type: 'error', message });
     }
   };
@@ -1232,28 +1151,6 @@ const onLogout = useCallback(async () => {
   });
 
   const pendingOrganizerRequestCount = organizerRequests.filter((item) => !item.zweryfikow).length;
-  const renderBiletPostepy = (postepy = []) => (
-    <div className="ticket-progress-list">
-      {postepy.map((postep) => {
-        const wszystkie = postep.wszystkie || 0;
-        const sprzedane = postep.sprzedane || 0;
-        const percentage = wszystkie > 0 ? Math.min((sprzedane / wszystkie) * 100, 100) : 0;
-
-        return (
-          <div key={postep.biletId || postep.klasa} className="ticket-progress-item">
-            <div className="ticket-progress-meta">
-              <span>{postep.klasa}</span>
-              <span>{sprzedane}/{wszystkie}</span>
-            </div>
-            <div className="ticket-progress-bar">
-              <span className="ticket-progress-fill" style={{ width: `${percentage}%` }} />
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-
   return (
     <div className="app-layout">
       <aside className="sidebar">
@@ -1346,19 +1243,6 @@ const onLogout = useCallback(async () => {
             </div>
           </div>
           <div className="topbar-right">
-            {currentUserRole === 'ORG' && miejsca.length > 0 && (
-              <button
-                type="button"
-                className="btn-quick-action"
-                onClick={() => {
-                  setActiveTab('Zarzadzaj miejscami ORG');
-                  fetchMyMiejsca();
-                }}
-              >
-                Zarzadzaj miejscami
-              </button>
-            )}
-
             <div className="account-menu-wrapper">
               <button
                 type="button"
@@ -1400,41 +1284,13 @@ const onLogout = useCallback(async () => {
                 <div className="events-grid">
                   {/* Karty na dashboardzie celowo używają tego samego stylu co zakładka Wydarzenia. */}
                   {openWydarzenia.length > 0 ? openWydarzenia.slice(0, 3).map((item) => (
-                    <article key={item.id} className="event-card">
-                      <span className="event-badge">{(item.status || 'aktywne').toLowerCase()}</span>
-                      <h3>{item.tytul}</h3>
-                      <div className="event-card-grid">
-                        <div className="event-card-column event-card-column--labels">
-                          <div className="event-card-row"><strong>Nazwa</strong></div>
-                          <div className="event-card-row"><strong>Od</strong></div>
-                          <div className="event-card-row"><strong>Do</strong></div>
-                          <div className="event-card-row"><strong>Kategoria</strong></div>
-                        </div>
-                        <div className="event-card-column event-card-column--values">
-                          <div className="event-card-row">{item.miejsceNazwa}</div>
-                          <div className="event-card-row">{item.dataRozp ? new Date(item.dataRozp).toLocaleString() : '-'}</div>
-                          <div className="event-card-row">{item.dataZamk ? new Date(item.dataZamk).toLocaleString() : '-'}</div>
-                          <div className="event-card-row">{item.kategoriaNazwa}</div>
-                        </div>
-                      </div>
-                      {renderBiletPostepy(item.postepyBiletow)}
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        onClick={() => fetchWydarzenieDetail(item.id)}
-                      >
-                        Więcej informacji
-                      </button>
-                      {currentUserRole !== 'ORG' && currentUserRole !== 'ADMIN' && item.maDostepneBilety && (
-                        <button
-                          type="button"
-                          className="btn-new-event"
-                          onClick={() => openZakupForm(item)}
-                        >
-                          Zakup
-                        </button>
-                      )}
-                    </article>
+                  <WydarzenieCard 
+                    key={item.id} 
+                    item={item} 
+                    currentUserRole={currentUserRole} 
+                    onMoreInfo={fetchWydarzenieDetail} 
+                    onPurchase={openZakupForm} 
+                  />
                   )) : (
                     <p>Brak wydarzeń, które jeszcze się nie zakończyły.</p>
                   )}
@@ -1787,32 +1643,13 @@ const onLogout = useCallback(async () => {
                   {wydarzenieLoading && <h3>Ladowanie opcji...</h3>}
                   <div className="events-grid">
                     {filteredWydarzenia.length > 0 ? filteredWydarzenia.map((item) => (
-                      <article key={item.id} className="event-card">
-                        <span className="event-badge">{(item.status || 'szkic').toLowerCase()}</span>
-                        <h3>{item.tytul}</h3>
-                        <div className="event-card-grid">
-                          <div className="event-card-column event-card-column--labels">
-                            <div className="event-card-row"><strong>Nazwa</strong></div>
-                            <div className="event-card-row"><strong>Od</strong></div>
-                            <div className="event-card-row"><strong>Do</strong></div>
-                            <div className="event-card-row"><strong>Kategoria</strong></div>
-                          </div>
-                          <div className="event-card-column event-card-column--values">
-                            <div className="event-card-row">{item.miejsceNazwa}</div>
-                            <div className="event-card-row">{item.dataRozp ? new Date(item.dataRozp).toLocaleString() : '-'}</div>
-                            <div className="event-card-row">{item.dataZamk ? new Date(item.dataZamk).toLocaleString() : '-'}</div>
-                            <div className="event-card-row">{item.kategoriaNazwa}</div>
-                          </div>
-                        </div>
-                        {renderBiletPostepy(item.postepyBiletow)}
-                        <button
-                          type="button"
-                          className="btn-secondary"
-                          onClick={() => fetchWydarzenieDetail(item.id)}
-                        >
-                          Więcej informacji
-                        </button>
-                      </article>
+                      <WydarzenieCard 
+                        key={item.id} 
+                        item={item} 
+                        currentUserRole={currentUserRole} 
+                        onMoreInfo={fetchWydarzenieDetail} 
+                        onPurchase={openZakupForm} 
+                      />
                     )) : (
                       <p>Brak wydarzen do wyswietlenia.</p>
                     )}
@@ -1841,7 +1678,7 @@ const onLogout = useCallback(async () => {
                 </div>
               </div>
 
-              {renderBiletPostepy(selectedWydarzenieDetail.postepyBiletow)}
+              <TicketProgress postepy={selectedWydarzenieDetail.postepyBiletow} />
 
               {currentUserRole !== 'ORG' && currentUserRole !== 'ADMIN' && selectedWydarzenieDetail.maDostepneBilety && (
                 <button
@@ -2063,136 +1900,23 @@ const onLogout = useCallback(async () => {
           )}
 
           {activeTab === 'Bilety' && (
-            <div>
-              <h2>Bilety</h2>
-              {currentUserRole === 'ADMIN' ? (
-                <>
-                  <p>Przeglad prosb o zwrot.</p>
-                  <table className="participants-table">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Uzytkownik</th>
-                        <th>Wydarzenie</th>
-                        <th>Klasa</th>
-                        <th>Kwota</th>
-                        <th>Waluta</th>
-                        <th>Powod</th>
-                        <th>Stan</th>
-                        <th>Przyznany</th>
-                        <th>Akcje</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {zwroty.length > 0 ? zwroty.map((zwrot) => (
-                        <tr key={zwrot.id}>
-                          <td>{zwrot.id}</td>
-                          <td>{zwrot.userLogin}</td>
-                          <td>{zwrot.wydarzenieTytul}</td>
-                          <td>{zwrot.klasa}</td>
-                          <td>{zwrot.kwota ?? '-'}</td>
-                          <td>{zwrot.waluta || '-'}</td>
-                          <td>{zwrot.powod}</td>
-                          <td>{zwrot.stan || '-'}</td>
-                          <td>{zwrot.przyznany ? 'Tak' : 'Nie'}</td>
-                          <td>
-                            <button type="button" onClick={() => onApproveZwrot(zwrot.id)}>
-                              Akceptuj
-                            </button>
-                            <button type="button" onClick={() => onRejectZwrot(zwrot.id)} style={{ marginLeft: '8px' }}>
-                              Odrzuc
-                            </button>
-                          </td>
-                        </tr>
-                      )) : (
-                        <tr><td colSpan="10">Brak prosb o zwrot.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </>
-              ) : (
-                <>
-                  <p>Tutaj widzisz swoje zakupione bilety.</p>
-                  <div className="events-grid">
-                    {myBilety.length > 0 ? myBilety.map((bilet) => (
-                      <article key={bilet.id} className="event-card">
-                        <span className="event-badge">{(bilet.stan || 'aktywny').toLowerCase()}</span>
-                        <h3>{bilet.wydarzenieTytul}</h3>
-                        <p>Kod: {bilet.kod}</p>
-                        <p>Klasa: {bilet.klasa}</p>
-                        <p>Cena: {bilet.cena ?? '-'} {bilet.waluta || 'PLN'}</p>
-                        <p>Wydano: {bilet.wydanyData ? new Date(bilet.wydanyData).toLocaleString() : '-'}</p>
-                        {bilet.maProsbeZwrotu ? (
-                          <p>Zwrot: {bilet.stanZwrotu || 'zgloszony'}</p>
-                        ) : (
-                          <button
-                            type="button"
-                            className="btn-new-event"
-                            onClick={() => {
-                              setSelectedZwrotBilet(bilet);
-                              setZwrotForm({ powod: '' });
-                            }}
-                          >
-                            Prośba o zwrot
-                          </button>
-                        )}
-                      </article>
-                    )) : (
-                      <p>Nie masz jeszcze zadnych biletow.</p>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {selectedZwrotBilet && (
-                <div
-                  className="modal-overlay"
-                  role="dialog"
-                  aria-modal="true"
-                  onMouseDown={(e) => {
-                    if (e.target === e.currentTarget) {
-                      setSelectedZwrotBilet(null);
-                    }
-                  }}
-                >
-                  <div className="modal-card">
-                    <div className="modal-header">
-                      <div className="modal-title">
-                        Prosba o zwrot: <span className="header-accent">{selectedZwrotBilet.wydarzenieTytul}</span>
-                      </div>
-                      <button
-                        type="button"
-                        className="modal-close"
-                        onClick={() => setSelectedZwrotBilet(null)}
-                        aria-label="Zamknij"
-                      >
-                        Ă—
-                      </button>
-                    </div>
-
-                    <form onSubmit={onZwrotSubmit} className="auth-form organizer-form">
-                      <label htmlFor="zwrot-powod">Powod prosby</label>
-                      <textarea
-                        id="zwrot-powod"
-                        value={zwrotForm.powod}
-                        onChange={(event) => setZwrotForm({ powod: event.target.value })}
-                        required
-                      />
-                      <button type="submit">Wyslij prosbe</button>
-                    </form>
-                  </div>
-                </div>
-              )}
-            </div>
+            <BiletyTab 
+              currentUserRole={currentUserRole}
+              currentUserLogin={currentUserLogin}
+              getRequestConfig={getRequestConfig}
+              setStatus={setStatus}
+              API_BASE_URL={API_BASE_URL}
+              authCredentials={authCredentials}
+              isLoggedIn={isLoggedIn}
+            />
           )}
           
           
           {activeTab === 'Uczestnicy' && (
             <div>
               <h2>Uczestnicy</h2>
-              {currentUserRole === 'ADMIN' && (
-                <div className="events-user-cta participants-admin-cta">
-                  <p>Rozważ prośby uczestników o zostanie organizatorem</p>
+              <div className={`events-user-cta participants-admin-cta ${currentUserRole !== 'ADMIN' ? 'disabled-area' : ''}`}>
+                  <p>Zarządzaj rolami i rozważaj prośby o status organizatora.</p>
                   <button
                     type="button"
                     className="btn-new-event"
@@ -2213,9 +1937,7 @@ const onLogout = useCallback(async () => {
                   >
                     {hideAdmins ? 'Pokaż adminów' : 'Schowaj adminów'}
                   </button>
-                  
-                </div>
-              )}
+              </div>
 
               <table className="participants-table">
                 <thead>
@@ -2227,7 +1949,7 @@ const onLogout = useCallback(async () => {
                     <th>Rola</th>
                     <th>Data Utworzenia</th>
                     <th>Płatność</th>
-                    {currentUserRole === 'ADMIN' && <th>Akcje</th>}
+                    <th>Akcje</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2341,8 +2063,7 @@ const onLogout = useCallback(async () => {
                       </div>
                     </div>
 
-                    {currentUserRole === 'ADMIN' && (
-                      <div className="modal-admin">
+                    <div className={`modal-admin ${currentUserRole !== 'ADMIN' ? 'disabled-area' : ''}`}>
                         <details>
                           <summary>Szczegóły bezpieczeństwa (ADMIN)</summary>
                           <div className="modal-admin-details">
@@ -2361,7 +2082,6 @@ const onLogout = useCallback(async () => {
                           </button>
                         )}
                       </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -2372,15 +2092,26 @@ const onLogout = useCallback(async () => {
             <div>
               <h2>Miejsca</h2>
               <p>Tutaj będą zarządzane miejsca.</p>
-              {currentUserRole === 'ORG' && (
-                <button
-                  type="button"
-                  className="btn-quick-action"
-                  onClick={() => setActiveTab('Dodaj miejsce ORG')}
-                >
-                  Dodaj miejsce
-                </button>
-              )}
+              <button
+                type="button"
+                className="btn-quick-action"
+                disabled={currentUserRole !== 'ORG' || miejsca.length === 0}
+                title={currentUserRole !== 'ORG' ? "Opcja dostępna tylko dla Organizatorów" : ""}
+                onClick={() => {
+                  setActiveTab('Zarzadzaj miejscami ORG');
+                  fetchMyMiejsca();
+                }}
+              >
+                Zarzadzaj miejscami
+              </button>
+              <button
+                type="button"
+                className="btn-quick-action"
+                disabled={currentUserRole !== 'ORG'}
+                onClick={() => setActiveTab('Dodaj miejsce ORG')}
+              >
+                Dodaj miejsce
+              </button>
             </div>
           )}
           
