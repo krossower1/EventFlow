@@ -47,7 +47,7 @@ const PurchaseModal = ({
             <option value="">Wybierz klasę biletu</option>
             {dostepneBilety.map((bilet) => (
               <option key={bilet.biletId} value={bilet.biletId}>
-                {bilet.klasa} - {bilet.cena} {bilet.waluta} - dostępne: {bilet.dostepnaIlosc}
+                {bilet.klasa} - {bilet.cena} {bilet.waluta} - dostępne: {bilet.ilosc || bilet.dostepnaIlosc}
               </option>
             ))}
           </select>
