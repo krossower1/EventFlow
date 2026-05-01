@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record WydarzenieCreateRequestDto(
-	Long miejsceId,
+	Long salaId,
 	String tytul,
 	String opis,
 	Long kategoriaId,

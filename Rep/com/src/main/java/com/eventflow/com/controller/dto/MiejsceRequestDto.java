@@ -9,7 +9,7 @@ public record MiejsceRequestDto(
 	@NotBlank String miasto,
 	@NotBlank String ulica,
 	@NotBlank String kodPoczt,
-	@NotNull Integer pojemnosc,
+	@NotNull Integer iloscSal,
 	String opis
 ) {
 }

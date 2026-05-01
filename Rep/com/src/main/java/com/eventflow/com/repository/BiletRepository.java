@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface BiletRepository extends JpaRepository<Bilet, Long> {
 	List<Bilet> findByWydarzenieId(Long wydarzenieId);
+	List<Bilet> findByWydarzenieIdIn(List<Long> wydarzenieIds);
 }

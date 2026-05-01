@@ -68,6 +68,17 @@ const UsersPage = () => {
     }
   };
 
+  const onDeleteOrganizerRequest = async (id) => {
+    if (!window.confirm('Czy na pewno chcesz trwale usunąć ten wniosek z bazy?')) return;
+    try {
+      await apiClient.delete(`/organizator/${id}`, getRequestConfig());
+      setStatus({ type: 'success', message: 'Wniosek usunięty z bazy.' });
+      fetchOrganizerRequests();
+    } catch (error) {
+      setStatus({ type: 'error', message: 'Nie udało się usunąć wniosku.' });
+    }
+  };
+
   const onDeactivateUser = async (userId, userLogin) => {
     if (!window.confirm(`Czy na pewno chcesz dezaktywować użytkownika ${userLogin}?`)) return;
     try {
@@ -93,6 +104,10 @@ const UsersPage = () => {
 
   const visibleParticipants = data.filter((user) => user.aktywnosc !== false && (!hideAdmins || user.rola !== 'ADMIN'));
   const pendingOrganizerRequestCount = organizerRequests.filter((item) => !item.zweryfikow).length;
+  const sortedOrganizerRequests = [...organizerRequests].sort((a, b) => {
+    if (a.zweryfikow === b.zweryfikow) return 0;
+    return a.zweryfikow ? 1 : -1;
+  });
 
   return (
     <div>
@@ -128,7 +143,7 @@ const UsersPage = () => {
             </tr>
           </thead>
           <tbody>
-            {organizerRequests.length > 0 ? organizerRequests.map((item) => (
+            {sortedOrganizerRequests.length > 0 ? sortedOrganizerRequests.map((item) => (
               <tr key={item.id}>
                 <td>{item.id}</td>
                 <td>{item.userLogin}</td>
@@ -141,9 +156,13 @@ const UsersPage = () => {
                     <>
                       <button type="button" onClick={() => onApproveOrganizer(item.id)}>Zatwierdź</button>
                       <button type="button" onClick={() => onRejectOrganizer(item.id)} style={{ marginLeft: '8px' }}>Odrzuć</button>
+                      <button type="button" onClick={() => onDeleteOrganizerRequest(item.id)} style={{ marginLeft: '8px' }}>Usuń z DB</button>
                     </>
                   ) : (
-                    <span>Zatwierdzono</span>
+                    <>
+                      <span>Zatwierdzono</span>
+                      <button type="button" onClick={() => onDeleteOrganizerRequest(item.id)} style={{ marginLeft: '8px' }}>Usuń z DB</button>
+                    </>
                   )}
                 </td>
               </tr>

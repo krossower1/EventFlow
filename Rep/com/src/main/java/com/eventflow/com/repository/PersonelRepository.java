@@ -10,4 +10,6 @@ import java.util.List;
 public interface PersonelRepository extends JpaRepository<Personel, Long> {
 	List<Personel> findByWydIdOrderByDataZajetDesc(Long wydId);
 	boolean existsByWydIdAndUserIdAndRolaIgnoreCase(Long wydId, Long userId, String rola);
+	List<Personel> findByWydIdIn(List<Long> wydIds);
+	List<Personel> findByUserId(Long userId);
 }

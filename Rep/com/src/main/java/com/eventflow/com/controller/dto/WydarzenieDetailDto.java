@@ -8,7 +8,7 @@ public record WydarzenieDetailDto(
 	String tytul,
 	String opis,
 	String status,
-	String miejsceNazwa,
+	String salaNazwa,
 	String kategoriaNazwa,
 	LocalDateTime dataRozp,
 	LocalDateTime dataZamk,

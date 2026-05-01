@@ -9,5 +9,6 @@ import java.util.List;
 @Repository
 public interface ZamowienieRepository extends JpaRepository<Zamowienie, Long> {
 	List<Zamowienie> findByUserId(Long userId);
+	List<Zamowienie> findByPozZamIdIn(List<Long> pozZamIds);
 	Zamowienie findFirstByPlatnId(Long platnId);
 }

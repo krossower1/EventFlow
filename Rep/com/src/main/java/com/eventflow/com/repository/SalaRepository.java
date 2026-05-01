@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface SalaRepository extends JpaRepository<Sala, Long> {
 	List<Sala> findByMiejsceId(Long miejsceId);
+	List<Sala> findByMiejsceIdIn(List<Long> miejsceIds);
+	long countByMiejsceId(Long miejsceId);
 }

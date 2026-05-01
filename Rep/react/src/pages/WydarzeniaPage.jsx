@@ -9,14 +9,14 @@ const WydarzeniaPage = () => {
   const { currentUser, authCredentials } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [wydarzenieOptions, setWydarzenieOptions] = useState({ miejsca: [], kategorie: [] });
+  const [wydarzenieOptions, setWydarzenieOptions] = useState({ sale: [], kategorieSystemowe: [], kategorieUzytkownika: [] });
   const [wydarzenieLoading, setWydarzenieLoading] = useState(false);
   const [myWydarzenia, setMyWydarzenia] = useState([]);
   const [showWydarzenieForm, setShowWydarzenieForm] = useState(false);
   const [wydarzeniaSearch, setWydarzeniaSearch] = useState('');
   const [wydarzeniaStatusFilter, setWydarzeniaStatusFilter] = useState('ALL');
   const [wydarzenieForm, setWydarzenieForm] = useState({
-    miejsceId: '',
+    salaId: '',
     tytul: '',
     opis: '',
     kategoriaId: '',
@@ -45,6 +45,8 @@ const WydarzeniaPage = () => {
   const [organizerForm, setOrganizerForm] = useState({ firma: '', kwalifikacje: '', strona: '' });
   const [personelForm, setPersonelForm] = useState({ userId: '', rola: 'ochrona' });
   const [personelUsers, setPersonelUsers] = useState([]);
+  const [systemCategoryFormOpen, setSystemCategoryFormOpen] = useState(false);
+  const [systemCategoryForm, setSystemCategoryForm] = useState({ nazwa: '', opis: '' });
 
   const PERSONEL_ROLE_OPTIONS = ['ochrona', 'konferansjer', 'manager', 'prelegent', 'partner finansowy', 'gastronomia', 'animator', 'inne'];
 
@@ -110,7 +112,7 @@ const WydarzeniaPage = () => {
 
     try {
       console.log('Wysyłanie wydarzenia z biletami:', {
-        miejsceId: Number(wydarzenieForm.miejsceId),
+        salaId: Number(wydarzenieForm.salaId),
         tytul: wydarzenieForm.tytul,
         bilety: wydarzenieForm.bilety.map(b => ({
           klasa: b.klasa,
@@ -125,7 +127,7 @@ const WydarzeniaPage = () => {
       await apiClient.post(
         '/wydarzenia',
         {
-          miejsceId: Number(wydarzenieForm.miejsceId),
+          salaId: Number(wydarzenieForm.salaId),
           tytul: wydarzenieForm.tytul,
           opis: wydarzenieForm.opis,
           kategoriaId: wydarzenieForm.createNowaKategoria ? null : Number(wydarzenieForm.kategoriaId),
@@ -151,7 +153,7 @@ const WydarzeniaPage = () => {
       setStatus({ type: 'success', message: 'Wydarzenie zostalo dodane.' });
       setShowWydarzenieForm(false);
       setWydarzenieForm({
-        miejsceId: '', tytul: '', opis: '', kategoriaId: '', rola: '', status: '',
+        salaId: '', tytul: '', opis: '', kategoriaId: '', rola: '', status: '',
         dataRozp: '', dataZamk: '', createNowaKategoria: false,
         nowaKategoriaNazwa: '', nowaKategoriaOpis: '',
         bilety: [{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '' }]
@@ -358,6 +360,24 @@ const WydarzeniaPage = () => {
     }
   };
 
+  const onSystemCategorySubmit = async (event) => {
+    event.preventDefault();
+    if (currentUser?.rola !== 'ADMIN') return;
+
+    try {
+      const response = await apiClient.post(
+        '/wydarzenia/kategorie/systemowe',
+        { nazwa: systemCategoryForm.nazwa, opis: systemCategoryForm.opis },
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || 'Systemowa kategoria została dodana.' });
+      setSystemCategoryForm({ nazwa: '', opis: '' });
+      setSystemCategoryFormOpen(false);
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udało się dodać systemowej kategorii.' });
+    }
+  };
+
   useEffect(() => {
     fetchMyWydarzenia();
     if (currentUser?.rola === 'ORG') {
@@ -368,7 +388,7 @@ const WydarzeniaPage = () => {
   const filteredWydarzenia = myWydarzenia.filter((item) => {
     const matchesText = !wydarzeniaSearch
       || (item.tytul || "").toLowerCase().includes(wydarzeniaSearch.toLowerCase())
-      || item.miejsceNazwa?.toLowerCase().includes(wydarzeniaSearch.toLowerCase());
+      || item.salaNazwa?.toLowerCase().includes(wydarzeniaSearch.toLowerCase());
     const matchesStatus = wydarzeniaStatusFilter === 'ALL'
       || (item.status || '').toUpperCase() === wydarzeniaStatusFilter;
     return matchesText && matchesStatus;
@@ -413,22 +433,53 @@ const WydarzeniaPage = () => {
               {showWydarzenieForm ? 'Zamknij formularz' : '+ Nowe wydarzenie'}
               {currentUser?.rola !== 'ORG' && ' (tylko organizator)'}
             </button>
+            <button
+              type="button"
+              className="btn-new-event"
+              disabled={currentUser?.rola !== 'ADMIN'}
+              onClick={() => setSystemCategoryFormOpen((prev) => !prev)}
+            >
+              {systemCategoryFormOpen ? 'Zamknij kategorie systemowe' : '+ Kategorie systemowe'}
+              {currentUser?.rola !== 'ADMIN' && ' (tylko admin)'}
+            </button>
           </div>
+
+          {systemCategoryFormOpen && (
+            <form onSubmit={onSystemCategorySubmit} className="auth-form organizer-form event-form" style={{ marginBottom: '12px' }}>
+              <h4 style={{ marginTop: 0 }}>Dodaj systemową kategorię (ADMIN)</h4>
+              <label htmlFor="sys-cat-name">Nazwa</label>
+              <input
+                id="sys-cat-name"
+                type="text"
+                value={systemCategoryForm.nazwa}
+                onChange={(event) => setSystemCategoryForm({ ...systemCategoryForm, nazwa: event.target.value })}
+                required
+              />
+              <label htmlFor="sys-cat-desc">Opis</label>
+              <input
+                id="sys-cat-desc"
+                type="text"
+                value={systemCategoryForm.opis}
+                onChange={(event) => setSystemCategoryForm({ ...systemCategoryForm, opis: event.target.value })}
+              />
+              <button type="submit">Zapisz kategorię systemową</button>
+            </form>
+          )}
 
           {showWydarzenieForm && (
             <form onSubmit={onWydarzenieSubmit} className="auth-form organizer-form event-form">
               <div className="event-form-layout">
                 <div className="event-form-panel">
-                  <label htmlFor="wyd-miejsce">Miejsce</label>
+                  <label htmlFor="wyd-sala">Sala</label>
                   <select
-                    id="wyd-miejsce"
-                    value={wydarzenieForm.miejsceId}
-                    onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, miejsceId: event.target.value })}
+                    id="wyd-sala"
+                    value={wydarzenieForm.salaId}
+                    onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, salaId: event.target.value })}
                     required
                   >
-                    <option value="">Wybierz miejsce</option>
-                    {wydarzenieOptions.miejsca.map((item) => (
-                      <option key={item.id} value={item.id}>{item.nazwa}</option>
+                    <option value="">Wybierz salę</option>
+                    {wydarzenieOptions.sale.map((item) => (
+                      <option key={item.id} value={item.id}>{item.nazwa} ({item.miejsceNazwa})</option>
                     ))}
                   </select>
 
@@ -464,11 +515,39 @@ const WydarzeniaPage = () => {
                     required
                   >
                     <option value="">Wybierz kategorie</option>
-                    {wydarzenieOptions.kategorie.map((item) => (
-                      <option key={item.id} value={item.id}>{item.nazwa}</option>
-                    ))}
-                    <option value="__NOWA_KATEGORIA__">+ Utworz nowa kategorie</option>
+                    <optgroup label="Systemowe (ADMIN)">
+                      {wydarzenieOptions.kategorieSystemowe.map((item) => (
+                        <option key={item.id} value={item.id}>{item.nazwa}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Twoje (ORG)">
+                      {wydarzenieOptions.kategorieUzytkownika.map((item) => (
+                        <option key={item.id} value={item.id}>{item.nazwa}</option>
+                      ))}
+                      <option value="__NOWA_KATEGORIA__">+ Utworz nowa kategorie</option>
+                    </optgroup>
                   </select>
+
+                  {wydarzenieForm.createNowaKategoria && (
+                    <>
+                      <label htmlFor="wyd-nowa-kategoria-nazwa">Nowa kategoria - nazwa</label>
+                      <input
+                        id="wyd-nowa-kategoria-nazwa"
+                        type="text"
+                        value={wydarzenieForm.nowaKategoriaNazwa}
+                        onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, nowaKategoriaNazwa: event.target.value })}
+                        required
+                      />
+
+                      <label htmlFor="wyd-nowa-kategoria-opis">Nowa kategoria - opis</label>
+                      <input
+                        id="wyd-nowa-kategoria-opis"
+                        type="text"
+                        value={wydarzenieForm.nowaKategoriaOpis}
+                        onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, nowaKategoriaOpis: event.target.value })}
+                      />
+                    </>
+                  )}
 
                   <label htmlFor="wyd-rola">Rola</label>
                   <input id="wyd-rola" type="text" value={wydarzenieForm.rola} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, rola: e.target.value })} required />

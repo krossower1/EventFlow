@@ -15,4 +15,10 @@ public class Kategoria {
 
 	@Column(columnDefinition = "TEXT")
 	private String opis;
+
+	@Column(name = "created_by_user_id")
+	private Long createdByUserId;
+
+	@Column(name = "systemowa")
+	private Boolean systemowa;
 }

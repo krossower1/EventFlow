@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface WystBiletRepository extends JpaRepository<WystBilet, Long> {
 	List<WystBilet> findByZamIdIn(List<Long> zamIds);
+	List<WystBilet> findByBiletIdIn(List<Long> biletIds);
 }
