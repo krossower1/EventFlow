@@ -18,4 +18,7 @@ public class Kategoria {
 
 	@Column(name = "created_by_user_id")
 	private Long createdByUserId;
+
+	@Column(name = "systemowa")
+	private Boolean systemowa;
 }

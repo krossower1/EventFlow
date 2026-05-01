@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface KategoriaRepository extends JpaRepository<Kategoria, Long> {
 	List<Kategoria> findByCreatedByUserId(Long userId);
+	List<Kategoria> findBySystemowaTrue();
+	List<Kategoria> findByCreatedByUserIdAndSystemowaFalse(Long userId);
 }

@@ -16,8 +16,8 @@ public class Wydarzenie {
 	@Column(name = "org_id", nullable = false)
 	private Long orgId;
 
-	@Column(name = "miejsce_id", nullable = false)
-	private Long miejsceId;
+	@Column(name = "sala_id", nullable = false)
+	private Long salaId;
 
 	private String tytul;
 

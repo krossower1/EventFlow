@@ -1,13 +1,14 @@
 package com.eventflow.com.controller;
 
 import com.eventflow.com.controller.dto.KategoriaDto;
-import com.eventflow.com.controller.dto.MiejsceOptionDto;
 import com.eventflow.com.controller.dto.BiletCreateRequestDto;
 import com.eventflow.com.controller.dto.BiletPostepDto;
+import com.eventflow.com.controller.dto.KategoriaSystemowaRequestDto;
 import com.eventflow.com.controller.dto.OpiniaDto;
 import com.eventflow.com.controller.dto.OpiniaRequestDto;
 import com.eventflow.com.controller.dto.PersonelDto;
 import com.eventflow.com.controller.dto.PersonelRequestDto;
+import com.eventflow.com.controller.dto.SalaOptionDto;
 import com.eventflow.com.controller.dto.WydarzenieCreateRequestDto;
 import com.eventflow.com.controller.dto.WydarzenieDetailDto;
 import com.eventflow.com.controller.dto.WydarzenieListItemDto;
@@ -21,6 +22,7 @@ import com.eventflow.com.model.Opinia;
 import com.eventflow.com.model.Organizator;
 import com.eventflow.com.model.Personel;
 import com.eventflow.com.model.PozZam;
+import com.eventflow.com.model.Sala;
 import com.eventflow.com.model.User;
 import com.eventflow.com.model.Wydarzenie;
 import com.eventflow.com.model.Zgloszenie;
@@ -31,6 +33,7 @@ import com.eventflow.com.repository.OpiniaRepository;
 import com.eventflow.com.repository.OrganizatorRepository;
 import com.eventflow.com.repository.PersonelRepository;
 import com.eventflow.com.repository.PozZamRepository;
+import com.eventflow.com.repository.SalaRepository;
 import com.eventflow.com.repository.UserRepository;
 import com.eventflow.com.repository.WydarzenieRepository;
 import com.eventflow.com.repository.ZgloszenieRepository;
@@ -70,6 +73,7 @@ public class WydarzenieController {
 	private final UserRepository userRepository;
 	private final OrganizatorRepository organizatorRepository;
 	private final MiejsceRepository miejsceRepository;
+	private final SalaRepository salaRepository;
 	private final KategoriaRepository kategoriaRepository;
 	private final WydarzenieRepository wydarzenieRepository;
 	private final BiletRepository biletRepository;
@@ -83,6 +87,7 @@ public class WydarzenieController {
 		UserRepository userRepository,
 		OrganizatorRepository organizatorRepository,
 		MiejsceRepository miejsceRepository,
+		SalaRepository salaRepository,
 		KategoriaRepository kategoriaRepository,
 		WydarzenieRepository wydarzenieRepository,
 		BiletRepository biletRepository,
@@ -95,6 +100,7 @@ public class WydarzenieController {
 		this.userRepository = userRepository;
 		this.organizatorRepository = organizatorRepository;
 		this.miejsceRepository = miejsceRepository;
+		this.salaRepository = salaRepository;
 		this.kategoriaRepository = kategoriaRepository;
 		this.wydarzenieRepository = wydarzenieRepository;
 		this.biletRepository = biletRepository;
@@ -109,15 +115,51 @@ public class WydarzenieController {
 	public ResponseEntity<WydarzenieOptionsDto> getOptions(Authentication authentication) {
 		User user = requireOrgUser(authentication);
 
-		List<MiejsceOptionDto> miejsca = miejsceRepository.findByUserId(user.getId()).stream()
-			.map(m -> new MiejsceOptionDto(m.getId(), m.getNazwa()))
+		List<Miejsce> mojeMiejsca = miejsceRepository.findByUserId(user.getId());
+		List<Long> miejsceIds = mojeMiejsca.stream().map(Miejsce::getId).toList();
+		java.util.Map<Long, String> miejsceNameById = mojeMiejsca.stream()
+			.collect(java.util.stream.Collectors.toMap(Miejsce::getId, Miejsce::getNazwa));
+
+		List<SalaOptionDto> sale = miejsceIds.isEmpty()
+			? List.of()
+			: salaRepository.findByMiejsceIdIn(miejsceIds).stream()
+			.map(s -> new SalaOptionDto(
+				s.getId(),
+				s.getNazwa(),
+				miejsceNameById.getOrDefault(s.getMiejsceId(), "-")
+			))
 			.toList();
 
-		List<KategoriaDto> kategorie = kategoriaRepository.findAll().stream()
+		List<KategoriaDto> kategorieSystemowe = kategoriaRepository.findBySystemowaTrue().stream()
+			.map(k -> new KategoriaDto(k.getId(), k.getNazwa(), k.getOpis()))
+			.toList();
+		List<KategoriaDto> kategorieUzytkownika = kategoriaRepository
+			.findByCreatedByUserIdAndSystemowaFalse(user.getId()).stream()
 			.map(k -> new KategoriaDto(k.getId(), k.getNazwa(), k.getOpis()))
 			.toList();
 
-		return ResponseEntity.ok(new WydarzenieOptionsDto(miejsca, kategorie));
+		return ResponseEntity.ok(new WydarzenieOptionsDto(sale, kategorieSystemowe, kategorieUzytkownika));
+	}
+
+	@PostMapping("/kategorie/systemowe")
+	public ResponseEntity<String> createSystemKategoria(
+		Authentication authentication,
+		@RequestBody KategoriaSystemowaRequestDto request
+	) {
+		User user = requireAuthenticatedUser(authentication);
+		if (!isAdmin(user)) {
+			throw new ResponseStatusException(FORBIDDEN, "Tylko ADMIN moze tworzyc systemowe kategorie.");
+		}
+		if (request.nazwa() == null || request.nazwa().isBlank()) {
+			throw new ResponseStatusException(BAD_REQUEST, "Nazwa kategorii jest wymagana.");
+		}
+		Kategoria kategoria = new Kategoria();
+		kategoria.setNazwa(request.nazwa().trim());
+		kategoria.setOpis(request.opis());
+		kategoria.setCreatedByUserId(user.getId());
+		kategoria.setSystemowa(true);
+		kategoriaRepository.save(kategoria);
+		return ResponseEntity.status(CREATED).body("Systemowa kategoria zostala dodana.");
 	}
 
 	@GetMapping("/my")
@@ -369,7 +411,7 @@ public class WydarzenieController {
 		Organizator organizator = organizatorRepository.findByUserIdAndZweryfikowTrue(user.getId())
 			.orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "Brak aktywnego profilu organizatora."));
 
-		if (request.miejsceId() == null || request.tytul() == null || request.tytul().isBlank()
+		if (request.salaId() == null || request.tytul() == null || request.tytul().isBlank()
 			|| request.rola() == null || request.rola().isBlank()
 			|| request.status() == null || request.status().isBlank()
 			|| request.dataRozp() == null || request.dataZamk() == null) {
@@ -380,17 +422,19 @@ public class WydarzenieController {
 		validateCreateStatus(user, normalizedStatus);
 		validateBilety(request.bilety());
 
-		Miejsce miejsce = miejsceRepository.findById(request.miejsceId())
-			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Wybrane miejsce nie istnieje."));
+		Sala sala = salaRepository.findById(request.salaId())
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Wybrana sala nie istnieje."));
+		Miejsce miejsce = miejsceRepository.findById(sala.getMiejsceId())
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Miejsce przypisane do sali nie istnieje."));
 		if (!miejsce.getUserId().equals(user.getId())) {
-			throw new ResponseStatusException(FORBIDDEN, "Mozesz wybrac tylko swoje miejsce.");
+			throw new ResponseStatusException(FORBIDDEN, "Mozesz wybrac tylko sale ze swoich miejsc.");
 		}
 
 		Long kategoriaId = resolveKategoriaId(request, user);
 
 		Wydarzenie wydarzenie = new Wydarzenie();
 		wydarzenie.setOrgId(organizator.getId());
-		wydarzenie.setMiejsceId(miejsce.getId());
+		wydarzenie.setSalaId(sala.getId());
 		wydarzenie.setTytul(request.tytul());
 		wydarzenie.setOpis(request.opis());
 		wydarzenie.setKategoriaId(kategoriaId);
@@ -415,15 +459,21 @@ public class WydarzenieController {
 			kategoria.setNazwa(request.nowaKategoriaNazwa());
 			kategoria.setOpis(request.nowaKategoriaOpis());
 			kategoria.setCreatedByUserId(user.getId());
+			kategoria.setSystemowa(false);
 			return kategoriaRepository.save(kategoria).getId();
 		}
 
 		if (request.kategoriaId() == null) {
 			throw new ResponseStatusException(BAD_REQUEST, "Wybierz istniejaca kategorie.");
 		}
-		return kategoriaRepository.findById(request.kategoriaId())
-			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Wybrana kategoria nie istnieje."))
-			.getId();
+		Kategoria kategoria = kategoriaRepository.findById(request.kategoriaId())
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Wybrana kategoria nie istnieje."));
+		boolean systemowa = Boolean.TRUE.equals(kategoria.getSystemowa());
+		boolean userOwn = user.getId().equals(kategoria.getCreatedByUserId());
+		if (!systemowa && !userOwn) {
+			throw new ResponseStatusException(BAD_REQUEST, "Mozesz wybrac tylko kategorie systemowa lub swoja.");
+		}
+		return kategoria.getId();
 	}
 
 	private WydarzenieListItemDto toListItem(Wydarzenie wydarzenie) {
@@ -434,7 +484,7 @@ public class WydarzenieController {
 			wydarzenie.getId(),
 			wydarzenie.getTytul(),
 			normalizeStatus(wydarzenie.getStatus()),
-			miejsceRepository.findById(wydarzenie.getMiejsceId()).map(Miejsce::getNazwa).orElse("-"),
+			salaRepository.findById(wydarzenie.getSalaId()).map(Sala::getNazwa).orElse("-"),
 			kategoriaRepository.findById(wydarzenie.getKategoriaId()).map(Kategoria::getNazwa).orElse("-"),
 			wydarzenie.getDataRozp(),
 			wydarzenie.getDataZamk(),
@@ -454,7 +504,7 @@ public class WydarzenieController {
 			wydarzenie.getTytul(),
 			wydarzenie.getOpis(),
 			normalizeStatus(wydarzenie.getStatus()),
-			miejsceRepository.findById(wydarzenie.getMiejsceId()).map(Miejsce::getNazwa).orElse("-"),
+			salaRepository.findById(wydarzenie.getSalaId()).map(Sala::getNazwa).orElse("-"),
 			kategoriaRepository.findById(wydarzenie.getKategoriaId()).map(Kategoria::getNazwa).orElse("-"),
 			wydarzenie.getDataRozp(),
 			wydarzenie.getDataZamk(),

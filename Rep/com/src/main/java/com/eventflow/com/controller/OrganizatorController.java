@@ -65,7 +65,7 @@ public class OrganizatorController {
 			return ResponseEntity.status(403).build();
 		}
 
-		List<OrganizatorResponseDto> result = organizatorRepository.findAll().stream()
+		List<OrganizatorResponseDto> result = organizatorRepository.findAllByOrderByZweryfikowAscDataUtwDesc().stream()
 			.map(this::toDto)
 			.toList();
 		return ResponseEntity.ok(result);
@@ -108,6 +108,19 @@ public class OrganizatorController {
 		}
 		organizatorRepository.deleteById(id);
 		return ResponseEntity.ok("Wniosek odrzucony i usuniety.");
+	}
+
+	@DeleteMapping("/{id}")
+	public ResponseEntity<String> deleteRequest(@PathVariable Long id, Authentication authentication) {
+		User currentUser = getCurrentUser(authentication);
+		if (!isAdmin(currentUser)) {
+			return ResponseEntity.status(403).body("Brak uprawnien.");
+		}
+		if (!organizatorRepository.existsById(id)) {
+			return ResponseEntity.badRequest().body("Nie znaleziono wniosku.");
+		}
+		organizatorRepository.deleteById(id);
+		return ResponseEntity.ok("Wniosek zostal usuniety z bazy.");
 	}
 
 	private OrganizatorResponseDto toDto(Organizator organizator) {
