@@ -9,7 +9,7 @@ public record MiejsceResponseDto(
 	String miasto,
 	String ulica,
 	String kodPoczt,
-	Integer pojemnosc,
+	Integer iloscSal,
 	String opis,
 	List<SalaResponseDto> sale
 ) {

@@ -49,7 +49,7 @@ public class MiejsceController {
 		miejsce.setMiasto(request.miasto());
 		miejsce.setUlica(request.ulica());
 		miejsce.setKodPoczt(request.kodPoczt());
-		miejsce.setPojemnosc(request.pojemnosc());
+		miejsce.setIloscSal(request.iloscSal());
 		miejsce.setOpis(request.opis());
 		miejsce.setUserId(currentUser.getId());
 
@@ -81,6 +81,13 @@ public class MiejsceController {
 		if (!miejsce.getUserId().equals(currentUser.getId())) {
 			throw new ResponseStatusException(FORBIDDEN, "To miejsce nie nalezy do Ciebie.");
 		}
+		long aktualnaLiczbaSal = salaRepository.countByMiejsceId(miejsceId);
+		if (miejsce.getIloscSal() != null && aktualnaLiczbaSal >= miejsce.getIloscSal()) {
+			throw new ResponseStatusException(
+				BAD_REQUEST,
+				"Osiagnieto limit sal dla tego miejsca. Zwieksz ilosc_sal, aby dodac kolejna sale."
+			);
+		}
 
 		Sala sala = new Sala();
 		sala.setMiejsceId(miejsceId);
@@ -91,6 +98,38 @@ public class MiejsceController {
 
 		Sala saved = salaRepository.save(sala);
 		return ResponseEntity.status(CREATED).body(toSalaDto(saved));
+	}
+
+	@PatchMapping("/{miejsceId}/ilosc-sal")
+	public ResponseEntity<MiejsceResponseDto> increaseIloscSal(
+		@PathVariable Long miejsceId,
+		Authentication authentication,
+		@Valid @RequestBody MiejsceIloscSalUpdateRequestDto request
+	) {
+		User currentUser = requireOrg(authentication);
+		Miejsce miejsce = miejsceRepository.findById(miejsceId)
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono miejsca."));
+		if (!miejsce.getUserId().equals(currentUser.getId())) {
+			throw new ResponseStatusException(FORBIDDEN, "To miejsce nie nalezy do Ciebie.");
+		}
+		if (!Boolean.TRUE.equals(request.potwierdzenie())) {
+			throw new ResponseStatusException(BAD_REQUEST, "Potwierdzenie jest wymagane do zmiany ilosc_sal.");
+		}
+		if (request.nowaIloscSal() == null || request.nowaIloscSal() <= 0) {
+			throw new ResponseStatusException(BAD_REQUEST, "Nowa ilosc_sal musi byc dodatnia.");
+		}
+
+		int obecnaIloscSal = miejsce.getIloscSal() == null ? 0 : miejsce.getIloscSal();
+		if (request.nowaIloscSal() < obecnaIloscSal) {
+			throw new ResponseStatusException(BAD_REQUEST, "Nie mozna zmniejszyc ilosc_sal.");
+		}
+		if (request.nowaIloscSal().equals(obecnaIloscSal)) {
+			return ResponseEntity.ok(toMiejsceDto(miejsce));
+		}
+
+		miejsce.setIloscSal(request.nowaIloscSal());
+		Miejsce updated = miejsceRepository.save(miejsce);
+		return ResponseEntity.ok(toMiejsceDto(updated));
 	}
 
 	private MiejsceResponseDto toMiejsceDto(Miejsce miejsce) {
@@ -105,7 +144,7 @@ public class MiejsceController {
 			miejsce.getMiasto(),
 			miejsce.getUlica(),
 			miejsce.getKodPoczt(),
-			miejsce.getPojemnosc(),
+			miejsce.getIloscSal(),
 			miejsce.getOpis(),
 			sale
 		);

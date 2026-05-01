@@ -10,5 +10,6 @@ import java.util.List;
 @Repository
 public interface WydarzenieRepository extends JpaRepository<Wydarzenie, Long> {
 	List<Wydarzenie> findByOrgId(Long orgId);
+	List<Wydarzenie> findByKategoriaIdIn(List<Long> kategoriaIds);
 	List<Wydarzenie> findByDataZamkAfterOrderByDataRozpAsc(LocalDateTime now);
 }

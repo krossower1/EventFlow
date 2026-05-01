@@ -19,7 +19,8 @@ public class Miejsce {
 	@Column(name = "kod_poczt")
 	private String kodPoczt;
 
-	private Integer pojemnosc;
+	@Column(name = "ilosc_sal")
+	private Integer iloscSal;
 
 	@Column(columnDefinition = "TEXT")
 	private String opis;

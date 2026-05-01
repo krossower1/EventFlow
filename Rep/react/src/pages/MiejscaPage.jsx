@@ -15,10 +15,11 @@ const MiejscaPage = () => {
     miasto: '',
     ulica: '',
     kodPoczt: '',
-    pojemnosc: '',
+    iloscSal: '',
     opis: ''
   });
   const [salaForms, setSalaForms] = useState({});
+  const [increaseForms, setIncreaseForms] = useState({});
 
   const getRequestConfig = useCallback(() => {
     const config = { withCredentials: true };
@@ -55,14 +56,14 @@ const MiejscaPage = () => {
     try {
       await apiClient.post('/miejsca', {
         ...miejsceForm,
-        pojemnosc: Number(miejsceForm.pojemnosc)
+        iloscSal: Number(miejsceForm.iloscSal)
       }, getRequestConfig());
       setStatus({ type: 'success', message: 'Miejsce zostało dodane.' });
-      setMiejsceForm({ nazwa: '', panstwo: 'Polska', miasto: '', ulica: '', kodPoczt: '', pojemnosc: '', opis: '' });
+      setMiejsceForm({ nazwa: '', panstwo: 'Polska', miasto: '', ulica: '', kodPoczt: '', iloscSal: '', opis: '' });
       setView('list');
       fetchMyMiejsca();
     } catch (error) {
-      setStatus({ type: 'error', message: 'Nie udało się dodać miejsca.' });
+      setStatus({ type: 'error', message: error?.response?.data?.message || 'Nie udało się dodać miejsca.' });
     }
   };
 
@@ -91,7 +92,39 @@ const MiejscaPage = () => {
       setSalaForms(prev => ({ ...prev, [miejsceId]: { nazwa: '', pojemnosc: '', pietro: '', maPlan: false } }));
       fetchMyMiejsca();
     } catch (error) {
-      setStatus({ type: 'error', message: 'Nie udało się dodać sali.' });
+      setStatus({ type: 'error', message: error?.response?.data?.message || 'Nie udało się dodać sali.' });
+    }
+  };
+
+  const updateIncreaseForm = (miejsceId, value) => {
+    setIncreaseForms(prev => ({ ...prev, [miejsceId]: value }));
+  };
+
+  const onIncreaseIloscSal = async (event, miejsce) => {
+    event.preventDefault();
+    const rawValue = increaseForms[miejsce.id];
+    const nowaIloscSal = Number(rawValue);
+    if (!rawValue || Number.isNaN(nowaIloscSal) || nowaIloscSal <= 0) {
+      setStatus({ type: 'error', message: 'Podaj poprawną nową ilość sal.' });
+      return;
+    }
+
+    const potwierdzenie = window.confirm(`Potwierdź zwiększenie ilości sal dla "${miejsce.nazwa}" do ${nowaIloscSal}.`);
+    if (!potwierdzenie) {
+      setStatus({ type: 'error', message: 'Anulowano zwiększenie ilości sal.' });
+      return;
+    }
+
+    try {
+      await apiClient.patch(`/miejsca/${miejsce.id}/ilosc-sal`, {
+        nowaIloscSal,
+        potwierdzenie: true
+      }, getRequestConfig());
+      setStatus({ type: 'success', message: 'Ilość sal została zwiększona.' });
+      setIncreaseForms(prev => ({ ...prev, [miejsce.id]: '' }));
+      fetchMyMiejsca();
+    } catch (error) {
+      setStatus({ type: 'error', message: error?.response?.data?.message || 'Nie udało się zwiększyć ilości sal.' });
     }
   };
 
@@ -139,8 +172,8 @@ const MiejscaPage = () => {
               <label>Kod pocztowy</label>
               <input type="text" value={miejsceForm.kodPoczt} onChange={e => setMiejsceForm({...miejsceForm, kodPoczt: e.target.value})} required />
 
-              <label>Pojemność całkowita</label>
-              <input type="number" value={miejsceForm.pojemnosc} onChange={e => setMiejsceForm({...miejsceForm, pojemnosc: e.target.value})} required />
+              <label>Ilość sal (limit sal dla miejsca)</label>
+              <input type="number" value={miejsceForm.iloscSal} onChange={e => setMiejsceForm({...miejsceForm, iloscSal: e.target.value})} required />
 
               <label>Opis</label>
               <textarea value={miejsceForm.opis} onChange={e => setMiejsceForm({...miejsceForm, opis: e.target.value})} />
@@ -163,8 +196,28 @@ const MiejscaPage = () => {
                 <span className="event-badge">ID: {miejsce.id}</span>
               </div>
               <p><strong>Adres:</strong> {miejsce.ulica}, {miejsce.kodPoczt} {miejsce.miasto}, {miejsce.panstwo}</p>
-              <p><strong>Pojemność:</strong> {miejsce.pojemnosc} osób</p>
+              <p><strong>Ilość sal (limit):</strong> {miejsce.iloscSal}</p>
+              <p><strong>Wykorzystane:</strong> {miejsce.sale?.length || 0} / {miejsce.iloscSal}</p>
               <p>{miejsce.opis}</p>
+
+              {currentUser?.rola === 'ORG' && (
+                <div style={{ marginTop: '12px', padding: '12px', border: '1px dashed #666', borderRadius: '6px' }}>
+                  <h5 style={{ marginTop: 0 }}>Zwiększ ilość sal (wymagane potwierdzenie)</h5>
+                  <form onSubmit={(e) => onIncreaseIloscSal(e, miejsce)} style={{ display: 'flex', gap: '10px', alignItems: 'end' }}>
+                    <div>
+                      <label style={{fontSize: '12px'}}>Nowa ilość sal</label>
+                      <input
+                        type="number"
+                        min={miejsce.iloscSal || 1}
+                        value={increaseForms[miejsce.id] || ''}
+                        onChange={e => updateIncreaseForm(miejsce.id, e.target.value)}
+                        required
+                      />
+                    </div>
+                    <button type="submit" style={{ padding: '8px 15px' }}>Zwiększ</button>
+                  </form>
+                </div>
+              )}
 
               <h4 style={{ marginTop: '20px' }}>Sale w tym miejscu</h4>
               {miejsce.sale && miejsce.sale.length > 0 ? (
@@ -235,7 +288,14 @@ const MiejscaPage = () => {
                       <option value="true">Tak</option>
                     </select>
                   </div>
-                  <button type="submit" style={{ padding: '8px 15px' }}>Dodaj</button>
+                  <button
+                    type="submit"
+                    style={{ padding: '8px 15px' }}
+                    disabled={(miejsce.sale?.length || 0) >= (miejsce.iloscSal || 0)}
+                    title={(miejsce.sale?.length || 0) >= (miejsce.iloscSal || 0) ? 'Osiągnięto limit sal. Najpierw zwiększ ilosc_sal.' : ''}
+                  >
+                    Dodaj
+                  </button>
                 </form>
                 ) : (
                   <p style={{ color: '#666', textAlign: 'center' }}>Dodawanie sal dostępne tylko dla organizatorów.</p>

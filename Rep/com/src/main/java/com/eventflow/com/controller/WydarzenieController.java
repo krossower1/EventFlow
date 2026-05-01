@@ -34,6 +34,7 @@ import com.eventflow.com.repository.PozZamRepository;
 import com.eventflow.com.repository.UserRepository;
 import com.eventflow.com.repository.WydarzenieRepository;
 import com.eventflow.com.repository.ZgloszenieRepository;
+import com.eventflow.com.service.UserCascadeDeleteService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -76,6 +77,7 @@ public class WydarzenieController {
 	private final OpiniaRepository opiniaRepository;
 	private final ZgloszenieRepository zgloszenieRepository;
 	private final PersonelRepository personelRepository;
+	private final UserCascadeDeleteService userCascadeDeleteService;
 
 	public WydarzenieController(
 		UserRepository userRepository,
@@ -87,7 +89,8 @@ public class WydarzenieController {
 		PozZamRepository pozZamRepository,
 		OpiniaRepository opiniaRepository,
 		ZgloszenieRepository zgloszenieRepository,
-		PersonelRepository personelRepository
+		PersonelRepository personelRepository,
+		UserCascadeDeleteService userCascadeDeleteService
 	) {
 		this.userRepository = userRepository;
 		this.organizatorRepository = organizatorRepository;
@@ -99,6 +102,7 @@ public class WydarzenieController {
 		this.opiniaRepository = opiniaRepository;
 		this.zgloszenieRepository = zgloszenieRepository;
 		this.personelRepository = personelRepository;
+		this.userCascadeDeleteService = userCascadeDeleteService;
 	}
 
 	@GetMapping("/options")
@@ -233,6 +237,23 @@ public class WydarzenieController {
 		return ResponseEntity.ok("Rola personelu zostala anulowana.");
 	}
 
+	@DeleteMapping("/{id}")
+	@Transactional
+	public ResponseEntity<String> deleteWydarzenie(
+		@PathVariable Long id,
+		Authentication authentication
+	) {
+		User user = requireAuthenticatedUser(authentication);
+		Wydarzenie wydarzenie = wydarzenieRepository.findById(id)
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono wydarzenia."));
+		if (!isAdmin(user) && !canManagePersonel(user, wydarzenie)) {
+			throw new ResponseStatusException(FORBIDDEN, "Brak uprawnien do usuniecia wydarzenia.");
+		}
+
+		userCascadeDeleteService.deleteWydarzeniaWithDependencies(List.of(id));
+		return ResponseEntity.ok("Wydarzenie zostalo usuniete.");
+	}
+
 	@PostMapping("/{id}/zgloszenia")
 	public ResponseEntity<String> addZgloszenie(
 		@PathVariable Long id,
@@ -365,7 +386,7 @@ public class WydarzenieController {
 			throw new ResponseStatusException(FORBIDDEN, "Mozesz wybrac tylko swoje miejsce.");
 		}
 
-		Long kategoriaId = resolveKategoriaId(request);
+		Long kategoriaId = resolveKategoriaId(request, user);
 
 		Wydarzenie wydarzenie = new Wydarzenie();
 		wydarzenie.setOrgId(organizator.getId());
@@ -384,7 +405,7 @@ public class WydarzenieController {
 		return ResponseEntity.status(CREATED).body("Wydarzenie zostalo dodane.");
 	}
 
-	private Long resolveKategoriaId(WydarzenieCreateRequestDto request) {
+	private Long resolveKategoriaId(WydarzenieCreateRequestDto request, User user) {
 		boolean createNowa = Boolean.TRUE.equals(request.createNowaKategoria());
 		if (createNowa) {
 			if (request.nowaKategoriaNazwa() == null || request.nowaKategoriaNazwa().isBlank()) {
@@ -393,6 +414,7 @@ public class WydarzenieController {
 			Kategoria kategoria = new Kategoria();
 			kategoria.setNazwa(request.nowaKategoriaNazwa());
 			kategoria.setOpis(request.nowaKategoriaOpis());
+			kategoria.setCreatedByUserId(user.getId());
 			return kategoriaRepository.save(kategoria).getId();
 		}
 

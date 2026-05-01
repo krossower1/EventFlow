@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface OpiniaRepository extends JpaRepository<Opinia, Long> {
 	List<Opinia> findByWydIdOrderByDataDesc(Long wydId);
+	List<Opinia> findByWydIdIn(List<Long> wydIds);
+	List<Opinia> findByUserId(Long userId);
 }

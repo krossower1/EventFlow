@@ -28,6 +28,7 @@
   "scripts": {
     "start": "cross-env BROWSER=none react-scripts start",
     "electron": "wait-on http://localhost:3000 && npx electron .",
+    "build": "cross-env react-scripts start",
     "dev": "concurrently \"npm start\" \"npm run electron\"",
     "electron:dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\""
   },

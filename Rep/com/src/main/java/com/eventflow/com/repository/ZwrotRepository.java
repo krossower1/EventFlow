@@ -10,5 +10,6 @@ import java.util.Optional;
 @Repository
 public interface ZwrotRepository extends JpaRepository<Zwrot, Long> {
 	Optional<Zwrot> findByPlatnId(Long platnId);
+	List<Zwrot> findByPlatnIdIn(List<Long> platnIds);
 	List<Zwrot> findAllByOrderByIdDesc();
 }

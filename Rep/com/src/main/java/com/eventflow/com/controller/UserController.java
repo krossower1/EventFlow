@@ -3,6 +3,7 @@ package com.eventflow.com.controller;
 import com.eventflow.com.controller.dto.UserResponse;
 import com.eventflow.com.model.User;
 import com.eventflow.com.repository.UserRepository;
+import com.eventflow.com.service.UserCascadeDeleteService;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,9 +15,11 @@ import java.util.List;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final UserCascadeDeleteService userCascadeDeleteService;
 
-    public UserController(UserRepository userRepository) {
+    public UserController(UserRepository userRepository, UserCascadeDeleteService userCascadeDeleteService) {
         this.userRepository = userRepository;
+        this.userCascadeDeleteService = userCascadeDeleteService;
     }
 
     @GetMapping
@@ -38,7 +41,7 @@ public class UserController {
         User currentUser = userRepository.findByLogin(authentication.getName())
             .orElseThrow(() -> new RuntimeException("Nie znaleziono aktualnego użytkownika"));
 
-        userRepository.delete(currentUser);
+        userCascadeDeleteService.deleteUserWithDependencies(currentUser);
         return "Twoje konto zostało usunięte";
     }
 
@@ -71,7 +74,7 @@ public class UserController {
             throw new RuntimeException("Nie można usuwać kont administratorów");
         }
 
-        userRepository.delete(userToDelete);
+        userCascadeDeleteService.deleteUserWithDependencies(userToDelete);
         return "Użytkownik " + userToDelete.getLogin() + " został usunięty";
     }
 
