@@ -420,28 +420,36 @@ const WydarzeniaPage = () => {
               <option value="SZKIC">szkic</option>
               <option value="ZAMKNIETE">zamkniete</option>
             </select>
-            <button
-              type="button"
-              className="btn-new-event"
-              disabled={currentUser?.rola !== 'ORG'}
-              onClick={() => {
-                if (currentUser?.rola !== 'ORG') return;
-                setShowWydarzenieForm((prev) => !prev);
-                if (!showWydarzenieForm) fetchWydarzeniaOptions();
-              }}
+            <span
+              className={`permission-tooltip ${currentUser?.rola !== 'ORG' ? 'has-tooltip' : ''}`}
+              data-tooltip={currentUser?.rola !== 'ORG' ? 'Dostępne tylko dla organizatora' : ''}
             >
-              {showWydarzenieForm ? 'Zamknij formularz' : '+ Nowe wydarzenie'}
-              {currentUser?.rola !== 'ORG' && ' (tylko organizator)'}
-            </button>
-            <button
-              type="button"
-              className="btn-new-event"
-              disabled={currentUser?.rola !== 'ADMIN'}
-              onClick={() => setSystemCategoryFormOpen((prev) => !prev)}
+              <button
+                type="button"
+                className="btn-new-event"
+                disabled={currentUser?.rola !== 'ORG'}
+                onClick={() => {
+                  if (currentUser?.rola !== 'ORG') return;
+                  setShowWydarzenieForm((prev) => !prev);
+                  if (!showWydarzenieForm) fetchWydarzeniaOptions();
+                }}
+              >
+                {showWydarzenieForm ? 'Zamknij formularz' : '+ Nowe wydarzenie'}
+              </button>
+            </span>
+            <span
+              className={`permission-tooltip ${currentUser?.rola !== 'ADMIN' ? 'has-tooltip' : ''}`}
+              data-tooltip={currentUser?.rola !== 'ADMIN' ? 'Dostępne tylko dla administratora' : ''}
             >
-              {systemCategoryFormOpen ? 'Zamknij kategorie systemowe' : '+ Kategorie systemowe'}
-              {currentUser?.rola !== 'ADMIN' && ' (tylko admin)'}
-            </button>
+              <button
+                type="button"
+                className="btn-new-event"
+                disabled={currentUser?.rola !== 'ADMIN'}
+                onClick={() => setSystemCategoryFormOpen((prev) => !prev)}
+              >
+                {systemCategoryFormOpen ? 'Zamknij kategorie systemowe' : '+ Kategorie systemowe'}
+              </button>
+            </span>
           </div>
 
           {systemCategoryFormOpen && (
@@ -610,20 +618,24 @@ const WydarzeniaPage = () => {
 
           <div className="events-user-cta" style={{ maxWidth: '100%', marginBottom: '12px' }}>
             <p>Wniosek o rolę organizatora jest dostępny dla wszystkich, ale wysłać może go tylko użytkownik z rolą USER.</p>
-            <button
-              type="button"
-              className="btn-new-event"
-              disabled={currentUser?.rola !== 'USER'}
-              onClick={() => setOrganizerRequestOpen(true)}
+            <span
+              className={`permission-tooltip ${currentUser?.rola !== 'USER' ? 'has-tooltip' : ''}`}
+              data-tooltip={currentUser?.rola !== 'USER' ? 'Dostępne tylko dla użytkownika USER' : ''}
             >
-              Wyślij wniosek o rolę organizatora
-              {currentUser?.rola !== 'USER' && ' (tylko USER)'}
-            </button>
+              <button
+                type="button"
+                className="btn-new-event"
+                disabled={currentUser?.rola !== 'USER'}
+                onClick={() => setOrganizerRequestOpen(true)}
+              >
+                Wyślij wniosek o rolę organizatora
+              </button>
+            </span>
           </div>
 
           <div className="events-grid">
             {filteredWydarzenia.length > 0 ? filteredWydarzenia.map((item) => (
-              <div key={item.id} className="event-management-wrapper" style={{ border: '1px solid #ddd', borderRadius: '12px', padding: '15px', backgroundColor: '#1a1d24', minWidth: 0, overflow: 'hidden' }}>
+              <div key={item.id} className="event-management-wrapper" style={{ border: '1px solid #ddd', borderRadius: '12px', padding: '15px', backgroundColor: '#1a1d24', minWidth: 0, overflow: 'visible' }}>
                 <WydarzenieCard
                   item={item}
                   currentUserRole={currentUser?.rola}
@@ -633,15 +645,19 @@ const WydarzeniaPage = () => {
                 />
                 
                 <div style={{ marginTop: '20px' }}>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    disabled={currentUser?.rola !== 'ORG'}
-                    onClick={() => setOpenTicketFormEventId(item.id)}
+                  <span
+                    className={`permission-tooltip ${currentUser?.rola !== 'ORG' ? 'has-tooltip' : ''}`}
+                    data-tooltip={currentUser?.rola !== 'ORG' ? 'Dostępne tylko dla organizatora' : ''}
                   >
-                    + Nowa pula biletów
-                    {currentUser?.rola !== 'ORG' && ' (tylko organizator)'}
-                  </button>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      disabled={currentUser?.rola !== 'ORG'}
+                      onClick={() => setOpenTicketFormEventId(item.id)}
+                    >
+                      + Nowa pula biletów
+                    </button>
+                  </span>
                 </div>
               </div>
             )) : (
@@ -757,10 +773,15 @@ const WydarzeniaPage = () => {
                 </div>
               </div>
 
-              <button type="submit" className="btn-new-event" style={{ width: '100%' }} disabled={currentUser?.rola !== 'ORG'}>
-                Dodaj pulę biletów
-                {currentUser?.rola !== 'ORG' && ' (tylko organizator)'}
-              </button>
+              <span
+                className={`permission-tooltip ${currentUser?.rola !== 'ORG' ? 'has-tooltip' : ''}`}
+                data-tooltip={currentUser?.rola !== 'ORG' ? 'Dostępne tylko dla organizatora' : ''}
+                style={{ width: '100%' }}
+              >
+                <button type="submit" className="btn-new-event" style={{ width: '100%' }} disabled={currentUser?.rola !== 'ORG'}>
+                  Dodaj pulę biletów
+                </button>
+              </span>
             </form>
           </div>
         </div>
