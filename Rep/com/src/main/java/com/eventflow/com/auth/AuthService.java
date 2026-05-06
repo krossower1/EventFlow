@@ -1,6 +1,8 @@
 package com.eventflow.com.auth;
 
 import com.eventflow.com.model.User;
+import com.eventflow.com.model.LoginLog;
+import com.eventflow.com.repository.LoginLogRepository;
 import com.eventflow.com.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -19,13 +21,24 @@ public class AuthService {
 	private static final int SALT_LENGTH = 32;
 
 	private final UserRepository userRepository;
+	private final LoginLogRepository loginLogRepository;
+	private final LoginLocationService loginLocationService;
 	private final PasswordEncoder passwordEncoder;
 	private final EmailService emailService;
 	private final TotpService totpService;
 	private final SecureRandom secureRandom = new SecureRandom();
 
-	public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, EmailService emailService, TotpService totpService) {
+	public AuthService(
+		UserRepository userRepository,
+		LoginLogRepository loginLogRepository,
+		LoginLocationService loginLocationService,
+		PasswordEncoder passwordEncoder,
+		EmailService emailService,
+		TotpService totpService
+	) {
 		this.userRepository = userRepository;
+		this.loginLogRepository = loginLogRepository;
+		this.loginLocationService = loginLocationService;
 		this.passwordEncoder = passwordEncoder;
 		this.emailService = emailService;
 		this.totpService = totpService;
@@ -39,6 +52,19 @@ public class AuthService {
 
 	public Optional<User> findUserByLogin(String login) {
 		return userRepository.findByLogin(login);
+	}
+
+	@Transactional
+	// Zapisuje pojedynczy wpis historii logowań (status + urządzenie + lokalizacja).
+	public void saveLoginLog(String login, String deviceInfo, String status, String requestIpAddress) {
+		userRepository.findByLogin(login).ifPresent(user -> {
+			LoginLog log = new LoginLog();
+			log.setUser(user);
+			log.setLocation(loginLocationService.resolveLocation(requestIpAddress));
+			log.setDeviceInfo(normalizeDeviceInfo(deviceInfo));
+			log.setStatus(status);
+			loginLogRepository.save(log);
+		});
 	}
 
 	public String getUserRole(String login) {
@@ -258,5 +284,40 @@ public class AuthService {
 			builder.append(VERIFICATION_CODE_CHARACTERS.charAt(index));
 		}
 		return builder.toString();
+	}
+
+	// Standaryzuje opis urządzenia do czytelnego formatu "Przeglądarka / System".
+	private String normalizeDeviceInfo(String userAgent) {
+		if (userAgent == null || userAgent.isBlank()) {
+			return "Nieznane urządzenie";
+		}
+		String normalized = userAgent.toLowerCase();
+		String browser = detectBrowser(normalized);
+		String system = detectSystem(normalized);
+		String label = browser + " / " + system;
+		return label.length() > 255 ? label.substring(0, 255) : label;
+	}
+
+	// Rozpoznaje nazwę przeglądarki na podstawie User-Agent.
+	private String detectBrowser(String userAgent) {
+		// Kolejność ma znaczenie, bo np. Edge zawiera też token "Chrome".
+		if (userAgent.contains("edg/")) return "Edge";
+		if (userAgent.contains("opr/") || userAgent.contains("opera")) return "Opera";
+		if (userAgent.contains("firefox/")) return "Firefox";
+		if (userAgent.contains("chrome/") && !userAgent.contains("chromium")) return "Chrome";
+		if (userAgent.contains("safari/") && !userAgent.contains("chrome/")) return "Safari";
+		if (userAgent.contains("chromium")) return "Chromium";
+		return "Nieznana przeglądarka";
+	}
+
+	// Rozpoznaje system/typ urządzenia na podstawie User-Agent.
+	private String detectSystem(String userAgent) {
+		if (userAgent.contains("iphone")) return "iPhone (iOS)";
+		if (userAgent.contains("ipad")) return "iPad (iOS)";
+		if (userAgent.contains("android")) return "Android";
+		if (userAgent.contains("windows")) return "Windows";
+		if (userAgent.contains("mac os x") || userAgent.contains("macintosh")) return "macOS";
+		if (userAgent.contains("linux")) return "Linux";
+		return "Nieznany system";
 	}
 }
