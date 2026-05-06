@@ -65,7 +65,7 @@ public class AuthController {
 			return ResponseEntity.ok(new LoginResponse(true, "Login successful", rola, imie, nazwisko, email, telefon));
 		}
 
-		return ResponseEntity.status(401).body(new LoginResponse(false, "Invalid login or password", null, null, null, null, null));
+		return ResponseEntity.status(401).body(new LoginResponse(false, "Niepoprawny login lub hasło", null, null, null, null, null));
 	}
 
 	@PostMapping("/register")

@@ -633,7 +633,7 @@ const WydarzeniaPage = () => {
             </span>
           </div>
 
-          <div className="events-grid">
+          <div className="events-grid events-grid--wydarzenia">
             {filteredWydarzenia.length > 0 ? filteredWydarzenia.map((item) => (
               <div key={item.id} className="event-management-wrapper" style={{ border: '1px solid #ddd', borderRadius: '12px', padding: '15px', backgroundColor: '#1a1d24', minWidth: 0, overflow: 'visible' }}>
                 <WydarzenieCard

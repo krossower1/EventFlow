@@ -89,7 +89,7 @@ const AuthPage = () => {
         setStatus({ type: 'error', message: response.message || 'Login failed.' });
       }
     } catch (error) {
-      const message = error.response?.data?.message || 'Invalid login or password.';
+      const message = error.response?.data?.message || 'Niepoprawny login lub hasło.';
       setStatus({ type: 'error', message });
     }
   };
