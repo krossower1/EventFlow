@@ -1358,7 +1358,16 @@ background:
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
+}
+
+.settings-content {
+  display: flex;
+}
+
+.settings-content > .settings-panel {
+  width: 100%;
+  height: 100%;
 }
 
 .settings-sidebar,
@@ -1370,6 +1379,7 @@ background:
 
 .settings-sidebar {
   padding: 18px;
+  height: 100%;
 }
 
 .settings-sidebar h2 {
@@ -1469,6 +1479,33 @@ background:
   color: var(--text-main);
 }
 
+.settings-password-input-wrap {
+  position: relative;
+}
+
+.settings-password-input-wrap input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.password-visibility-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  padding: 4px;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.password-visibility-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
 .settings-password-submit {
   margin: 4px 0 0;
   width: fit-content;
@@ -1547,4 +1584,40 @@ background:
 
 .settings-verification-form .btn-new-event {
   margin: 0;
+}
+
+.settings-2fa-block {
+  display: grid;
+  gap: 12px;
+  max-width: 520px;
+  margin-top: 12px;
+}
+
+.settings-2fa-form {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-2fa-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-main);
+}
+
+.settings-2fa-form input {
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 1rem;
+  background-color: var(--card-bg);
+  color: var(--text-main);
+}
+
+.settings-2fa-qr {
+  width: 220px;
+  height: 220px;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 8px;
 }

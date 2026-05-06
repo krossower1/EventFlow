@@ -46,6 +46,15 @@ public class User {
 	@Column(name = "verification_code_expires_at")
 	private LocalDateTime verificationCodeExpiresAt;
 
+	@Column(name = "two_factor_enabled")
+	private Boolean twoFactorEnabled = false;
+
+	@Column(name = "two_factor_secret", length = 128)
+	private String twoFactorSecret;
+
+	@Column(name = "two_factor_temp_secret", length = 128)
+	private String twoFactorTempSecret;
+
 	@Column(columnDefinition = "TEXT")
 	private String platnosc;
 

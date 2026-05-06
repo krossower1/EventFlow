@@ -31,6 +31,7 @@ public class SecurityConfig {
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/login").permitAll() // Logowanie jest jawne
+						.requestMatchers("/api/auth/login-2fa").permitAll() // Drugi krok logowania 2FA
 						.requestMatchers("/api/auth/register").permitAll()
 						.requestMatchers("/api/auth/verify-email").permitAll()
 						.requestMatchers("/api/auth/logout").permitAll()

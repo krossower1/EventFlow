@@ -1,6 +1,8 @@
-import React, { useContext, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
+import { authService } from '../services/authService';
+import QRCode from 'qrcode';
 
 const tabs = [
   { id: 'profil', label: 'Profil' },
@@ -37,6 +39,20 @@ const UstawieniaPage = () => {
     newPassword: '',
     confirmNewPassword: ''
   });
+  const [passwordVisibility, setPasswordVisibility] = useState({
+    oldPassword: false,
+    newPassword: false,
+    confirmNewPassword: false
+  });
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [isLoadingTwoFactorStatus, setIsLoadingTwoFactorStatus] = useState(false);
+  const [isGeneratingTwoFactorSecret, setIsGeneratingTwoFactorSecret] = useState(false);
+  const [isSavingTwoFactor, setIsSavingTwoFactor] = useState(false);
+  const [twoFactorSetup, setTwoFactorSetup] = useState({ secret: '', otpAuthUrl: '' });
+  const [twoFactorEnableCode, setTwoFactorEnableCode] = useState('');
+  const [twoFactorDisableCode, setTwoFactorDisableCode] = useState('');
+  const [twoFactorStatus, setTwoFactorStatus] = useState({ type: '', message: '' });
+  const [twoFactorQrDataUrl, setTwoFactorQrDataUrl] = useState('');
 
   const [profileForm, setProfileForm] = useState({
     imie: currentUser.imie || '',
@@ -215,6 +231,119 @@ const UstawieniaPage = () => {
     }
   };
 
+  useEffect(() => {
+    // Odczyt statusu 2FA tylko gdy użytkownik wejdzie w odpowiednią podsekcję ustawień.
+    const loadTwoFactorStatus = async () => {
+      if (activeTab !== 'bezpieczenstwo' || activeSecurityTab !== '2fa') return;
+      setIsLoadingTwoFactorStatus(true);
+      try {
+        const response = await authService.getTwoFactorStatus();
+        setTwoFactorEnabled(Boolean(response?.enabled));
+      } catch (error) {
+        setTwoFactorStatus({
+          type: 'error',
+          message: error.response?.data?.message || 'Nie udało się pobrać statusu 2FA.'
+        });
+      } finally {
+        setIsLoadingTwoFactorStatus(false);
+      }
+    };
+    loadTwoFactorStatus();
+  }, [activeTab, activeSecurityTab]);
+
+  useEffect(() => {
+    // Front generuje obraz QR lokalnie z URI otpauth zwróconego przez backend.
+    const buildQr = async () => {
+      if (!twoFactorSetup.otpAuthUrl) {
+        setTwoFactorQrDataUrl('');
+        return;
+      }
+      try {
+        const qrDataUrl = await QRCode.toDataURL(twoFactorSetup.otpAuthUrl, {
+          width: 220,
+          margin: 1
+        });
+        setTwoFactorQrDataUrl(qrDataUrl);
+      } catch (error) {
+        setTwoFactorQrDataUrl('');
+        setTwoFactorStatus({ type: 'error', message: 'Nie udało się wygenerować kodu QR.' });
+      }
+    };
+    buildQr();
+  }, [twoFactorSetup.otpAuthUrl]);
+
+  const handleGenerateTwoFactorSecret = async () => {
+    // Inicjuje setup 2FA: backend zwraca sekret + URI, a UI pokazuje kod QR.
+    setTwoFactorStatus({ type: '', message: '' });
+    setIsGeneratingTwoFactorSecret(true);
+    try {
+      const response = await authService.startTwoFactorSetup();
+      setTwoFactorSetup({
+        secret: response?.secret || '',
+        otpAuthUrl: response?.otpAuthUrl || ''
+      });
+      setTwoFactorEnableCode('');
+    } catch (error) {
+      setTwoFactorStatus({
+        type: 'error',
+        message: error.response?.data?.message || 'Nie udało się rozpocząć konfiguracji 2FA.'
+      });
+    } finally {
+      setIsGeneratingTwoFactorSecret(false);
+    }
+  };
+
+  const handleEnableTwoFactor = async (event) => {
+    // Finalny krok aktywacji 2FA po wpisaniu kodu z aplikacji Authenticator.
+    event.preventDefault();
+    setTwoFactorStatus({ type: '', message: '' });
+    if (!twoFactorEnableCode.trim()) {
+      setTwoFactorStatus({ type: 'error', message: 'Podaj kod 2FA.' });
+      return;
+    }
+    setIsSavingTwoFactor(true);
+    try {
+      await authService.enableTwoFactor(twoFactorEnableCode.trim());
+      setTwoFactorEnabled(true);
+      setTwoFactorSetup({ secret: '', otpAuthUrl: '' });
+      setTwoFactorEnableCode('');
+      setTwoFactorDisableCode('');
+      setTwoFactorStatus({ type: 'success', message: '2FA zostało włączone.' });
+    } catch (error) {
+      setTwoFactorStatus({
+        type: 'error',
+        message: error.response?.data?.message || 'Nie udało się włączyć 2FA.'
+      });
+    } finally {
+      setIsSavingTwoFactor(false);
+    }
+  };
+
+  const handleDisableTwoFactor = async (event) => {
+    // Wyłączenie 2FA wymaga aktualnego kodu, aby uniknąć przypadkowego zdjęcia ochrony.
+    event.preventDefault();
+    setTwoFactorStatus({ type: '', message: '' });
+    if (!twoFactorDisableCode.trim()) {
+      setTwoFactorStatus({ type: 'error', message: 'Podaj kod 2FA, aby wyłączyć ochronę.' });
+      return;
+    }
+    setIsSavingTwoFactor(true);
+    try {
+      await authService.disableTwoFactor(twoFactorDisableCode.trim());
+      setTwoFactorEnabled(false);
+      setTwoFactorDisableCode('');
+      setTwoFactorSetup({ secret: '', otpAuthUrl: '' });
+      setTwoFactorStatus({ type: 'success', message: '2FA zostało wyłączone.' });
+    } catch (error) {
+      setTwoFactorStatus({
+        type: 'error',
+        message: error.response?.data?.message || 'Nie udało się wyłączyć 2FA.'
+      });
+    } finally {
+      setIsSavingTwoFactor(false);
+    }
+  };
+
   return (
     <div className="settings-page">
       <aside className="settings-sidebar">
@@ -331,39 +460,81 @@ const UstawieniaPage = () => {
                   <form className="settings-password-form" onSubmit={handleSavePassword}>
                     <label htmlFor="old-password">
                       Stare hasło
-                      <input
-                        id="old-password"
-                        type="password"
-                        value={passwordForm.oldPassword}
-                        onChange={(event) => {
-                          setPasswordForm((prev) => ({ ...prev, oldPassword: event.target.value }));
-                          if (passwordStatus.message) setPasswordStatus({ type: '', message: '' });
-                        }}
-                      />
+                      <div className="settings-password-input-wrap">
+                        <input
+                          id="old-password"
+                          type={passwordVisibility.oldPassword ? 'text' : 'password'}
+                          value={passwordForm.oldPassword}
+                          onChange={(event) => {
+                            setPasswordForm((prev) => ({ ...prev, oldPassword: event.target.value }));
+                            if (passwordStatus.message) setPasswordStatus({ type: '', message: '' });
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="password-visibility-btn"
+                          onClick={() => setPasswordVisibility((prev) => ({ ...prev, oldPassword: !prev.oldPassword }))}
+                          aria-label={passwordVisibility.oldPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+                        >
+                          <img
+                            src={passwordVisibility.oldPassword ? '/eye_open.png' : '/eye_closed.png'}
+                            alt={passwordVisibility.oldPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+                            className="password-visibility-icon"
+                          />
+                        </button>
+                      </div>
                     </label>
                     <label htmlFor="new-password">
                       Nowe hasło
-                      <input
-                        id="new-password"
-                        type="password"
-                        value={passwordForm.newPassword}
-                        onChange={(event) => {
-                          setPasswordForm((prev) => ({ ...prev, newPassword: event.target.value }));
-                          if (passwordStatus.message) setPasswordStatus({ type: '', message: '' });
-                        }}
-                      />
+                      <div className="settings-password-input-wrap">
+                        <input
+                          id="new-password"
+                          type={passwordVisibility.newPassword ? 'text' : 'password'}
+                          value={passwordForm.newPassword}
+                          onChange={(event) => {
+                            setPasswordForm((prev) => ({ ...prev, newPassword: event.target.value }));
+                            if (passwordStatus.message) setPasswordStatus({ type: '', message: '' });
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="password-visibility-btn"
+                          onClick={() => setPasswordVisibility((prev) => ({ ...prev, newPassword: !prev.newPassword }))}
+                          aria-label={passwordVisibility.newPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+                        >
+                          <img
+                            src={passwordVisibility.newPassword ? '/eye_open.png' : '/eye_closed.png'}
+                            alt={passwordVisibility.newPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+                            className="password-visibility-icon"
+                          />
+                        </button>
+                      </div>
                     </label>
                     <label htmlFor="confirm-new-password">
                       Potwierdzenie nowego hasła
-                      <input
-                        id="confirm-new-password"
-                        type="password"
-                        value={passwordForm.confirmNewPassword}
-                        onChange={(event) => {
-                          setPasswordForm((prev) => ({ ...prev, confirmNewPassword: event.target.value }));
-                          if (passwordStatus.message) setPasswordStatus({ type: '', message: '' });
-                        }}
-                      />
+                      <div className="settings-password-input-wrap">
+                        <input
+                          id="confirm-new-password"
+                          type={passwordVisibility.confirmNewPassword ? 'text' : 'password'}
+                          value={passwordForm.confirmNewPassword}
+                          onChange={(event) => {
+                            setPasswordForm((prev) => ({ ...prev, confirmNewPassword: event.target.value }));
+                            if (passwordStatus.message) setPasswordStatus({ type: '', message: '' });
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="password-visibility-btn"
+                          onClick={() => setPasswordVisibility((prev) => ({ ...prev, confirmNewPassword: !prev.confirmNewPassword }))}
+                          aria-label={passwordVisibility.confirmNewPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+                        >
+                          <img
+                            src={passwordVisibility.confirmNewPassword ? '/eye_open.png' : '/eye_closed.png'}
+                            alt={passwordVisibility.confirmNewPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+                            className="password-visibility-icon"
+                          />
+                        </button>
+                      </div>
                     </label>
                     <button type="submit" className="btn-new-event settings-password-submit" disabled={isSavingPassword}>
                       {isSavingPassword ? 'Zapisywanie...' : 'Zapisz'}
@@ -380,6 +551,81 @@ const UstawieniaPage = () => {
                 <>
                   <h4>2FA</h4>
                   <p>Tutaj skonfigurujesz uwierzytelnianie dwuskładnikowe dla konta.</p>
+                  <p> Najpopularniejsze aplikacje do 2FA to: <strong>Google Authenticator</strong> oraz <strong>Microsoft Authenticator</strong>.</p>
+                  {isLoadingTwoFactorStatus ? (
+                    <p>Ładowanie statusu 2FA...</p>
+                  ) : twoFactorEnabled ? (
+                    <div className="settings-2fa-block">
+                      <p>
+                        Status 2FA: <span className="header-accent">włączone</span>
+                      </p>
+                      <form className="settings-2fa-form" onSubmit={handleDisableTwoFactor}>
+                        <label htmlFor="disable-2fa-code">
+                          Kod 2FA
+                          <input
+                            id="disable-2fa-code"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]{6}"
+                            maxLength={6}
+                            value={twoFactorDisableCode}
+                            onChange={(event) => setTwoFactorDisableCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                            placeholder="Wpisz kod z aplikacji"
+                          />
+                        </label>
+                        <button type="submit" className="btn-secondary" disabled={isSavingTwoFactor}>
+                          {isSavingTwoFactor ? 'Wyłączanie...' : 'Wyłącz 2FA'}
+                        </button>
+                      </form>
+                    </div>
+                  ) : (
+                    <div className="settings-2fa-block">
+                      <p>
+                        Status 2FA: <span className="header-accent">wyłączone</span>
+                      </p>
+                      {!twoFactorSetup.secret ? (
+                        <button
+                          type="button"
+                          className="btn-new-event"
+                          onClick={handleGenerateTwoFactorSecret}
+                          disabled={isGeneratingTwoFactorSecret}
+                        >
+                          {isGeneratingTwoFactorSecret ? 'Generowanie...' : 'Rozpocznij konfigurację 2FA'}
+                        </button>
+                      ) : (
+                        <form className="settings-2fa-form" onSubmit={handleEnableTwoFactor}>
+                          {twoFactorQrDataUrl && (
+                            <img
+                              src={twoFactorQrDataUrl}
+                              alt="Kod QR konfiguracji 2FA"
+                              className="settings-2fa-qr"
+                            />
+                          )}
+                          <label htmlFor="enable-2fa-code">
+                            Kod 2FA
+                            <input
+                              id="enable-2fa-code"
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]{6}"
+                              maxLength={6}
+                              value={twoFactorEnableCode}
+                              onChange={(event) => setTwoFactorEnableCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                              placeholder="Wpisz kod z aplikacji"
+                            />
+                          </label>
+                          <button type="submit" className="btn-new-event settings-password-submit" disabled={isSavingTwoFactor}>
+                            {isSavingTwoFactor ? 'Włączanie...' : 'Włącz 2FA'}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  )}
+                  {twoFactorStatus.message && (
+                    <p className={`status-message ${twoFactorStatus.type === 'error' ? 'status-error' : 'status-success'}`}>
+                      {twoFactorStatus.message}
+                    </p>
+                  )}
                 </>
               )}
               {activeSecurityTab === 'czas-sesji' && (
