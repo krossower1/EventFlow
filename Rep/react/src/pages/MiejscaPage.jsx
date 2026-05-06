@@ -135,18 +135,27 @@ const MiejscaPage = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>{currentUser?.rola === 'ORG' ? 'Zarządzaj miejscami' : 'Przeglądaj miejsca (zarządzanie tylko dla organizatorów)'}</h2>
         <div>
-          <button className="btn-refresh" onClick={fetchMyMiejsca} style={{marginRight: '10px'}} disabled={currentUser?.rola !== 'ORG'}>
-            Odśwież
-            {currentUser?.rola !== 'ORG' && ' (tylko org)'}
-          </button>
-          <button
-            className="btn-new-event"
-            onClick={() => setView(view === 'list' ? 'add' : 'list')}
-            disabled={currentUser?.rola !== 'ORG'}
+          <span
+            className={`permission-tooltip ${currentUser?.rola !== 'ORG' ? 'has-tooltip' : ''}`}
+            data-tooltip={currentUser?.rola !== 'ORG' ? 'Dostępne tylko dla organizatora' : ''}
+            style={{ marginRight: '10px' }}
           >
-            {view === 'list' ? '+ Dodaj miejsce' : 'Powrót do listy'}
-            {currentUser?.rola !== 'ORG' && ' (tylko org)'}
-          </button>
+            <button className="btn-refresh" onClick={fetchMyMiejsca} disabled={currentUser?.rola !== 'ORG'}>
+              Odśwież
+            </button>
+          </span>
+          <span
+            className={`permission-tooltip ${currentUser?.rola !== 'ORG' ? 'has-tooltip' : ''}`}
+            data-tooltip={currentUser?.rola !== 'ORG' ? 'Dostępne tylko dla organizatora' : ''}
+          >
+            <button
+              className="btn-new-event"
+              onClick={() => setView(view === 'list' ? 'add' : 'list')}
+              disabled={currentUser?.rola !== 'ORG'}
+            >
+              {view === 'list' ? '+ Dodaj miejsce' : 'Powrót do listy'}
+            </button>
+          </span>
         </div>
       </div>
 
@@ -154,31 +163,47 @@ const MiejscaPage = () => {
 
       {view === 'add' ? (
         currentUser?.rola === 'ORG' ? (
-          <div className="auth-form organizer-form">
+          <div className="auth-form organizer-form miejsce-form-card">
             <h3>Nowe miejsce</h3>
-            <form onSubmit={onMiejsceSubmit}>
-              <label>Nazwa</label>
-              <input type="text" value={miejsceForm.nazwa} onChange={e => setMiejsceForm({...miejsceForm, nazwa: e.target.value})} required />
+            <form onSubmit={onMiejsceSubmit} className="miejsce-form-grid">
+              <div className="miejsce-form-field miejsce-form-field--full">
+                <label htmlFor="miejsce-nazwa">Nazwa</label>
+                <input id="miejsce-nazwa" type="text" value={miejsceForm.nazwa} onChange={e => setMiejsceForm({...miejsceForm, nazwa: e.target.value})} required />
+              </div>
 
-              <label>Państwo</label>
-              <input type="text" value="Polska" disabled />
+              <div className="miejsce-form-field">
+                <label htmlFor="miejsce-panstwo">Państwo</label>
+                <input id="miejsce-panstwo" type="text" value="Polska" disabled />
+              </div>
 
-              <label>Miasto</label>
-              <input type="text" value={miejsceForm.miasto} onChange={e => setMiejsceForm({...miejsceForm, miasto: e.target.value})} required />
+              <div className="miejsce-form-field">
+                <label htmlFor="miejsce-miasto">Miasto</label>
+                <input id="miejsce-miasto" type="text" value={miejsceForm.miasto} onChange={e => setMiejsceForm({...miejsceForm, miasto: e.target.value})} required />
+              </div>
 
-              <label>Ulica</label>
-              <input type="text" value={miejsceForm.ulica} onChange={e => setMiejsceForm({...miejsceForm, ulica: e.target.value})} required />
+              <div className="miejsce-form-field">
+                <label htmlFor="miejsce-ulica">Ulica</label>
+                <input id="miejsce-ulica" type="text" value={miejsceForm.ulica} onChange={e => setMiejsceForm({...miejsceForm, ulica: e.target.value})} required />
+              </div>
 
-              <label>Kod pocztowy</label>
-              <input type="text" value={miejsceForm.kodPoczt} onChange={e => setMiejsceForm({...miejsceForm, kodPoczt: e.target.value})} required />
+              <div className="miejsce-form-field">
+                <label htmlFor="miejsce-kod">Kod pocztowy</label>
+                <input id="miejsce-kod" type="text" value={miejsceForm.kodPoczt} onChange={e => setMiejsceForm({...miejsceForm, kodPoczt: e.target.value})} required />
+              </div>
 
-              <label>Ilość sal (limit sal dla miejsca)</label>
-              <input type="number" value={miejsceForm.iloscSal} onChange={e => setMiejsceForm({...miejsceForm, iloscSal: e.target.value})} required />
+              <div className="miejsce-form-field miejsce-form-field--full">
+                <label htmlFor="miejsce-ilosc-sal">Ilość sal (limit sal dla miejsca)</label>
+                <input id="miejsce-ilosc-sal" type="number" value={miejsceForm.iloscSal} onChange={e => setMiejsceForm({...miejsceForm, iloscSal: e.target.value})} required />
+              </div>
 
-              <label>Opis</label>
-              <textarea value={miejsceForm.opis} onChange={e => setMiejsceForm({...miejsceForm, opis: e.target.value})} />
+              <div className="miejsce-form-field miejsce-form-field--full">
+                <label htmlFor="miejsce-opis">Opis</label>
+                <textarea id="miejsce-opis" value={miejsceForm.opis} onChange={e => setMiejsceForm({...miejsceForm, opis: e.target.value})} />
+              </div>
 
-              <button type="submit">Zapisz miejsce</button>
+              <div className="miejsce-form-actions">
+                <button type="submit">Zapisz miejsce</button>
+              </div>
             </form>
           </div>
         ) : (

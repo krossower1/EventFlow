@@ -116,23 +116,31 @@ const UsersPage = () => {
       
       <div className={`events-user-cta participants-admin-cta ${currentUser.rola !== 'ADMIN' ? 'disabled-area' : ''}`}>
         <p>{currentUser.rola === 'ADMIN' ? 'Zarządzaj rolami i użytkownikami.' : 'Przeglądaj listę uczestników (zarządzanie tylko dla administratorów).'}</p>
-        <button
-          type="button"
-          className="btn-new-event"
-          onClick={() => {
-            if (currentUser.rola !== 'ADMIN') return;
-            setShowOrganizerRequests((prev) => !prev);
-          }}
-          disabled={currentUser.rola !== 'ADMIN'}
+        <span
+          className={`permission-tooltip ${currentUser.rola !== 'ADMIN' ? 'has-tooltip' : ''}`}
+          data-tooltip={currentUser.rola !== 'ADMIN' ? 'Dostępne tylko dla administratora' : ''}
         >
-          Wnioski
-          {pendingOrganizerRequestCount > 0 && ` (${pendingOrganizerRequestCount})`}
-          {currentUser.rola !== 'ADMIN' && ' (tylko admin)'}
-        </button>
-        <button type="button" className="show-admins-toggle" onClick={() => setHideAdmins(!hideAdmins)} disabled={currentUser.rola !== 'ADMIN'}>
-          {hideAdmins ? 'Pokaż adminów' : 'Schowaj adminów'}
-          {currentUser.rola !== 'ADMIN' && ' (tylko admin)'}
-        </button>
+          <button
+            type="button"
+            className="btn-new-event"
+            onClick={() => {
+              if (currentUser.rola !== 'ADMIN') return;
+              setShowOrganizerRequests((prev) => !prev);
+            }}
+            disabled={currentUser.rola !== 'ADMIN'}
+          >
+            Wnioski
+            {pendingOrganizerRequestCount > 0 && ` (${pendingOrganizerRequestCount})`}
+          </button>
+        </span>
+        <span
+          className={`permission-tooltip ${currentUser.rola !== 'ADMIN' ? 'has-tooltip' : ''}`}
+          data-tooltip={currentUser.rola !== 'ADMIN' ? 'Dostępne tylko dla administratora' : ''}
+        >
+          <button type="button" className="show-admins-toggle" onClick={() => setHideAdmins(!hideAdmins)} disabled={currentUser.rola !== 'ADMIN'}>
+            {hideAdmins ? 'Pokaż adminów' : 'Schowaj adminów'}
+          </button>
+        </span>
       </div>
 
       {showOrganizerRequests && (

@@ -8,13 +8,13 @@ const Sidebar = () => {
   if (!isLoggedIn) return null;
 
   const navItems =[
-    { path: '/dashboard', label: 'Panel główny' },
-    { path: '/wydarzenia', label: 'Wydarzenia' },
-    { path: '/bilety', label: 'Bilety' },
-    { path: '/uczestnicy', label: 'Uczestnicy' },
-    { path: '/miejsca', label: 'Miejsca' },
-    { path: '/analityka', label: 'Analityka' },
-    { path: '/ustawienia', label: 'Ustawienia' }
+    { path: '/dashboard', label: 'Panel główny', icon: '/icons/home.png' },
+    { path: '/wydarzenia', label: 'Wydarzenia', icon: '/icons/events.png' },
+    { path: '/bilety', label: 'Bilety', icon: '/icons/tickets.png' },
+    { path: '/uczestnicy', label: 'Uczestnicy', icon: '/icons/users.png' },
+    { path: '/miejsca', label: 'Miejsca', icon: '/icons/places.png' },
+    { path: '/analityka', label: 'Analityka', icon: '/icons/analytics.png' },
+    { path: '/ustawienia', label: 'Ustawienia', icon: '/icons/settings.png' }
   ];
 
   const formatSessionTime = (totalSeconds) => {
@@ -39,7 +39,8 @@ const Sidebar = () => {
             to={item.path}
             className={({ isActive }) => `nav-button ${isActive ? 'active' : ''}`}
           >
-            {item.label}
+            <img src={item.icon} alt="" className="nav-button-icon" aria-hidden="true" />
+            <span>{item.label}</span>
           </NavLink>
         ))}
       </nav>
