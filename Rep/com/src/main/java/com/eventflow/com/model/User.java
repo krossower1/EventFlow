@@ -55,6 +55,21 @@ public class User {
 	@Column(name = "two_factor_temp_secret", length = 128)
 	private String twoFactorTempSecret;
 
+	@Column(name = "session_timeout_enabled", nullable = false)
+	private Boolean sessionTimeoutEnabled = true;
+
+	@Column(name = "session_timeout_minutes", nullable = false)
+	private Integer sessionTimeoutMinutes = 30;
+
+	@Column(name = "session_warning_minutes", nullable = false)
+	private Integer sessionWarningMinutes = 1;
+
+	@Column(name = "session_expiry_action", nullable = false, length = 24)
+	private String sessionExpiryAction = "LOGOUT";
+
+	@Column(name = "session_count_mode", nullable = false, length = 24)
+	private String sessionCountMode = "RELATIVE";
+
 	@Column(columnDefinition = "TEXT")
 	private String platnosc;
 
