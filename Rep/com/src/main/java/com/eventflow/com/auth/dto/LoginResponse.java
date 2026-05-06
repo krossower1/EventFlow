@@ -5,6 +5,8 @@ public record LoginResponse(
 	String message,
 	String rola,
 	String imie,
-	String nazwisko
+	String nazwisko,
+	String email,
+	String telefon
 ) {
 }
