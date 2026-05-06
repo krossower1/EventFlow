@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 9.6.0, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.45, for Win64 (x86_64)
 --
 -- Host: localhost    Database: event_flow
 -- ------------------------------------------------------
--- Server version	9.6.0
+-- Server version	8.0.45
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -14,14 +14,6 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-SET @MYSQLDUMP_TEMP_LOG_BIN = @@SESSION.SQL_LOG_BIN;
-SET @@SESSION.SQL_LOG_BIN= 0;
-
---
--- GTID state at the beginning of the backup 
---
-
-/*SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '09d8d5f4-2076-11f1-87b7-b42e991066cf:1-571'*/;
 
 --
 -- Table structure for table `bilety`
@@ -82,6 +74,34 @@ LOCK TABLES `kategorie` WRITE;
 /*!40000 ALTER TABLE `kategorie` DISABLE KEYS */;
 INSERT INTO `kategorie` VALUES (1,'Sport','X',NULL,_binary '');
 /*!40000 ALTER TABLE `kategorie` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `login_logs`
+--
+
+DROP TABLE IF EXISTS `login_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `login_logs` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `device_info` varchar(255) DEFAULT NULL,
+  `location` varchar(100) DEFAULT NULL,
+  `login_time` datetime(6) NOT NULL,
+  `status` varchar(50) NOT NULL,
+  `user_id` bigint NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `login_logs`
+--
+
+LOCK TABLES `login_logs` WRITE;
+/*!40000 ALTER TABLE `login_logs` DISABLE KEYS */;
+INSERT INTO `login_logs` VALUES (1,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 OPR/130.0.0.0','Nieznana lokalizacja','2026-05-06 16:25:45.102956','NIEUDANE_HASLO_LUB_LOGIN',20),(2,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 OPR/130.0.0.0','Nieznana lokalizacja','2026-05-06 16:25:47.910600','SUKCES',20),(3,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 OPR/130.0.0.0','Nieznana lokalizacja','2026-05-06 16:26:48.769969','SUKCES',19),(4,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 OPR/130.0.0.0','Nieznana lokalizacja','2026-05-06 16:28:51.188612','SUKCES',19),(5,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 OPR/130.0.0.0','Nieznana lokalizacja','2026-05-06 16:33:24.592882','SUKCES',1),(6,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 OPR/130.0.0.0','Nieznana lokalizacja','2026-05-06 16:34:39.678890','SUKCES',1),(7,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 OPR/130.0.0.0','Nieznana lokalizacja','2026-05-06 16:34:44.734562','SUKCES',1),(8,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 OPR/130.0.0.0','Nieznana lokalizacja','2026-05-06 16:38:21.354307','SUKCES',1),(9,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 OPR/130.0.0.0','Nieznana lokalizacja','2026-05-06 16:38:27.220411','SUKCES',1),(10,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 OPR/130.0.0.0','Nieznana lokalizacja','2026-05-06 16:41:02.172520','SUKCES',1),(11,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 OPR/130.0.0.0','Nieznana lokalizacja','2026-05-06 16:48:42.400132','NIEUDANE_HASLO_LUB_LOGIN',1),(12,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 OPR/130.0.0.0','Nieznana lokalizacja','2026-05-06 16:48:46.864405','SUKCES',1),(13,'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 OPR/130.0.0.0','Nieznana lokalizacja','2026-05-06 16:54:28.960156','SUKCES',1),(14,'Opera / Windows','Nieznana lokalizacja','2026-05-06 16:54:58.759609','SUKCES',1),(15,'Opera / Windows','Lokalnie','2026-05-06 17:00:26.211435','SUKCES',1),(16,'Opera / Windows','Lokalnie','2026-05-06 17:00:41.491720','SUKCES',20),(17,'Opera / Windows','Lokalnie','2026-05-06 17:00:50.671464','SUKCES',19),(18,'Opera / Windows','Lokalnie','2026-05-06 17:01:00.416582','SUKCES',19),(19,'Opera / Windows','Lokalnie','2026-05-06 17:01:02.574440','SUKCES',19),(20,'Opera / Windows','Lokalnie','2026-05-06 17:01:05.146586','SUKCES',19),(21,'Opera / Windows','Lokalnie','2026-05-06 17:01:11.279900','SUKCES',20),(22,'Opera / Windows','Lokalnie','2026-05-06 17:07:35.658078','SUKCES',20);
+/*!40000 ALTER TABLE `login_logs` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -162,7 +182,7 @@ CREATE TABLE `organizator` (
   `zweryfikow` bit(1) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UK_4gcjcqm4bx4fw68tl0jym5oaf` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -171,7 +191,7 @@ CREATE TABLE `organizator` (
 
 LOCK TABLES `organizator` WRITE;
 /*!40000 ALTER TABLE `organizator` DISABLE KEYS */;
-INSERT INTO `organizator` VALUES (1,'2026-04-08 11:34:07.635557','asd','null','a.com',6,_binary ''),(2,'2026-04-08 13:50:54.916522','MARBUD','Jakieś tam','www.google.com',8,_binary ''),(3,'2026-04-09 16:29:58.015035','A','A','A',10,_binary ''),(4,'2026-04-09 17:20:58.824777','Fakro','Niskie','8.8.8.8',13,_binary ''),(5,'2026-04-26 11:50:16.242915','ASD','ASD','ASD',15,_binary ''),(6,'2026-05-01 10:49:56.850262','ASDAS','ASDA','ASDASD',16,_binary '\0');
+INSERT INTO `organizator` VALUES (1,'2026-04-08 11:34:07.635557','asd','null','a.com',6,_binary ''),(2,'2026-04-08 13:50:54.916522','MARBUD','Jakieś tam','www.google.com',8,_binary ''),(3,'2026-04-09 16:29:58.015035','A','A','A',10,_binary ''),(4,'2026-04-09 17:20:58.824777','Fakro','Niskie','8.8.8.8',13,_binary ''),(5,'2026-04-26 11:50:16.242915','ASD','ASD','ASD',15,_binary ''),(6,'2026-05-01 10:49:56.850262','ASDAS','ASDA','ASDASD',16,_binary '\0'),(8,'2026-05-06 10:29:35.862570','ss','ss','ss',20,_binary '');
 /*!40000 ALTER TABLE `organizator` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -322,6 +342,36 @@ INSERT INTO `sale` VALUES (1,1,'T1',100,1,0),(2,2,'P1',122,1,0),(3,4,'S1',21,1,0
 UNLOCK TABLES;
 
 --
+-- Table structure for table `uczestnicy_wydarzen`
+--
+
+DROP TABLE IF EXISTS `uczestnicy_wydarzen`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `uczestnicy_wydarzen` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `uzytkownik_id` bigint unsigned NOT NULL,
+  `wydarzenie_id` bigint unsigned NOT NULL,
+  `data_zapisu` datetime DEFAULT CURRENT_TIMESTAMP,
+  `status` enum('POTWIERDZONY','LISTA_REZERWOWA') DEFAULT 'POTWIERDZONY',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uzytkownik_id` (`uzytkownik_id`,`wydarzenie_id`),
+  KEY `fk_uczestnik_wydarzenie` (`wydarzenie_id`),
+  CONSTRAINT `fk_uczestnik_user` FOREIGN KEY (`uzytkownik_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_uczestnik_wydarzenie` FOREIGN KEY (`wydarzenie_id`) REFERENCES `wydarzenia` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `uczestnicy_wydarzen`
+--
+
+LOCK TABLES `uczestnicy_wydarzen` WRITE;
+/*!40000 ALTER TABLE `uczestnicy_wydarzen` DISABLE KEYS */;
+/*!40000 ALTER TABLE `uczestnicy_wydarzen` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `users`
 --
 
@@ -343,11 +393,20 @@ CREATE TABLE `users` (
   `email_verified` bit(1) DEFAULT NULL,
   `verification_code` varchar(6) DEFAULT NULL,
   `verification_code_expires_at` datetime(6) DEFAULT NULL,
+  `telefon` varchar(255) DEFAULT NULL,
+  `two_factor_enabled` bit(1) DEFAULT NULL,
+  `two_factor_secret` varchar(128) DEFAULT NULL,
+  `two_factor_temp_secret` varchar(128) DEFAULT NULL,
+  `session_timeout_enabled` bit(1) NOT NULL,
+  `session_timeout_minutes` int NOT NULL,
+  `session_expiry_action` varchar(24) NOT NULL,
+  `session_warning_minutes` int NOT NULL,
+  `session_count_mode` varchar(24) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `UK_r43af9ap4edm43mmtq01oddj6` (`login`)
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -356,7 +415,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'Mateusz','Chochorowski','admin@example.com','admin','$2a$10$UOBujPQuCzaeCC5ok1lCIuLQ4lAn0PvYgv91bCNcKE6eNPsQkseFS','4046f48c-a02e-4680-9b3c-0c536cea0adc',NULL,'ADMIN','2026-03-25 15:08:36',1,NULL,NULL,NULL),(5,'Adam','Kowalski','an@gmail.com','AKowal','$2a$10$N5B5xCSXbYM1.L14/Dy8TOq6XmC5uJIY.u2i3DjliCyDSfFRR/Tiq','216c5ddf-666e-47f5-90c3-eec37c437897',NULL,'ADMIN','2026-04-08 08:53:14',1,NULL,NULL,NULL),(7,'Q','Q','Q@q.q','Q','$2a$10$wUJr39H3JdXbcV7aBJ.0TeTJ73HizpQEmlfJA9XMlXw1kBTwvRjqG','780c43fd-1f59-41ac-aed9-59abfb68d627',NULL,'USER','2026-04-08 09:40:47',0,NULL,NULL,NULL),(11,'Adam','Kowalski','admin@gmail.com','adm','$2a$10$sS4Te9WEyKCL2BY0ESBT0edfHIUNbuXlyNC1L7qfWJV.eWYndgoAK','06571e84-7541-45e4-9e8b-cf05f8ac9604',NULL,'ADMIN','2026-04-09 15:15:19',1,_binary '',NULL,NULL),(12,'Jan','Kowalski','user@gmail.com','usr','$2a$10$Mby6U0S6M08sZdcCrf9aPufSdqK6ktKidwgdWwFQ8SCSMOHxbjOaO','f9acbba7-671b-46d8-8f38-55fb1897bbc2',NULL,'USER','2026-04-09 15:16:00',1,_binary '',NULL,NULL),(13,'Adrian','Kowalski','organizator@gmail.com','org','$2a$10$J8T6uDr.arVEmqQTiItMrunLAxG.VPWnUQdHBTDdfcvkIGpwRet0u','7a4301f8-21b7-42b5-ab36-b4d6d0c5dac8',NULL,'ORG','2026-04-09 15:16:24',1,_binary '',NULL,NULL),(15,'t','t','a@fes.s','usr1','$2a$10$eAV4oMI/U52wlE/ckDCuaO/EK32lg85PhDn8ydZMbAJ15S0RDlXIu','YGTS4BJFXP4PCJR8XCY7JEP35HKUPKCY',NULL,'ORG','2026-04-26 09:45:30',1,_binary '','U79DQY','2026-04-26 12:00:30.410438'),(16,'t','t','ae@fes.s','usr2','$2a$10$yXGYO/Nhzf0g.DbLR95owOSGJl7bAMQQF4tI.daf1jZREOICWXj9y','HGF872XKFS63HAT9YUNXUEHZFFFR2NXV',NULL,'USER','2026-04-26 09:45:54',1,_binary '','L8BQT8','2026-04-26 12:00:53.923952');
+INSERT INTO `users` VALUES (1,'Mateusz','Chochorowski','mchochorowski1@gmail.com','admin','$2a$10$UOBujPQuCzaeCC5ok1lCIuLQ4lAn0PvYgv91bCNcKE6eNPsQkseFS','4046f48c-a02e-4680-9b3c-0c536cea0adc',NULL,'ADMIN','2026-03-25 15:08:36',1,_binary '',NULL,NULL,NULL,NULL,NULL,NULL,_binary '\0',0,'',0,''),(5,'Adam','Kowalski','an@gmail.com','AKowal','$2a$10$N5B5xCSXbYM1.L14/Dy8TOq6XmC5uJIY.u2i3DjliCyDSfFRR/Tiq','216c5ddf-666e-47f5-90c3-eec37c437897',NULL,'ADMIN','2026-04-08 08:53:14',1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,_binary '\0',0,'',0,''),(7,'Q','Q','Q@q.q','Q','$2a$10$wUJr39H3JdXbcV7aBJ.0TeTJ73HizpQEmlfJA9XMlXw1kBTwvRjqG','780c43fd-1f59-41ac-aed9-59abfb68d627',NULL,'USER','2026-04-08 09:40:47',0,NULL,NULL,NULL,NULL,NULL,NULL,NULL,_binary '\0',0,'',0,''),(11,'Adam','Kowalski','admin@gmail.com','adm','$2a$10$sS4Te9WEyKCL2BY0ESBT0edfHIUNbuXlyNC1L7qfWJV.eWYndgoAK','06571e84-7541-45e4-9e8b-cf05f8ac9604',NULL,'ADMIN','2026-04-09 15:15:19',1,_binary '',NULL,NULL,NULL,NULL,NULL,NULL,_binary '\0',0,'',0,''),(12,'Jan','Kowalski','user@gmail.com','usr','$2a$10$Mby6U0S6M08sZdcCrf9aPufSdqK6ktKidwgdWwFQ8SCSMOHxbjOaO','f9acbba7-671b-46d8-8f38-55fb1897bbc2',NULL,'USER','2026-04-09 15:16:00',1,_binary '',NULL,NULL,NULL,NULL,NULL,NULL,_binary '\0',0,'',0,''),(13,'Adrian','Kowalski','organizator@gmail.com','org','$2a$10$J8T6uDr.arVEmqQTiItMrunLAxG.VPWnUQdHBTDdfcvkIGpwRet0u','7a4301f8-21b7-42b5-ab36-b4d6d0c5dac8',NULL,'ORG','2026-04-09 15:16:24',1,_binary '',NULL,NULL,NULL,NULL,NULL,NULL,_binary '\0',0,'',0,''),(15,'t','t','a@fes.s','usr1','$2a$10$eAV4oMI/U52wlE/ckDCuaO/EK32lg85PhDn8ydZMbAJ15S0RDlXIu','YGTS4BJFXP4PCJR8XCY7JEP35HKUPKCY',NULL,'ORG','2026-04-26 09:45:30',1,_binary '','U79DQY','2026-04-26 12:00:30.410438',NULL,NULL,NULL,NULL,_binary '\0',0,'',0,''),(16,'t','t','ae@fes.s','usr2','$2a$10$yXGYO/Nhzf0g.DbLR95owOSGJl7bAMQQF4tI.daf1jZREOICWXj9y','HGF872XKFS63HAT9YUNXUEHZFFFR2NXV',NULL,'USER','2026-04-26 09:45:54',1,_binary '','L8BQT8','2026-04-26 12:00:53.923952',NULL,NULL,NULL,NULL,_binary '\0',0,'',0,''),(19,'Mateusz','Chochorowski','mchochorowski2@gmail.com','user2','$2a$10$SynVZRqEhxGv19mzuv7KSOQvNGEBABN9nNRz6B7Evw/pDoBSunzN6','6WBT7UNGUTTCX8SFPMUWAUA5VBWWPDAG',NULL,'USER','2026-05-06 08:28:25',1,_binary '',NULL,NULL,NULL,NULL,NULL,NULL,_binary '',5,'LOCK_SCREEN',0,'ABSOLUTE'),(20,'Marcinnn','Wojnarowski','mchochorowski7@gmail.com','org2','$2a$10$EDM.lduDTUp0ysRX./OteOfIYYBHtTnGfG9FSmgPfORqTXQvqau7e','VLHW224PRXZZACLHEVHTTZJ45MSTB4VW',NULL,'ORG','2026-05-06 08:29:08',1,_binary '',NULL,NULL,'660388373',NULL,NULL,NULL,_binary '',25,'LOCK_SCREEN',0,'ABSOLUTE');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -558,7 +617,6 @@ LOCK TABLES `zwroty` WRITE;
 /*!40000 ALTER TABLE `zwroty` DISABLE KEYS */;
 /*!40000 ALTER TABLE `zwroty` ENABLE KEYS */;
 UNLOCK TABLES;
-SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -569,4 +627,4 @@ SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-05-03 22:11:43
+-- Dump completed on 2026-05-06 19:15:22

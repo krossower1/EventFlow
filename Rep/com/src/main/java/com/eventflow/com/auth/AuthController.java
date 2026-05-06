@@ -45,18 +45,23 @@ public class AuthController {
 	}
 
 	@PostMapping("/login")
+	// Pierwszy krok logowania; każda próba zapisuje wpis do historii logowań.
 	public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
 		boolean isValid = authService.validateCredentials(request.login(), request.password());
+		String userAgent = httpRequest.getHeader("User-Agent");
+		String clientIp = extractClientIp(httpRequest);
 
 		if (isValid) {
 			if (!authService.isEmailVerified(request.login())) {
+				authService.saveLoginLog(request.login(), userAgent, "ZABLOKOWANO_BRAK_WERYFIKACJI_EMAIL", clientIp);
 				return ResponseEntity.status(403).body(new LoginResponse(false, "Email not verified", null, null, null, null, null, false));
 			}
 			if (authService.isTwoFactorEnabled(request.login())) {
 				return ResponseEntity.ok(new LoginResponse(false, "Wymagany kod 2FA", null, null, null, null, null, true));
 			}
-			return ResponseEntity.ok(completeLogin(request.login(), request.password(), httpRequest));
+			return ResponseEntity.ok(completeLogin(request.login(), request.password(), userAgent, clientIp, httpRequest));
 		}
+		authService.saveLoginLog(request.login(), userAgent, "NIEUDANE_HASLO_LUB_LOGIN", clientIp);
 
 		return ResponseEntity.status(401).body(new LoginResponse(false, "Niepoprawny login lub hasło", null, null, null, null, null, false));
 	}
@@ -66,21 +71,27 @@ public class AuthController {
 	 * Endpoint oczekuje poprawnego loginu, hasła i jednorazowego kodu TOTP.
 	 */
 	@PostMapping("/login-2fa")
+	// Drugi krok logowania (2FA); również aktualizuje historię logowań.
 	public ResponseEntity<LoginResponse> loginWithTwoFactor(@Valid @RequestBody Login2faRequest request, HttpServletRequest httpRequest) {
 		boolean isValid = authService.validateCredentials(request.login(), request.password());
+		String userAgent = httpRequest.getHeader("User-Agent");
+		String clientIp = extractClientIp(httpRequest);
 		if (!isValid) {
+			authService.saveLoginLog(request.login(), userAgent, "NIEUDANE_HASLO_LUB_LOGIN", clientIp);
 			return ResponseEntity.status(401).body(new LoginResponse(false, "Niepoprawny login lub hasło", null, null, null, null, null, false));
 		}
 		if (!authService.isEmailVerified(request.login())) {
+			authService.saveLoginLog(request.login(), userAgent, "ZABLOKOWANO_BRAK_WERYFIKACJI_EMAIL", clientIp);
 			return ResponseEntity.status(403).body(new LoginResponse(false, "Email not verified", null, null, null, null, null, false));
 		}
 		if (!authService.isTwoFactorEnabled(request.login())) {
-			return ResponseEntity.ok(completeLogin(request.login(), request.password(), httpRequest));
+			return ResponseEntity.ok(completeLogin(request.login(), request.password(), userAgent, clientIp, httpRequest));
 		}
 		if (!authService.isValidTwoFactorCode(request.login(), request.code())) {
+			authService.saveLoginLog(request.login(), userAgent, "NIEUDANY_2FA", clientIp);
 			return ResponseEntity.status(401).body(new LoginResponse(false, "Niepoprawny kod 2FA", null, null, null, null, null, true));
 		}
-		return ResponseEntity.ok(completeLogin(request.login(), request.password(), httpRequest));
+		return ResponseEntity.ok(completeLogin(request.login(), request.password(), userAgent, clientIp, httpRequest));
 	}
 
 	@PostMapping("/register")
@@ -177,7 +188,13 @@ public class AuthController {
 	}
 
 	// Wspólny fragment finalizujący logowanie i zapisujący SecurityContext do sesji.
-	private LoginResponse completeLogin(String login, String password, HttpServletRequest httpRequest) {
+	private LoginResponse completeLogin(
+		String login,
+		String password,
+		String userAgent,
+		String clientIp,
+		HttpServletRequest httpRequest
+	) {
 		Authentication authentication = authenticationManager.authenticate(
 			new UsernamePasswordAuthenticationToken(login, password)
 		);
@@ -193,7 +210,21 @@ public class AuthController {
 		User loggedUser = authService.findUserByLogin(login).orElse(null);
 		String email = loggedUser != null ? loggedUser.getEmail() : null;
 		String telefon = loggedUser != null ? loggedUser.getTelefon() : null;
+		authService.saveLoginLog(login, userAgent, "SUKCES", clientIp);
 		return new LoginResponse(true, "Login successful", rola, imie, nazwisko, email, telefon, false);
+	}
+
+	// Odczytuje adres klienta z nagłówków reverse proxy albo bezpośrednio z requestu.
+	private String extractClientIp(HttpServletRequest request) {
+		String forwardedHeader = request.getHeader("X-Forwarded-For");
+		if (forwardedHeader != null && !forwardedHeader.isBlank()) {
+			return forwardedHeader.split(",")[0].trim();
+		}
+		String realIp = request.getHeader("X-Real-IP");
+		if (realIp != null && !realIp.isBlank()) {
+			return realIp.trim();
+		}
+		return request.getRemoteAddr();
 	}
 
 	private SessionUserResponse toSessionUser(User user) {

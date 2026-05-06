@@ -89,6 +89,9 @@ const UstawieniaPage = () => {
   const [isLoadingSessionSettings, setIsLoadingSessionSettings] = useState(false);
   const [isSavingSessionSettings, setIsSavingSessionSettings] = useState(false);
   const [sessionSettingsStatus, setSessionSettingsStatus] = useState({ type: '', message: '' });
+  const [loginHistory, setLoginHistory] = useState([]);
+  const [isLoadingLoginHistory, setIsLoadingLoginHistory] = useState(false);
+  const [loginHistoryStatus, setLoginHistoryStatus] = useState({ type: '', message: '' });
 
   const [profileForm, setProfileForm] = useState({
     imie: currentUser.imie || '',
@@ -286,6 +289,58 @@ const UstawieniaPage = () => {
     };
     loadTwoFactorStatus();
   }, [activeTab, activeSecurityTab]);
+
+  useEffect(() => {
+    // Pobiera dane sekcji "Historia logowań" dopiero po wejściu w odpowiednią podzakładkę.
+    const loadLoginHistory = async () => {
+      if (activeTab !== 'bezpieczenstwo' || activeSecurityTab !== 'historia-logowan') return;
+      setIsLoadingLoginHistory(true);
+      setLoginHistoryStatus({ type: '', message: '' });
+      try {
+        const response = await apiClient.get('/users/me/login-history?limit=25', getRequestConfig());
+        setLoginHistory(Array.isArray(response?.data) ? response.data : []);
+      } catch (error) {
+        setLoginHistoryStatus({
+          type: 'error',
+          message: error.response?.data?.message || 'Nie udało się pobrać historii logowań.'
+        });
+      } finally {
+        setIsLoadingLoginHistory(false);
+      }
+    };
+    loadLoginHistory();
+  }, [activeTab, activeSecurityTab]);
+
+  const formatLoginTime = (value) => {
+    if (!value) return 'Brak danych';
+    const parsedDate = new Date(value);
+    if (Number.isNaN(parsedDate.getTime())) return 'Brak danych';
+    return parsedDate.toLocaleString('pl-PL', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const mapLoginStatusLabel = (status) => {
+    // Mapowanie technicznych statusów backendu na etykiety czytelne dla użytkownika.
+    switch (status) {
+      case 'SUKCES':
+        return 'Zalogowano';
+      case 'NIEUDANE_HASLO_LUB_LOGIN':
+        return 'Nieudane logowanie';
+      case 'NIEUDANY_2FA':
+        return 'Nieudany kod 2FA';
+      case 'ZABLOKOWANO_BRAK_WERYFIKACJI_EMAIL':
+        return 'Zablokowano';
+      default:
+        return 'Nieznany status';
+    }
+  };
+
+  const isAdminUser = String(currentUser?.rola || '').toUpperCase() === 'ADMIN';
 
   useEffect(() => {
     // Front generuje obraz QR lokalnie z URI otpauth zwróconego przez backend.
@@ -918,7 +973,68 @@ const UstawieniaPage = () => {
               {activeSecurityTab === 'historia-logowan' && (
                 <>
                   <h4>Historia logowań</h4>
-                  <p>Ta sekcja będzie zawierać listę ostatnich logowań do konta.</p>
+                  <p>Przegląd ostatnich prób logowania do konta. Sprawdź, czy wszystkie wpisy są Ci znane.</p>
+                  {isLoadingLoginHistory && <p>Ładowanie historii logowań...</p>}
+                  {!isLoadingLoginHistory && (
+                    <div className="settings-login-history-wrap">
+                      <table className="settings-login-history-table">
+                        <thead>
+                          <tr>
+                            <th>Data i godzina</th>
+                            <th>Urządzenie</th>
+                            <th>Lokalizacja</th>
+                            <th>Status</th>
+                            <th>Akcja</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {loginHistory.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="settings-login-history-empty">
+                                Brak wpisów historii logowań.
+                              </td>
+                            </tr>
+                          ) : (
+                            loginHistory.map((entry, index) => {
+                              const statusLabel = mapLoginStatusLabel(entry.status);
+                              const isSuccess = entry.status === 'SUKCES';
+                              return (
+                                <tr key={`${entry.loginTime || 'log'}-${index}`}>
+                                  <td>{formatLoginTime(entry.loginTime)}</td>
+                                  <td>{entry.deviceInfo || 'Nieznane urządzenie'}</td>
+                                  <td>{entry.location || 'Nieznana lokalizacja'}</td>
+                                  <td>
+                                    <span className={`settings-login-status ${isSuccess ? 'is-success' : 'is-warning'}`}>
+                                      {statusLabel}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    {index === 0 && isSuccess ? (
+                                      <span className="settings-login-action-me">To jesteś Ty</span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="btn-secondary settings-login-action-report"
+                                        disabled={isAdminUser}
+                                        title={isAdminUser ? 'Administrator nie zgłasza logowań z tego poziomu.' : ''}
+                                      >
+                                        Zgłoś
+                                      </button>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                  {loginHistoryStatus.message && (
+                    <p className={`status-message ${loginHistoryStatus.type === 'error' ? 'status-error' : 'status-success'}`}>
+                      {loginHistoryStatus.message}
+                    </p>
+                  )}
                 </>
               )}
             </div>

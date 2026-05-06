@@ -431,6 +431,7 @@ background:
   border-radius: 10px;
   background: transparent;
   color: #cbd5e1;
+  text-decoration: none;
   cursor: pointer;
   font-size: 0.95rem;
   transition: all 0.3s ease;
@@ -450,6 +451,12 @@ background:
 .nav-button:hover {
   background: rgba(59, 130, 246, 0.1);
   color: var(--text-main);
+}
+
+.nav-button:visited,
+.nav-button:hover,
+.nav-button:active {
+  text-decoration: none;
 }
 
 .nav-button.active {
@@ -1819,5 +1826,76 @@ background:
   font-size: 1rem;
   background-color: var(--card-bg);
   color: var(--text-main);
+}
+
+.settings-login-history-wrap {
+  margin-top: 14px;
+  overflow-x: auto;
+  max-height: 450px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(17, 18, 24, 0.34);
+}
+
+.settings-login-history-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.settings-login-history-table th,
+.settings-login-history-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(208, 211, 215, 0.95);
+  vertical-align: middle;
+}
+
+.settings-login-history-table thead th {
+  font-weight: 700;
+  color: var(--text-main);
+  background: #162832;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.settings-login-history-empty {
+  text-align: center;
+  color: rgba(208, 211, 215, 0.7);
+}
+
+.settings-login-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.settings-login-status.is-success {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.settings-login-status.is-warning {
+  background: rgba(248, 113, 113, 0.2);
+  color: #fecaca;
+}
+
+.settings-login-action-me {
+  color: var(--text-active);
+  font-weight: 700;
+}
+
+.settings-login-action-report {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 0.82rem;
 }
 

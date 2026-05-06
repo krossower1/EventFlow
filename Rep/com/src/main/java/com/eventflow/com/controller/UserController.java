@@ -3,12 +3,17 @@ package com.eventflow.com.controller;
 import com.eventflow.com.controller.dto.UserResponse;
 import com.eventflow.com.controller.dto.UpdateOwnProfileRequest;
 import com.eventflow.com.controller.dto.ChangeOwnPasswordRequest;
+import com.eventflow.com.controller.dto.LoginLogResponse;
 import com.eventflow.com.controller.dto.SessionSettingsResponse;
 import com.eventflow.com.controller.dto.UpdateSessionSettingsRequest;
 import com.eventflow.com.auth.AuthService;
+import com.eventflow.com.model.LoginLog;
 import com.eventflow.com.model.User;
+import com.eventflow.com.repository.LoginLogRepository;
 import com.eventflow.com.repository.UserRepository;
 import com.eventflow.com.service.UserCascadeDeleteService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,15 +32,18 @@ public class UserController {
     private static final String SESSION_COUNT_MODE_ABSOLUTE = "ABSOLUTE";
 
     private final UserRepository userRepository;
+    private final LoginLogRepository loginLogRepository;
     private final UserCascadeDeleteService userCascadeDeleteService;
     private final AuthService authService;
 
     public UserController(
         UserRepository userRepository,
+        LoginLogRepository loginLogRepository,
         UserCascadeDeleteService userCascadeDeleteService,
         AuthService authService
     ) {
         this.userRepository = userRepository;
+        this.loginLogRepository = loginLogRepository;
         this.userCascadeDeleteService = userCascadeDeleteService;
         this.authService = authService;
     }
@@ -175,6 +183,28 @@ public class UserController {
             resolveSessionExpiryAction(saved.getSessionExpiryAction()),
             resolveSessionCountMode(saved.getSessionCountMode())
         );
+    }
+
+    @GetMapping("/me/login-history")
+    // Zwraca historię logowań bieżącego użytkownika (limitowana liczba rekordów).
+    public List<LoginLogResponse> getOwnLoginHistory(
+        Authentication authentication,
+        @RequestParam(name = "limit", defaultValue = "20") int limit
+    ) {
+        User currentUser = requireCurrentUser(authentication);
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        List<LoginLog> logs = loginLogRepository.findByUserOrderByLoginTimeDesc(
+            currentUser,
+            PageRequest.of(0, safeLimit, Sort.by(Sort.Direction.DESC, "loginTime"))
+        );
+        return logs.stream()
+            .map(log -> new LoginLogResponse(
+                log.getLoginTime(),
+                log.getLocation(),
+                log.getDeviceInfo(),
+                log.getStatus()
+            ))
+            .toList();
     }
 
     @DeleteMapping("/me")
