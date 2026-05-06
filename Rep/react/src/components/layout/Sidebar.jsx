@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 
 const Sidebar = () => {
-  const { isLoggedIn, sessionTimeLeft } = useContext(AuthContext);
+  const { isLoggedIn, sessionTimeoutEnabled, sessionTimeLeft } = useContext(AuthContext);
 
   if (!isLoggedIn) return null;
 
@@ -44,10 +44,12 @@ const Sidebar = () => {
           </NavLink>
         ))}
       </nav>
-      <div className="sidebar-session">
-        <span className="sidebar-session-label">Sesja wygasa za</span>
-        <strong className="sidebar-session-time">{formatSessionTime(sessionTimeLeft)}</strong>
-      </div>
+      {sessionTimeoutEnabled && (
+        <div className="sidebar-session">
+          <span className="sidebar-session-label">Sesja wygasa za</span>
+          <strong className="sidebar-session-time">{formatSessionTime(sessionTimeLeft)}</strong>
+        </div>
+      )}
     </aside>
   );
 };

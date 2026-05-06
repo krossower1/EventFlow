@@ -3,6 +3,7 @@ import { AuthContext } from '../context/AuthContext';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
 import { authService } from '../services/authService';
 import QRCode from 'qrcode';
+const SESSION_SETTINGS_STORAGE_KEY = 'sessionSettingsCache';
 
 const tabs = [
   { id: 'profil', label: 'Profil' },
@@ -22,9 +23,10 @@ const securityTabs = [
 ];
 
 const UstawieniaPage = () => {
-  const { currentUser, authCredentials, applyAuthenticatedUser } = useContext(AuthContext);
+  const { currentUser, authCredentials, applyAuthenticatedUser, applySessionSettings } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('profil');
   const [activeSecurityTab, setActiveSecurityTab] = useState('zmiana-hasla');
+  const [openSessionAccordion, setOpenSessionAccordion] = useState('');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [isSaving, setIsSaving] = useState(false);
@@ -53,6 +55,40 @@ const UstawieniaPage = () => {
   const [twoFactorDisableCode, setTwoFactorDisableCode] = useState('');
   const [twoFactorStatus, setTwoFactorStatus] = useState({ type: '', message: '' });
   const [twoFactorQrDataUrl, setTwoFactorQrDataUrl] = useState('');
+  const [sessionSettings, setSessionSettings] = useState({
+    enabled: true,
+    durationMinutes: 30,
+    warningMinutes: (() => {
+      try {
+        const raw = localStorage.getItem(SESSION_SETTINGS_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        return Number(parsed?.warningMinutes) || 1;
+      } catch (error) {
+        return 1;
+      }
+    })(),
+    expiryAction: (() => {
+      try {
+        const raw = localStorage.getItem(SESSION_SETTINGS_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        return parsed?.expiryAction === 'LOCK_SCREEN' ? 'LOCK_SCREEN' : 'LOGOUT';
+      } catch (error) {
+        return 'LOGOUT';
+      }
+    })(),
+    countMode: (() => {
+      try {
+        const raw = localStorage.getItem(SESSION_SETTINGS_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        return parsed?.countMode === 'ABSOLUTE' ? 'ABSOLUTE' : 'RELATIVE';
+      } catch (error) {
+        return 'RELATIVE';
+      }
+    })()
+  });
+  const [isLoadingSessionSettings, setIsLoadingSessionSettings] = useState(false);
+  const [isSavingSessionSettings, setIsSavingSessionSettings] = useState(false);
+  const [sessionSettingsStatus, setSessionSettingsStatus] = useState({ type: '', message: '' });
 
   const [profileForm, setProfileForm] = useState({
     imie: currentUser.imie || '',
@@ -272,6 +308,41 @@ const UstawieniaPage = () => {
     buildQr();
   }, [twoFactorSetup.otpAuthUrl]);
 
+  useEffect(() => {
+    // Ładuje ustawienia sesji tylko dla aktywnej podsekcji "Czas sesji".
+    const loadSessionSettings = async () => {
+      if (activeTab !== 'bezpieczenstwo' || activeSecurityTab !== 'czas-sesji') return;
+      setIsLoadingSessionSettings(true);
+      setSessionSettingsStatus({ type: '', message: '' });
+      try {
+        const response = await apiClient.get('/users/me/session-settings', getRequestConfig());
+        setSessionSettings((prev) => {
+          const durationFromApi = Number(response?.data?.durationMinutes);
+          const nextDuration = Number.isFinite(durationFromApi) ? durationFromApi : prev.durationMinutes;
+          const warningFromApi = Number(response?.data?.warningMinutes);
+          const nextWarning = Number.isFinite(warningFromApi) ? warningFromApi : prev.warningMinutes;
+          const normalized = {
+            enabled: response?.data?.enabled !== false,
+            durationMinutes: nextDuration,
+            warningMinutes: Math.min(Math.max(0, nextWarning), Math.max(0, nextDuration - 1)),
+            expiryAction: response?.data?.expiryAction === 'LOCK_SCREEN' ? 'LOCK_SCREEN' : prev.expiryAction,
+            countMode: response?.data?.countMode === 'ABSOLUTE' ? 'ABSOLUTE' : prev.countMode
+          };
+          localStorage.setItem(SESSION_SETTINGS_STORAGE_KEY, JSON.stringify(normalized));
+          return normalized;
+        });
+      } catch (error) {
+        setSessionSettingsStatus({
+          type: 'error',
+          message: error.response?.data?.message || 'Nie udało się pobrać ustawień czasu sesji.'
+        });
+      } finally {
+        setIsLoadingSessionSettings(false);
+      }
+    };
+    loadSessionSettings();
+  }, [activeTab, activeSecurityTab]);
+
   const handleGenerateTwoFactorSecret = async () => {
     // Inicjuje setup 2FA: backend zwraca sekret + URI, a UI pokazuje kod QR.
     setTwoFactorStatus({ type: '', message: '' });
@@ -341,6 +412,51 @@ const UstawieniaPage = () => {
       });
     } finally {
       setIsSavingTwoFactor(false);
+    }
+  };
+
+  const handleSaveSessionSettings = async (event) => {
+    // Zapisuje wszystkie opcje sesji naraz i synchronizuje je z globalnym AuthContext.
+    event.preventDefault();
+    setSessionSettingsStatus({ type: '', message: '' });
+    setIsSavingSessionSettings(true);
+    try {
+      const response = await apiClient.put(
+        '/users/me/session-settings',
+        {
+          enabled: sessionSettings.enabled,
+          durationMinutes: Number(sessionSettings.durationMinutes),
+          warningMinutes: Number(sessionSettings.warningMinutes),
+          expiryAction: sessionSettings.expiryAction,
+          countMode: sessionSettings.countMode
+        },
+        getRequestConfig()
+      );
+      const savedSettings = response?.data || {};
+      setSessionSettings((prev) => {
+        const durationFromApi = Number(savedSettings.durationMinutes);
+        const nextDuration = Number.isFinite(durationFromApi) ? durationFromApi : prev.durationMinutes;
+        const warningFromApi = Number(savedSettings.warningMinutes);
+        const nextWarning = Number.isFinite(warningFromApi) ? warningFromApi : prev.warningMinutes;
+        const normalized = {
+          enabled: savedSettings.enabled !== false,
+          durationMinutes: nextDuration,
+          warningMinutes: Math.min(Math.max(0, nextWarning), Math.max(0, nextDuration - 1)),
+          expiryAction: savedSettings.expiryAction === 'LOCK_SCREEN' ? 'LOCK_SCREEN' : prev.expiryAction,
+          countMode: savedSettings.countMode === 'ABSOLUTE' ? 'ABSOLUTE' : prev.countMode
+        };
+        localStorage.setItem(SESSION_SETTINGS_STORAGE_KEY, JSON.stringify(normalized));
+        applySessionSettings(normalized);
+        return normalized;
+      });
+      setSessionSettingsStatus({ type: 'success', message: 'Ustawienia czasu sesji zostały zapisane.' });
+    } catch (error) {
+      setSessionSettingsStatus({
+        type: 'error',
+        message: error.response?.data?.message || 'Nie udało się zapisać ustawień czasu sesji.'
+      });
+    } finally {
+      setIsSavingSessionSettings(false);
     }
   };
 
@@ -631,7 +747,172 @@ const UstawieniaPage = () => {
               {activeSecurityTab === 'czas-sesji' && (
                 <>
                   <h4>Czas sesji</h4>
-                  <p>W tym miejscu ustawisz czas trwania sesji i zasady automatycznego wylogowania.</p>
+                  <p>Skonfiguruj, czy licznik sesji ma być aktywny oraz jak długo sesja może trwać.</p>
+                  {isLoadingSessionSettings && <p>Ładowanie ustawień czasu sesji...</p>}
+                  <form className="settings-session-form" onSubmit={handleSaveSessionSettings}>
+                    <details
+                      className="settings-session-accordion"
+                      open={openSessionAccordion === 'czas-sesji'}
+                      onToggle={(event) => {
+                        if (event.currentTarget.open) {
+                          setOpenSessionAccordion('czas-sesji');
+                        } else if (openSessionAccordion === 'czas-sesji') {
+                          setOpenSessionAccordion('');
+                        }
+                      }}
+                    >
+                      {/* Sekcja bazowa: aktywacja licznika, długość sesji i czas ostrzeżenia. */}
+                      <summary>Czas sesji</summary>
+                      <div className="settings-session-toggle">
+                        <span>Włącz licznik czasu sesji</span>
+                        <button
+                          id="session-timeout-enabled"
+                          type="button"
+                          className={`settings-onoff ${sessionSettings.enabled ? 'is-on' : 'is-off'}`}
+                          role="switch"
+                          aria-checked={sessionSettings.enabled}
+                          aria-label="Włącz lub wyłącz licznik czasu sesji"
+                          disabled={isLoadingSessionSettings || isSavingSessionSettings}
+                          onClick={() => {
+                            setSessionSettings((prev) => ({ ...prev, enabled: !prev.enabled }));
+                            if (sessionSettingsStatus.message) setSessionSettingsStatus({ type: '', message: '' });
+                          }}
+                        >
+                          <span className="settings-onoff-track" aria-hidden="true">
+                            <span className="settings-onoff-thumb" />
+                          </span>
+                          <span className="settings-onoff-text">{sessionSettings.enabled ? 'ON' : 'OFF'}</span>
+                        </button>
+                      </div>
+
+                      <label htmlFor="session-duration-minutes">
+                        Czas sesji (minuty)
+                        <input
+                          id="session-duration-minutes"
+                          type="number"
+                          min={1}
+                          max={1440}
+                          step={1}
+                          value={sessionSettings.durationMinutes}
+                          onChange={(event) => {
+                            const nextValue = Number(event.target.value);
+                            setSessionSettings((prev) => ({
+                              ...prev,
+                              durationMinutes: Number.isFinite(nextValue) ? nextValue : prev.durationMinutes,
+                              warningMinutes: Number.isFinite(nextValue)
+                                ? Math.min(Math.max(0, Number(prev.warningMinutes) || 0), Math.max(0, nextValue - 1))
+                                : prev.warningMinutes
+                            }));
+                            if (sessionSettingsStatus.message) setSessionSettingsStatus({ type: '', message: '' });
+                          }}
+                          disabled={!sessionSettings.enabled || isLoadingSessionSettings || isSavingSessionSettings}
+                        />
+                      </label>
+
+                      <label htmlFor="session-warning-minutes">
+                        Czas ostrzeżenia przed końcem sesji (minuty)
+                        <input
+                          id="session-warning-minutes"
+                          type="number"
+                          min={0}
+                          max={1439}
+                          step={1}
+                          value={sessionSettings.warningMinutes}
+                          onChange={(event) => {
+                            const nextValue = Number(event.target.value);
+                            setSessionSettings((prev) => {
+                              if (!Number.isFinite(nextValue)) {
+                                return prev;
+                              }
+                              return {
+                                ...prev,
+                                warningMinutes: Math.max(0, Math.round(nextValue))
+                              };
+                            });
+                            if (sessionSettingsStatus.message) setSessionSettingsStatus({ type: '', message: '' });
+                          }}
+                          disabled={!sessionSettings.enabled || isLoadingSessionSettings || isSavingSessionSettings}
+                        />
+                      </label>
+                    </details>
+
+                    <details
+                      className="settings-session-accordion"
+                      open={openSessionAccordion === 'sposob-liczenia'}
+                      onToggle={(event) => {
+                        if (event.currentTarget.open) {
+                          setOpenSessionAccordion('sposob-liczenia');
+                        } else if (openSessionAccordion === 'sposob-liczenia') {
+                          setOpenSessionAccordion('');
+                        }
+                      }}
+                    >
+                      {/* Wybór trybu liczenia: ABSOLUTE bez resetu aktywnością vs RELATIVE z resetem aktywnością. */}
+                      <summary>Sposób liczenia czasu sesji</summary>
+                      <p>Wybierz, czy sesja ma kończyć się po stałym czasie, czy ma być odnawiana aktywnością.</p>
+                      <label htmlFor="session-count-mode">
+                        Tryb liczenia
+                        <select
+                          id="session-count-mode"
+                          value={sessionSettings.countMode}
+                          onChange={(event) => {
+                            const nextMode = event.target.value === 'ABSOLUTE' ? 'ABSOLUTE' : 'RELATIVE';
+                            setSessionSettings((prev) => ({ ...prev, countMode: nextMode }));
+                            if (sessionSettingsStatus.message) setSessionSettingsStatus({ type: '', message: '' });
+                          }}
+                          disabled={!sessionSettings.enabled || isLoadingSessionSettings || isSavingSessionSettings}
+                        >
+                          <option value="ABSOLUTE">Stały czas</option>
+                          <option value="RELATIVE">Reset aktywnością</option>
+                        </select>
+                      </label>
+                    </details>
+
+                    <details
+                      className="settings-session-accordion"
+                      open={openSessionAccordion === 'po-wygasnieciu'}
+                      onToggle={(event) => {
+                        if (event.currentTarget.open) {
+                          setOpenSessionAccordion('po-wygasnieciu');
+                        } else if (openSessionAccordion === 'po-wygasnieciu') {
+                          setOpenSessionAccordion('');
+                        }
+                      }}
+                    >
+                      {/* Akcja końcowa po wygaśnięciu: blokada ekranu albo pełne wylogowanie. */}
+                      <summary>Po wygaśnięciu sesji</summary>
+                      <p>Wybierz, co aplikacja ma zrobić po upływie czasu sesji.</p>
+                      <label htmlFor="session-expiry-action">
+                        Akcja po wygaśnięciu
+                        <select
+                          id="session-expiry-action"
+                          value={sessionSettings.expiryAction}
+                          onChange={(event) => {
+                            const nextAction = event.target.value === 'LOCK_SCREEN' ? 'LOCK_SCREEN' : 'LOGOUT';
+                            setSessionSettings((prev) => ({ ...prev, expiryAction: nextAction }));
+                            if (sessionSettingsStatus.message) setSessionSettingsStatus({ type: '', message: '' });
+                          }}
+                          disabled={!sessionSettings.enabled || isLoadingSessionSettings || isSavingSessionSettings}
+                        >
+                          <option value="LOCK_SCREEN">Zablokowanie ekranu</option>
+                          <option value="LOGOUT">Całkowite wylogowanie</option>
+                        </select>
+                      </label>
+                    </details>
+
+                    <button
+                      type="submit"
+                      className="btn-new-event settings-password-submit"
+                      disabled={isLoadingSessionSettings || isSavingSessionSettings}
+                    >
+                      {isSavingSessionSettings ? 'Zapisywanie...' : 'Zapisz ustawienia czasu sesji'}
+                    </button>
+                  </form>
+                  {sessionSettingsStatus.message && (
+                    <p className={`status-message ${sessionSettingsStatus.type === 'error' ? 'status-error' : 'status-success'}`}>
+                      {sessionSettingsStatus.message}
+                    </p>
+                  )}
                 </>
               )}
               {activeSecurityTab === 'historia-logowan' && (

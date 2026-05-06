@@ -48,6 +48,16 @@ export const authService = {
     return response.data;
   },
 
+  getSessionSettings: async () => {
+    const response = await apiClient.get('/users/me/session-settings', { withCredentials: true });
+    return response.data;
+  },
+
+  updateSessionSettings: async (payload) => {
+    const response = await apiClient.put('/users/me/session-settings', payload, { withCredentials: true });
+    return response.data;
+  },
+
   register: async (data) => {
     const response = await apiClient.post('/auth/register', data);
     return response.data;

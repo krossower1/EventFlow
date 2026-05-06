@@ -3,6 +3,8 @@ package com.eventflow.com.controller;
 import com.eventflow.com.controller.dto.UserResponse;
 import com.eventflow.com.controller.dto.UpdateOwnProfileRequest;
 import com.eventflow.com.controller.dto.ChangeOwnPasswordRequest;
+import com.eventflow.com.controller.dto.SessionSettingsResponse;
+import com.eventflow.com.controller.dto.UpdateSessionSettingsRequest;
 import com.eventflow.com.auth.AuthService;
 import com.eventflow.com.model.User;
 import com.eventflow.com.repository.UserRepository;
@@ -16,6 +18,13 @@ import java.util.List;
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "http://localhost:3000") // Ważne dla Twojego Reacta!
 public class UserController {
+    private static final int MIN_SESSION_TIMEOUT_MINUTES = 1;
+    private static final int MAX_SESSION_TIMEOUT_MINUTES = 1440;
+    private static final int DEFAULT_SESSION_WARNING_MINUTES = 1;
+    private static final String SESSION_EXPIRY_ACTION_LOGOUT = "LOGOUT";
+    private static final String SESSION_EXPIRY_ACTION_LOCK_SCREEN = "LOCK_SCREEN";
+    private static final String SESSION_COUNT_MODE_RELATIVE = "RELATIVE";
+    private static final String SESSION_COUNT_MODE_ABSOLUTE = "ABSOLUTE";
 
     private final UserRepository userRepository;
     private final UserCascadeDeleteService userCascadeDeleteService;
@@ -111,6 +120,61 @@ public class UserController {
         String confirmNewPassword = safeTrim(request.confirmNewPassword());
         authService.changeOwnPassword(authentication.getName(), oldPassword, newPassword, confirmNewPassword);
         return "Hasło zostało zmienione";
+    }
+
+    @GetMapping("/me/session-settings")
+    // Zwraca ustawienia sesji aktualnego użytkownika (timeout, ostrzeżenie, tryb liczenia i akcję po wygaśnięciu).
+    public SessionSettingsResponse getOwnSessionSettings(Authentication authentication) {
+        User currentUser = requireCurrentUser(authentication);
+        int durationMinutes = resolveSessionTimeoutMinutes(currentUser.getSessionTimeoutMinutes());
+        return new SessionSettingsResponse(
+            Boolean.TRUE.equals(currentUser.getSessionTimeoutEnabled()),
+            durationMinutes,
+            resolveSessionWarningMinutes(currentUser.getSessionWarningMinutes(), durationMinutes),
+            resolveSessionExpiryAction(currentUser.getSessionExpiryAction()),
+            resolveSessionCountMode(currentUser.getSessionCountMode())
+        );
+    }
+
+    @PutMapping("/me/session-settings")
+    // Aktualizuje ustawienia sesji użytkownika i waliduje ich spójność.
+    public SessionSettingsResponse updateOwnSessionSettings(
+        @RequestBody UpdateSessionSettingsRequest request,
+        Authentication authentication
+    ) {
+        User currentUser = requireCurrentUser(authentication);
+        if (request == null) {
+            throw new RuntimeException("Brak danych ustawień sesji");
+        }
+
+        boolean enabled = Boolean.TRUE.equals(request.enabled());
+        int durationMinutes = resolveSessionTimeoutMinutes(request.durationMinutes());
+        int warningMinutes = resolveSessionWarningMinutes(request.warningMinutes(), durationMinutes);
+        String expiryAction = resolveSessionExpiryAction(request.expiryAction());
+        String countMode = resolveSessionCountMode(request.countMode());
+
+        if (durationMinutes < MIN_SESSION_TIMEOUT_MINUTES || durationMinutes > MAX_SESSION_TIMEOUT_MINUTES) {
+            throw new RuntimeException("Czas sesji musi być w zakresie od 1 do 1440 minut");
+        }
+        if (warningMinutes < 0 || warningMinutes >= durationMinutes) {
+            throw new RuntimeException("Czas ostrzeżenia musi być nieujemny i krótszy niż czas sesji");
+        }
+
+        currentUser.setSessionTimeoutEnabled(enabled);
+        currentUser.setSessionTimeoutMinutes(durationMinutes);
+        currentUser.setSessionWarningMinutes(warningMinutes);
+        currentUser.setSessionExpiryAction(expiryAction);
+        currentUser.setSessionCountMode(countMode);
+        User saved = userRepository.save(currentUser);
+        int savedDuration = resolveSessionTimeoutMinutes(saved.getSessionTimeoutMinutes());
+
+        return new SessionSettingsResponse(
+            Boolean.TRUE.equals(saved.getSessionTimeoutEnabled()),
+            savedDuration,
+            resolveSessionWarningMinutes(saved.getSessionWarningMinutes(), savedDuration),
+            resolveSessionExpiryAction(saved.getSessionExpiryAction()),
+            resolveSessionCountMode(saved.getSessionCountMode())
+        );
     }
 
     @DeleteMapping("/me")
@@ -214,5 +278,46 @@ public class UserController {
     // Bezpieczne trimowanie wartości z requestu (null -> pusty string).
     private String safeTrim(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private User requireCurrentUser(Authentication authentication) {
+        if (authentication == null) {
+            throw new RuntimeException("Brak uwierzytelnienia");
+        }
+        return userRepository.findByLogin(authentication.getName())
+            .orElseThrow(() -> new RuntimeException("Nie znaleziono aktualnego użytkownika"));
+    }
+
+    private int resolveSessionTimeoutMinutes(Integer value) {
+        // Domyślny timeout dla starszych rekordów bez ustawionej wartości.
+        if (value == null) {
+            return 30;
+        }
+        return value;
+    }
+
+    private int resolveSessionWarningMinutes(Integer value, int durationMinutes) {
+        // Ostrzeżenie nie może przekroczyć czasu sesji; przy 1 min sesji dopuszczane 0 (bez ostrzeżenia).
+        int maxWarning = Math.max(0, durationMinutes - 1);
+        if (value == null) {
+            return Math.min(DEFAULT_SESSION_WARNING_MINUTES, maxWarning);
+        }
+        return Math.min(maxWarning, Math.max(0, value));
+    }
+
+    private String resolveSessionExpiryAction(String value) {
+        // Dozwolone wartości: LOCK_SCREEN lub LOGOUT (fallback).
+        if (SESSION_EXPIRY_ACTION_LOCK_SCREEN.equalsIgnoreCase(value)) {
+            return SESSION_EXPIRY_ACTION_LOCK_SCREEN;
+        }
+        return SESSION_EXPIRY_ACTION_LOGOUT;
+    }
+
+    private String resolveSessionCountMode(String value) {
+        // Dozwolone wartości: ABSOLUTE (bezwzględny) lub RELATIVE (reset aktywnością, fallback).
+        if (SESSION_COUNT_MODE_ABSOLUTE.equalsIgnoreCase(value)) {
+            return SESSION_COUNT_MODE_ABSOLUTE;
+        }
+        return SESSION_COUNT_MODE_RELATIVE;
     }
 }
