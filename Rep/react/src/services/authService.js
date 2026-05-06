@@ -1,4 +1,4 @@
-import { apiClient, getAuthHeaders } from '../api/apiClient';
+import { apiClient } from '../api/apiClient';
 
 export const authService = {
   checkSession: async () => {
@@ -20,6 +20,31 @@ export const authService = {
 
   login: async (login, password) => {
     const response = await apiClient.post('/auth/login', { login, password });
+    return response.data;
+  },
+
+  loginWithTwoFactor: async (login, password, code) => {
+    const response = await apiClient.post('/auth/login-2fa', { login, password, code });
+    return response.data;
+  },
+
+  getTwoFactorStatus: async () => {
+    const response = await apiClient.get('/auth/2fa/status', { withCredentials: true });
+    return response.data;
+  },
+
+  startTwoFactorSetup: async () => {
+    const response = await apiClient.post('/auth/2fa/setup', {}, { withCredentials: true });
+    return response.data;
+  },
+
+  enableTwoFactor: async (code) => {
+    const response = await apiClient.post('/auth/2fa/enable', { code }, { withCredentials: true });
+    return response.data;
+  },
+
+  disableTwoFactor: async (code) => {
+    const response = await apiClient.post('/auth/2fa/disable', { code }, { withCredentials: true });
     return response.data;
   },
 

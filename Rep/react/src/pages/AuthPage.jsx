@@ -9,6 +9,8 @@ const AuthPage = () => {
 
   // Stany formularzy
   const[loginForm, setLoginForm] = useState({ login: '', password: '' });
+  const [login2faCode, setLogin2faCode] = useState('');
+  const [pending2faLogin, setPending2faLogin] = useState({ login: '', password: '' });
   const[rememberMe, setRememberMe] = useState(false);
   
   const [registerForm, setRegisterForm] = useState({
@@ -39,6 +41,13 @@ const AuthPage = () => {
 
     try {
       const response = await authService.login(loginForm.login, loginForm.password);
+      if (response.requiresTwoFactor) {
+        setPending2faLogin({ login: loginForm.login, password: loginForm.password });
+        setLogin2faCode('');
+        setMode('login-2fa');
+        setStatus({ type: 'success', message: 'Podaj kod 2FA z aplikacji uwierzytelniającej.' });
+        return;
+      }
       if (response.success) {
         localStorage.removeItem('explicitLogout');
         let sessionUser = null;
@@ -90,6 +99,64 @@ const AuthPage = () => {
       }
     } catch (error) {
       const message = error.response?.data?.message || 'Niepoprawny login lub hasło.';
+      setStatus({ type: 'error', message });
+    }
+  };
+
+  const onLogin2faSubmit = async (event) => {
+    event.preventDefault();
+    setStatus({ type: '', message: '' });
+
+    if (!pending2faLogin.login || !pending2faLogin.password) {
+      setStatus({ type: 'error', message: 'Sesja logowania wygasła. Zaloguj się ponownie.' });
+      setMode('login');
+      return;
+    }
+
+    try {
+      const response = await authService.loginWithTwoFactor(
+        pending2faLogin.login,
+        pending2faLogin.password,
+        login2faCode
+      );
+      if (response.success) {
+        localStorage.removeItem('explicitLogout');
+        let sessionUser = null;
+        try {
+          sessionUser = await authService.checkSession();
+        } catch (sessionError) {
+          sessionUser = null;
+        }
+
+        const resolvedUser = sessionUser && sessionUser.login
+          ? sessionUser
+          : {
+            login: pending2faLogin.login,
+            rola: response.rola || '',
+            imie: response.imie || '',
+            nazwisko: response.nazwisko || '',
+            email: response.email || response.mail || response.user?.email || response.user?.mail || '',
+            telefon: response.telefon || response.phone || response.user?.telefon || response.user?.phone || ''
+          };
+
+        applyAuthenticatedUser(
+          resolvedUser,
+          { login: pending2faLogin.login, password: pending2faLogin.password }
+        );
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+          localStorage.setItem('rememberedLogin', pending2faLogin.login);
+        } else {
+          localStorage.removeItem('rememberMe');
+          localStorage.removeItem('rememberedLogin');
+        }
+        setPending2faLogin({ login: '', password: '' });
+        setLogin2faCode('');
+      } else {
+        setStatus({ type: 'error', message: response.message || 'Weryfikacja 2FA nie powiodła się.' });
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Weryfikacja 2FA nie powiodła się.';
       setStatus({ type: 'error', message });
     }
   };
@@ -217,6 +284,33 @@ const AuthPage = () => {
                 </button> aby zweryfikować.
               </div>
             )}
+          </form>
+        ) : mode === 'login-2fa' ? (
+          <form onSubmit={onLogin2faSubmit} className="auth-form">
+            <label htmlFor="login-2fa-code">Kod 2FA</label>
+            <input
+              id="login-2fa-code"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              value={login2faCode}
+              onChange={(event) => setLogin2faCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+              required
+            />
+            <button type="submit">Zweryfikuj i zaloguj</button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                setMode('login');
+                setPending2faLogin({ login: '', password: '' });
+                setLogin2faCode('');
+                setStatus({ type: '', message: '' });
+              }}
+            >
+              Powrót do logowania
+            </button>
           </form>
         ) : mode === 'register' ? (
           <form onSubmit={onRegisterSubmit} className="auth-form">

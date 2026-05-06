@@ -7,6 +7,7 @@ public record LoginResponse(
 	String imie,
 	String nazwisko,
 	String email,
-	String telefon
+	String telefon,
+	Boolean requiresTwoFactor
 ) {
 }

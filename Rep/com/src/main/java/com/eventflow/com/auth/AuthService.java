@@ -21,12 +21,14 @@ public class AuthService {
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final EmailService emailService;
+	private final TotpService totpService;
 	private final SecureRandom secureRandom = new SecureRandom();
 
-	public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, EmailService emailService) {
+	public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, EmailService emailService, TotpService totpService) {
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.emailService = emailService;
+		this.totpService = totpService;
 	}
 
 	public boolean validateCredentials(String login, String password) {
@@ -123,6 +125,82 @@ public class AuthService {
 		user.setVerificationCodeExpiresAt(null);
 		userRepository.save(user);
 		return null;
+	}
+
+	// Sprawdza, czy użytkownik ma aktywną ochronę 2FA.
+	public boolean isTwoFactorEnabled(String login) {
+		return userRepository.findByLogin(login)
+			.map(User::getTwoFactorEnabled)
+			.map(Boolean::booleanValue)
+			.orElse(false);
+	}
+
+	// Weryfikuje kod 2FA przy logowaniu na podstawie zapisanego sekretu użytkownika.
+	public boolean isValidTwoFactorCode(String login, String code) {
+		Optional<User> optionalUser = userRepository.findByLogin(login);
+		if (optionalUser.isEmpty()) {
+			return false;
+		}
+		User user = optionalUser.get();
+		if (!Boolean.TRUE.equals(user.getTwoFactorEnabled()) || user.getTwoFactorSecret() == null) {
+			return false;
+		}
+		return totpService.isValidCode(user.getTwoFactorSecret(), code);
+	}
+
+	/**
+	 * Rozpoczyna konfigurację 2FA:
+	 * tworzy tymczasowy sekret i zapisuje go do czasu potwierdzenia kodem.
+	 */
+	@Transactional
+	public String startTwoFactorSetup(String login) {
+		User user = userRepository.findByLogin(login)
+			.orElseThrow(() -> new RuntimeException("Nie znaleziono aktualnego użytkownika"));
+		String tempSecret = totpService.generateSecret();
+		user.setTwoFactorTempSecret(tempSecret);
+		userRepository.save(user);
+		return tempSecret;
+	}
+
+	/**
+	 * Finalizuje aktywację 2FA.
+	 * Poprawny kod z aplikacji uwierzytelniającej przenosi sekret tymczasowy
+	 * do sekretu docelowego i oznacza 2FA jako aktywne.
+	 */
+	@Transactional
+	public void enableTwoFactor(String login, String code) {
+		User user = userRepository.findByLogin(login)
+			.orElseThrow(() -> new RuntimeException("Nie znaleziono aktualnego użytkownika"));
+		if (user.getTwoFactorTempSecret() == null || user.getTwoFactorTempSecret().isBlank()) {
+			throw new RuntimeException("Najpierw rozpocznij konfigurację 2FA");
+		}
+		if (!totpService.isValidCode(user.getTwoFactorTempSecret(), code)) {
+			throw new RuntimeException("Niepoprawny kod 2FA");
+		}
+		user.setTwoFactorSecret(user.getTwoFactorTempSecret());
+		user.setTwoFactorTempSecret(null);
+		user.setTwoFactorEnabled(true);
+		userRepository.save(user);
+	}
+
+	/**
+	 * Wyłącza 2FA po potwierdzeniu aktualnym kodem TOTP.
+	 * Dzięki temu tylko osoba mająca dostęp do aplikacji 2FA może zdjąć ochronę.
+	 */
+	@Transactional
+	public void disableTwoFactor(String login, String code) {
+		User user = userRepository.findByLogin(login)
+			.orElseThrow(() -> new RuntimeException("Nie znaleziono aktualnego użytkownika"));
+		if (!Boolean.TRUE.equals(user.getTwoFactorEnabled()) || user.getTwoFactorSecret() == null) {
+			throw new RuntimeException("2FA jest już wyłączone");
+		}
+		if (!totpService.isValidCode(user.getTwoFactorSecret(), code)) {
+			throw new RuntimeException("Niepoprawny kod 2FA");
+		}
+		user.setTwoFactorEnabled(false);
+		user.setTwoFactorSecret(null);
+		user.setTwoFactorTempSecret(null);
+		userRepository.save(user);
 	}
 
 	// Zmienia hasło bieżącego użytkownika po walidacji starego hasła i zgodności nowego hasła z potwierdzeniem.
