@@ -2,6 +2,7 @@ package com.eventflow.com.controller;
 
 import com.eventflow.com.controller.dto.UserResponse;
 import com.eventflow.com.controller.dto.UpdateOwnProfileRequest;
+import com.eventflow.com.controller.dto.ChangeOwnPasswordRequest;
 import com.eventflow.com.auth.AuthService;
 import com.eventflow.com.model.User;
 import com.eventflow.com.repository.UserRepository;
@@ -96,6 +97,20 @@ public class UserController {
         User saved = userRepository.findById(currentUser.getId())
             .orElseThrow(() -> new RuntimeException("Nie znaleziono aktualnego użytkownika"));
         return mapUser(saved, false);
+    }
+
+    // Endpoint self-service do zmiany własnego hasła.
+    @PutMapping("/me/password")
+    public String changeOwnPassword(@RequestBody ChangeOwnPasswordRequest request, Authentication authentication) {
+        if (authentication == null) {
+            throw new RuntimeException("Brak uwierzytelnienia");
+        }
+
+        String oldPassword = safeTrim(request.oldPassword());
+        String newPassword = safeTrim(request.newPassword());
+        String confirmNewPassword = safeTrim(request.confirmNewPassword());
+        authService.changeOwnPassword(authentication.getName(), oldPassword, newPassword, confirmNewPassword);
+        return "Hasło zostało zmienione";
     }
 
     @DeleteMapping("/me")

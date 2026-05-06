@@ -125,6 +125,31 @@ public class AuthService {
 		return null;
 	}
 
+	// Zmienia hasło bieżącego użytkownika po walidacji starego hasła i zgodności nowego hasła z potwierdzeniem.
+	@Transactional
+	public void changeOwnPassword(String login, String oldPassword, String newPassword, String confirmNewPassword) {
+		if (oldPassword.isEmpty() || newPassword.isEmpty() || confirmNewPassword.isEmpty()) {
+			throw new RuntimeException("Uzupełnij wszystkie pola hasła");
+		}
+		if (!newPassword.equals(confirmNewPassword)) {
+			throw new RuntimeException("Nowe hasło i potwierdzenie muszą być takie same");
+		}
+
+		User user = userRepository.findByLogin(login)
+			.orElseThrow(() -> new RuntimeException("Nie znaleziono aktualnego użytkownika"));
+
+		if (!passwordEncoder.matches(oldPassword, user.getHaslo())) {
+			throw new RuntimeException("Podano niepoprawne stare hasło");
+		}
+		if (passwordEncoder.matches(newPassword, user.getHaslo())) {
+			throw new RuntimeException("Nowe hasło musi różnić się od starego");
+		}
+
+		user.setHaslo(passwordEncoder.encode(newPassword));
+		user.setSalt(generateToken(SALT_LENGTH));
+		userRepository.save(user);
+	}
+
 	// Rozpoczyna proces weryfikacji nowego emaila: generuje kod, ustawia TTL i wysyła wiadomość.
 	@Transactional
 	public void requestEmailVerification(User user, String newEmail) {

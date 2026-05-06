@@ -12,15 +12,31 @@ const tabs = [
   { id: 'platnosci', label: 'Płatności' }
 ];
 
+const securityTabs = [
+  { id: 'zmiana-hasla', label: 'Zmiana hasła' },
+  { id: '2fa', label: '2FA' },
+  { id: 'czas-sesji', label: 'Czas sesji' },
+  { id: 'historia-logowan', label: 'Historia logowań' }
+];
+
 const UstawieniaPage = () => {
   const { currentUser, authCredentials, applyAuthenticatedUser } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('profil');
+  const [activeSecurityTab, setActiveSecurityTab] = useState('zmiana-hasla');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [isSaving, setIsSaving] = useState(false);
+  // Stan zapisu i komunikaty tylko dla formularza zmiany hasła.
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState('');
   const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
+  const [passwordStatus, setPasswordStatus] = useState({ type: '', message: '' });
+  const [passwordForm, setPasswordForm] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmNewPassword: ''
+  });
 
   const [profileForm, setProfileForm] = useState({
     imie: currentUser.imie || '',
@@ -157,6 +173,48 @@ const UstawieniaPage = () => {
     }
   };
 
+  // Obsługuje pełny flow zmiany hasła: walidacja pól, request do API i komunikat dla użytkownika.
+  const handleSavePassword = async (event) => {
+    event.preventDefault();
+    setPasswordStatus({ type: '', message: '' });
+
+    const oldPassword = passwordForm.oldPassword.trim();
+    const newPassword = passwordForm.newPassword.trim();
+    const confirmNewPassword = passwordForm.confirmNewPassword.trim();
+
+    if (!oldPassword || !newPassword || !confirmNewPassword) {
+      setPasswordStatus({ type: 'error', message: 'Uzupełnij wszystkie pola.' });
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordStatus({ type: 'error', message: 'Nowe hasło i potwierdzenie muszą być takie same.' });
+      return;
+    }
+
+    setIsSavingPassword(true);
+    try {
+      await apiClient.put(
+        '/users/me/password',
+        {
+          oldPassword,
+          newPassword,
+          confirmNewPassword
+        },
+        getRequestConfig()
+      );
+      setPasswordStatus({ type: 'success', message: 'Hasło zostało zmienione.' });
+      setPasswordForm({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
+    } catch (error) {
+      setPasswordStatus({
+        type: 'error',
+        message: error.response?.data?.message || 'Nie udało się zmienić hasła.'
+      });
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
   return (
     <div className="settings-page">
       <aside className="settings-sidebar">
@@ -169,6 +227,9 @@ const UstawieniaPage = () => {
               className={`settings-nav-item ${activeTab === tab.id ? 'active' : ''}`}
               onClick={() => {
                 setActiveTab(tab.id);
+                if (tab.id === 'bezpieczenstwo') {
+                  setActiveSecurityTab('zmiana-hasla');
+                }
                 setStatus({ type: '', message: '' });
               }}
             >
@@ -236,10 +297,110 @@ const UstawieniaPage = () => {
             </div>
 
           </div>
+        ) : activeTab === 'powiadomienia' ? (
+          <div className="settings-panel">
+            <h3>Powiadomienia</h3>
+            <p>Propozycje dla powiadomień:</p>
+            <ul>
+              <li>Powiadomienie o nowym wydarzeniu</li>
+              <li>Powiadomienie o zmianie statusu wydarzenia (obserwowanego! funkcja obserwacji nie wprowadzona jeszcze)</li>
+              <li>Powiadomienie o zmianie statusu biletu (to samo)</li>
+              <li>Powiadomienie o kończącej się sesji (na przykład przy minucie do końca)</li>
+            </ul>
+          </div>
+        ) : activeTab === 'bezpieczenstwo' ? (
+          <div className="settings-panel">
+            <h3>Bezpieczeństwo</h3>
+            <nav className="settings-subnav" aria-label="Sekcje bezpieczeństwa">
+              {securityTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  className={`settings-subnav-item ${activeSecurityTab === tab.id ? 'active' : ''}`}
+                  onClick={() => setActiveSecurityTab(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+
+            <div className="settings-subpanel">
+              {activeSecurityTab === 'zmiana-hasla' && (
+                <>
+                  <h4>Zmiana hasła</h4>
+                  <form className="settings-password-form" onSubmit={handleSavePassword}>
+                    <label htmlFor="old-password">
+                      Stare hasło
+                      <input
+                        id="old-password"
+                        type="password"
+                        value={passwordForm.oldPassword}
+                        onChange={(event) => {
+                          setPasswordForm((prev) => ({ ...prev, oldPassword: event.target.value }));
+                          if (passwordStatus.message) setPasswordStatus({ type: '', message: '' });
+                        }}
+                      />
+                    </label>
+                    <label htmlFor="new-password">
+                      Nowe hasło
+                      <input
+                        id="new-password"
+                        type="password"
+                        value={passwordForm.newPassword}
+                        onChange={(event) => {
+                          setPasswordForm((prev) => ({ ...prev, newPassword: event.target.value }));
+                          if (passwordStatus.message) setPasswordStatus({ type: '', message: '' });
+                        }}
+                      />
+                    </label>
+                    <label htmlFor="confirm-new-password">
+                      Potwierdzenie nowego hasła
+                      <input
+                        id="confirm-new-password"
+                        type="password"
+                        value={passwordForm.confirmNewPassword}
+                        onChange={(event) => {
+                          setPasswordForm((prev) => ({ ...prev, confirmNewPassword: event.target.value }));
+                          if (passwordStatus.message) setPasswordStatus({ type: '', message: '' });
+                        }}
+                      />
+                    </label>
+                    <button type="submit" className="btn-new-event settings-password-submit" disabled={isSavingPassword}>
+                      {isSavingPassword ? 'Zapisywanie...' : 'Zapisz'}
+                    </button>
+                  </form>
+                  {passwordStatus.message && (
+                    <p className={`status-message ${passwordStatus.type === 'error' ? 'status-error' : 'status-success'}`}>
+                      {passwordStatus.message}
+                    </p>
+                  )}
+                </>
+              )}
+              {activeSecurityTab === '2fa' && (
+                <>
+                  <h4>2FA</h4>
+                  <p>Tutaj skonfigurujesz uwierzytelnianie dwuskładnikowe dla konta.</p>
+                </>
+              )}
+              {activeSecurityTab === 'czas-sesji' && (
+                <>
+                  <h4>Czas sesji</h4>
+                  <p>W tym miejscu ustawisz czas trwania sesji i zasady automatycznego wylogowania.</p>
+                </>
+              )}
+              {activeSecurityTab === 'historia-logowan' && (
+                <>
+                  <h4>Historia logowań</h4>
+                  <p>Ta sekcja będzie zawierać listę ostatnich logowań do konta.</p>
+                </>
+              )}
+            </div>
+          </div>
         ) : (
           <div className="settings-panel">
             <h3>{tabs.find((tab) => tab.id === activeTab)?.label}</h3>
             <p>Ta sekcja zostanie dodana w kolejnych krokach.</p>
+
           </div>
         )}
       </section>
