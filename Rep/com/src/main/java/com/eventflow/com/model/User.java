@@ -24,6 +24,10 @@ public class User {
 	@Column(nullable = false, unique = true)
 	private String email;
 
+	// Numer telefonu jest opcjonalny, ale jeśli podany, musi być unikalny w systemie.
+	@Column(name = "telefon", unique = true)
+	private String telefon;
+
 	@Column(nullable = false, unique = true)
 	private String login;
 

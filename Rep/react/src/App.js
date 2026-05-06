@@ -14,6 +14,7 @@ import WydarzeniaPage from './pages/WydarzeniaPage';
 import MiejscaPage from './pages/MiejscaPage';
 import EventDetailPage from './pages/EventDetailPage';
 import UsersPage from './pages/UsersPage';
+import UstawieniaPage from './pages/UstawieniaPage';
 
 // Moduł sterujący dostępem
 const AppRoutes = () => {
@@ -52,6 +53,7 @@ const AppRoutes = () => {
         <Route path="wydarzenia/:id" element={<EventDetailPage />} />
         <Route path="miejsca" element={<MiejscaPage />} />
         <Route path="uczestnicy" element={<UsersPage />} />
+        <Route path="ustawienia" element={<UstawieniaPage />} />
         {/* Zakładki, które zrobimy w następnych krokach (Miejsca, Wydarzenia) */}
         <Route path="*" element={<div style={{padding: '20px'}}>W budowie. Przejdź do Panelu Głównego.</div>} />
       </Route>

@@ -14,7 +14,9 @@ export const AuthProvider = ({ children }) => {
     login: '',
     rola: '',
     imie: '',
-    nazwisko: ''
+    nazwisko: '',
+    email: '',
+    telefon: ''
   });
   
   // Poświadczenia potrzebne do Basic Auth w innych zapytaniach
@@ -25,11 +27,17 @@ export const AuthProvider = ({ children }) => {
   const applyAuthenticatedUser = useCallback((user, credentials = null) => {
     if (credentials) setAuthCredentials(credentials);
     setIsLoggedIn(true);
+    const userSource = user?.user || user;
+    const normalizedUser = {
+      login: userSource.login || '',
+      rola: userSource.rola || '',
+      imie: userSource.imie || '',
+      nazwisko: userSource.nazwisko || '',
+      email: userSource.email || userSource.mail || userSource.e_mail || '',
+      telefon: userSource.telefon || userSource.phone || userSource.nrTelefonu || ''
+    };
     setCurrentUser({
-      login: user.login || '',
-      rola: user.rola || '',
-      imie: user.imie || '',
-      nazwisko: user.nazwisko || ''
+      ...normalizedUser
     });
   },[]);
 
@@ -42,7 +50,16 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await authService.checkSession();
       if (data && data.login) {
-        applyAuthenticatedUser(data);
+        let resolvedUser = data;
+        if (!data.email && !data.mail && !data.e_mail) {
+          try {
+            const ownProfile = await authService.getOwnProfile({ withCredentials: true });
+            resolvedUser = { ...data, ...(ownProfile || {}) };
+          } catch (profileError) {
+            resolvedUser = data;
+          }
+        }
+        applyAuthenticatedUser(resolvedUser);
       } else {
         setIsLoggedIn(false);
       }
@@ -68,7 +85,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('explicitLogout', 'true');
       
       setIsLoggedIn(false);
-      setCurrentUser({ login: '', rola: '', imie: '', nazwisko: '' });
+      setCurrentUser({ login: '', rola: '', imie: '', nazwisko: '', email: '', telefon: '' });
       setAuthCredentials({ login: '', password: '' });
       setSessionTimeLeft(SESSION_TIMEOUT_SECONDS);
       document.cookie = "JSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";

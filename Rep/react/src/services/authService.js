@@ -6,6 +6,18 @@ export const authService = {
     return response.data;
   },
 
+  // Pobiera profil zalogowanego użytkownika z endpointu /users/me.
+  getOwnProfile: async (config = { withCredentials: true }) => {
+    const response = await apiClient.get('/users/me', config);
+    return response.data;
+  },
+
+  // Pobiera listę użytkowników (używane m.in. w widoku uczestników).
+  getUsers: async (config = { withCredentials: true }) => {
+    const response = await apiClient.get('/users', config);
+    return response.data;
+  },
+
   login: async (login, password) => {
     const response = await apiClient.post('/auth/login', { login, password });
     return response.data;

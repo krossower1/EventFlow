@@ -44,7 +44,7 @@ public class AuthController {
 
 		if (isValid) {
 			if (!authService.isEmailVerified(request.login())) {
-				return ResponseEntity.status(403).body(new LoginResponse(false, "Email not verified", null, null, null));
+				return ResponseEntity.status(403).body(new LoginResponse(false, "Email not verified", null, null, null, null, null));
 			}
 
 			Authentication authentication = authenticationManager.authenticate(
@@ -59,10 +59,13 @@ public class AuthController {
 			String rola = authService.getUserRole(request.login());
 			String imie = authService.getUserImie(request.login());
 			String nazwisko = authService.getUserNazwisko(request.login());
-			return ResponseEntity.ok(new LoginResponse(true, "Login successful", rola, imie, nazwisko));
+			User loggedUser = authService.findUserByLogin(request.login()).orElse(null);
+			String email = loggedUser != null ? loggedUser.getEmail() : null;
+			String telefon = loggedUser != null ? loggedUser.getTelefon() : null;
+			return ResponseEntity.ok(new LoginResponse(true, "Login successful", rola, imie, nazwisko, email, telefon));
 		}
 
-		return ResponseEntity.status(401).body(new LoginResponse(false, "Invalid login or password", null, null, null));
+		return ResponseEntity.status(401).body(new LoginResponse(false, "Invalid login or password", null, null, null, null, null));
 	}
 
 	@PostMapping("/register")
@@ -111,7 +114,9 @@ public class AuthController {
 			user.getLogin(),
 			user.getRola(),
 			user.getImie(),
-			user.getNazwisko()
+			user.getNazwisko(),
+			user.getEmail(),
+			user.getTelefon()
 		);
 	}
 }

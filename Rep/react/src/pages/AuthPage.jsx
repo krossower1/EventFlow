@@ -41,13 +41,40 @@ const AuthPage = () => {
       const response = await authService.login(loginForm.login, loginForm.password);
       if (response.success) {
         localStorage.removeItem('explicitLogout');
-        applyAuthenticatedUser(
-          {
+        let sessionUser = null;
+        try {
+          sessionUser = await authService.checkSession();
+        } catch (sessionError) {
+          sessionUser = null;
+        }
+
+        const resolvedUser = sessionUser && sessionUser.login
+          ? sessionUser
+          : {
             login: loginForm.login,
             rola: response.rola || '',
             imie: response.imie || '',
-            nazwisko: response.nazwisko || ''
-          },
+            nazwisko: response.nazwisko || '',
+            email: response.email || response.mail || response.user?.email || response.user?.mail || '',
+            telefon: response.telefon || response.phone || response.user?.telefon || response.user?.phone || ''
+          };
+
+        if (!resolvedUser.email && !resolvedUser.mail) {
+          try {
+            const ownProfile = await authService.getOwnProfile({
+              withCredentials: true,
+              headers: {
+                Authorization: `Basic ${btoa(`${loginForm.login}:${loginForm.password}`)}`
+              }
+            });
+            if (ownProfile) Object.assign(resolvedUser, ownProfile);
+          } catch (profileError) {
+            // Fallback pozostaje bez emaila, jeśli endpoint profilu jest niedostępny.
+          }
+        }
+
+        applyAuthenticatedUser(
+          resolvedUser,
           { login: loginForm.login, password: loginForm.password }
         );
 

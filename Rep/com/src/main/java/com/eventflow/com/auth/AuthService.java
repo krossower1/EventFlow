@@ -125,6 +125,29 @@ public class AuthService {
 		return null;
 	}
 
+	// Rozpoczyna proces weryfikacji nowego emaila: generuje kod, ustawia TTL i wysyła wiadomość.
+	@Transactional
+	public void requestEmailVerification(User user, String newEmail) {
+		if (newEmail == null || newEmail.trim().isEmpty()) {
+			return;
+		}
+
+		String normalizedEmail = newEmail.trim();
+		boolean isSameEmail = user.getEmail() != null && user.getEmail().equalsIgnoreCase(normalizedEmail);
+		if (!isSameEmail && userRepository.existsByEmail(normalizedEmail)) {
+			throw new RuntimeException("Email juz istnieje");
+		}
+
+		// Ten sam mechanizm co przy rejestracji: nowy kod + TTL + oznaczenie emaila jako nieweryfikowanego.
+		String verificationCode = generateToken(VERIFICATION_CODE_LENGTH);
+		user.setEmail(normalizedEmail);
+		user.setEmailVerified(false);
+		user.setVerificationCode(verificationCode);
+		user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(VERIFICATION_CODE_TTL_MINUTES));
+		userRepository.save(user);
+		emailService.sendVerificationCode(normalizedEmail, verificationCode);
+	}
+
 	private String generateToken(int length) {
 		StringBuilder builder = new StringBuilder(length);
 		for (int i = 0; i < length; i++) {

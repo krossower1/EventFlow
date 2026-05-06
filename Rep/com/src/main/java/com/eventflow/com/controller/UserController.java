@@ -1,6 +1,8 @@
 package com.eventflow.com.controller;
 
 import com.eventflow.com.controller.dto.UserResponse;
+import com.eventflow.com.controller.dto.UpdateOwnProfileRequest;
+import com.eventflow.com.auth.AuthService;
 import com.eventflow.com.model.User;
 import com.eventflow.com.repository.UserRepository;
 import com.eventflow.com.service.UserCascadeDeleteService;
@@ -16,10 +18,16 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final UserCascadeDeleteService userCascadeDeleteService;
+    private final AuthService authService;
 
-    public UserController(UserRepository userRepository, UserCascadeDeleteService userCascadeDeleteService) {
+    public UserController(
+        UserRepository userRepository,
+        UserCascadeDeleteService userCascadeDeleteService,
+        AuthService authService
+    ) {
         this.userRepository = userRepository;
         this.userCascadeDeleteService = userCascadeDeleteService;
+        this.authService = authService;
     }
 
     @GetMapping
@@ -30,6 +38,64 @@ public class UserController {
         return userRepository.findAll().stream()
             .map(user -> mapUser(user, isAdmin))
             .toList();
+    }
+
+    // Zwraca profil aktualnie zalogowanego użytkownika.
+    @GetMapping("/me")
+    public UserResponse getOwnProfile(Authentication authentication) {
+        if (authentication == null) {
+            throw new RuntimeException("Brak uwierzytelnienia");
+        }
+        User currentUser = userRepository.findByLogin(authentication.getName())
+            .orElseThrow(() -> new RuntimeException("Nie znaleziono aktualnego użytkownika"));
+        return mapUser(currentUser, false);
+    }
+
+    // Aktualizuje dane własnego profilu oraz uruchamia weryfikację, gdy email został zmieniony.
+    @PutMapping("/me")
+    public UserResponse updateOwnProfile(@RequestBody UpdateOwnProfileRequest request, Authentication authentication) {
+        if (authentication == null) {
+            throw new RuntimeException("Brak uwierzytelnienia");
+        }
+
+        User currentUser = userRepository.findByLogin(authentication.getName())
+            .orElseThrow(() -> new RuntimeException("Nie znaleziono aktualnego użytkownika"));
+
+        String newImie = safeTrim(request.imie());
+        String newNazwisko = safeTrim(request.nazwisko());
+        String newEmail = safeTrim(request.email());
+        String newTelefon = safeTrim(request.telefon());
+
+        if (!newImie.isEmpty()) {
+            currentUser.setImie(newImie);
+        }
+        if (!newNazwisko.isEmpty()) {
+            currentUser.setNazwisko(newNazwisko);
+        }
+
+        if (!newTelefon.isEmpty()) {
+            // Telefon ma być unikalny globalnie, ale użytkownik może zostawić swój własny numer.
+            boolean phoneTakenByOtherUser = userRepository.findByTelefon(newTelefon)
+                .map(user -> !user.getId().equals(currentUser.getId()))
+                .orElse(false);
+            if (phoneTakenByOtherUser) {
+                throw new RuntimeException("Podany numer telefonu jest już zajęty");
+            }
+        }
+        currentUser.setTelefon(newTelefon.isEmpty() ? null : newTelefon);
+        boolean emailChanged = !newEmail.isEmpty()
+            && (currentUser.getEmail() == null || !currentUser.getEmail().equalsIgnoreCase(newEmail));
+
+        if (emailChanged) {
+            // Zmiana emaila nie aktywuje się od razu: wysyłanie kodu i czekanie na weryfikację.
+            authService.requestEmailVerification(currentUser, newEmail);
+        } else {
+            userRepository.save(currentUser);
+        }
+
+        User saved = userRepository.findById(currentUser.getId())
+            .orElseThrow(() -> new RuntimeException("Nie znaleziono aktualnego użytkownika"));
+        return mapUser(saved, false);
     }
 
     @DeleteMapping("/me")
@@ -119,6 +185,7 @@ public class UserController {
             user.getImie(),
             user.getNazwisko(),
             user.getEmail(),
+            user.getTelefon(),
             user.getLogin(),
             user.getRola(),
             user.getAktywnosc(),
@@ -127,5 +194,10 @@ public class UserController {
             isAdmin ? user.getHaslo() : null,
             isAdmin ? user.getSalt() : null
         );
+    }
+
+    // Bezpieczne trimowanie wartości z requestu (null -> pusty string).
+    private String safeTrim(String value) {
+        return value == null ? "" : value.trim();
     }
 }
