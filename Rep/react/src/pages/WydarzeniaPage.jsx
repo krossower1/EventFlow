@@ -297,7 +297,11 @@ const WydarzeniaPage = () => {
       setSelectedZakupEvent(null);
       fetchMyWydarzenia();
     } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udało się zakończyć zakupu.' });
+      const message = error.response?.data?.message
+        || error.response?.data?.detail
+        || (typeof error.response?.data === 'string' ? error.response.data : null)
+        || 'Nie udało się zakończyć zakupu.';
+      setStatus({ type: 'error', message });
     } finally {
       setZakupLoading(false);
     }
