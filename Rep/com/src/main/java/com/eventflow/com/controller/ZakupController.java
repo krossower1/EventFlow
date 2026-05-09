@@ -5,13 +5,17 @@ import com.eventflow.com.controller.dto.ZakupBiletuRequestDto;
 import com.eventflow.com.model.Bilet;
 import com.eventflow.com.model.Platnosc;
 import com.eventflow.com.model.PozZam;
+import com.eventflow.com.model.Sala;
 import com.eventflow.com.model.User;
+import com.eventflow.com.model.Wydarzenie;
 import com.eventflow.com.model.WystBilet;
 import com.eventflow.com.model.Zamowienie;
 import com.eventflow.com.repository.BiletRepository;
 import com.eventflow.com.repository.PlatnoscRepository;
 import com.eventflow.com.repository.PozZamRepository;
+import com.eventflow.com.repository.SalaRepository;
 import com.eventflow.com.repository.UserRepository;
+import com.eventflow.com.repository.WydarzenieRepository;
 import com.eventflow.com.repository.WystBiletRepository;
 import com.eventflow.com.repository.ZamowienieRepository;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +48,8 @@ public class ZakupController {
 	private final PlatnoscRepository platnoscRepository;
 	private final ZamowienieRepository zamowienieRepository;
 	private final WystBiletRepository wystBiletRepository;
+	private final WydarzenieRepository wydarzenieRepository;
+	private final SalaRepository salaRepository;
 
 	public ZakupController(
 		UserRepository userRepository,
@@ -51,7 +57,9 @@ public class ZakupController {
 		PozZamRepository pozZamRepository,
 		PlatnoscRepository platnoscRepository,
 		ZamowienieRepository zamowienieRepository,
-		WystBiletRepository wystBiletRepository
+		WystBiletRepository wystBiletRepository,
+		WydarzenieRepository wydarzenieRepository,
+		SalaRepository salaRepository
 	) {
 		this.userRepository = userRepository;
 		this.biletRepository = biletRepository;
@@ -59,6 +67,8 @@ public class ZakupController {
 		this.platnoscRepository = platnoscRepository;
 		this.zamowienieRepository = zamowienieRepository;
 		this.wystBiletRepository = wystBiletRepository;
+		this.wydarzenieRepository = wydarzenieRepository;
+		this.salaRepository = salaRepository;
 	}
 
 	@GetMapping("/wydarzenia/{wydarzenieId}/bilety")
@@ -98,6 +108,11 @@ public class ZakupController {
 		if (!bilet.getWydarzenieId().equals(wydarzenieId)) {
 			throw new ResponseStatusException(BAD_REQUEST, "Wybrany bilet nie nalezy do tego wydarzenia.");
 		}
+		Wydarzenie wydarzenie = wydarzenieRepository.findById(wydarzenieId)
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono wydarzenia."));
+		Sala sala = salaRepository.findById(wydarzenie.getSalaId())
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono sali dla wydarzenia."));
+		boolean requiresSeatSelection = Boolean.TRUE.equals(sala.getMaPlan()) && sala.getPlanJson() != null && !sala.getPlanJson().isBlank();
 
 		LocalDateTime now = LocalDateTime.now();
 		if (bilet.getStartSprzedazy() != null && bilet.getStartSprzedazy().isAfter(now)) {
@@ -111,6 +126,20 @@ public class ZakupController {
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Brak puli dostepnych biletow dla wybranej klasy."));
 		if (pozZam.getIlosc() == null || pozZam.getIlosc() < request.ilosc()) {
 			throw new ResponseStatusException(BAD_REQUEST, "Brak wymaganej liczby biletow w dostepnej puli.");
+		}
+		if (requiresSeatSelection) {
+			if (request.ilosc() != 1) {
+				throw new ResponseStatusException(BAD_REQUEST, "Dla sal z planem mozesz kupic tylko jedno miejsce na raz.");
+			}
+			if (request.seatId() == null || request.seatId().isBlank()) {
+				throw new ResponseStatusException(BAD_REQUEST, "Wybierz miejsce z planu sali.");
+			}
+			boolean occupied = wystBiletRepository.findByBiletIdIn(
+				biletRepository.findByWydarzenieId(wydarzenieId).stream().map(Bilet::getId).toList()
+			).stream().anyMatch(item -> request.seatId().equals(item.getSeatId()));
+			if (occupied) {
+				throw new ResponseStatusException(BAD_REQUEST, "Wybrane miejsce jest juz zajete.");
+			}
 		}
 
 		Platnosc platnosc = new Platnosc();
@@ -142,6 +171,7 @@ public class ZakupController {
 			wystBilet.setWydanyData(now);
 			wystBilet.setUzytyData(null);
 			wystBilet.setKod(generateTicketCode(savedZamowienie.getId(), i));
+			wystBilet.setSeatId(requiresSeatSelection ? request.seatId() : null);
 			wystBiletRepository.save(wystBilet);
 		}
 
@@ -149,6 +179,18 @@ public class ZakupController {
 	}
 
 	private DostepnyBiletDto toDostepnyBiletDto(Bilet bilet, LocalDateTime now) {
+		Wydarzenie wydarzenie = wydarzenieRepository.findById(bilet.getWydarzenieId()).orElse(null);
+		Sala sala = wydarzenie == null ? null : salaRepository.findById(wydarzenie.getSalaId()).orElse(null);
+		boolean requiresSeatSelection = sala != null && Boolean.TRUE.equals(sala.getMaPlan()) && sala.getPlanJson() != null && !sala.getPlanJson().isBlank();
+		List<String> occupiedSeatIds = requiresSeatSelection
+			? wystBiletRepository.findByBiletIdIn(biletRepository.findByWydarzenieId(bilet.getWydarzenieId()).stream().map(Bilet::getId).toList())
+				.stream()
+				.map(WystBilet::getSeatId)
+				.filter(seatId -> seatId != null && !seatId.isBlank())
+				.distinct()
+				.toList()
+			: List.of();
+
 		PozZam pozZam = pozZamRepository.findByBiletId(bilet.getId()).orElse(null);
 		if (pozZam == null || pozZam.getIlosc() == null || pozZam.getIlosc() <= 0) {
 			return null;
@@ -167,7 +209,10 @@ public class ZakupController {
 			bilet.getWaluta(),
 			pozZam.getIlosc(),
 			bilet.getStartSprzedazy(),
-			bilet.getKoniecSprzedazy()
+			bilet.getKoniecSprzedazy(),
+			requiresSeatSelection,
+			requiresSeatSelection ? sala.getPlanJson() : null,
+			occupiedSeatIds
 		);
 	}
 
