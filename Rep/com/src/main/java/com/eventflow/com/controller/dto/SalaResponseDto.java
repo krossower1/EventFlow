@@ -6,6 +6,7 @@ public record SalaResponseDto(
 	String nazwa,
 	Integer pojemnosc,
 	Integer pietro,
-	Boolean maPlan
+	Boolean maPlan,
+	String planJson
 ) {
 }

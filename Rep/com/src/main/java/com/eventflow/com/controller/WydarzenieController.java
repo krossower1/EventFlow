@@ -54,8 +54,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CREATED;
@@ -126,7 +128,9 @@ public class WydarzenieController {
 			.map(s -> new SalaOptionDto(
 				s.getId(),
 				s.getNazwa(),
-				miejsceNameById.getOrDefault(s.getMiejsceId(), "-")
+				miejsceNameById.getOrDefault(s.getMiejsceId(), "-"),
+				s.getMaPlan(),
+				s.getPlanJson()
 			))
 			.toList();
 
@@ -420,10 +424,10 @@ public class WydarzenieController {
 
 		String normalizedStatus = normalizeStatus(request.status());
 		validateCreateStatus(user, normalizedStatus);
-		validateBilety(request.bilety());
 
 		Sala sala = salaRepository.findById(request.salaId())
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Wybrana sala nie istnieje."));
+		validateBilety(request.bilety(), sala);
 		Miejsce miejsce = miejsceRepository.findById(sala.getMiejsceId())
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Miejsce przypisane do sali nie istnieje."));
 		if (!miejsce.getUserId().equals(user.getId())) {
@@ -445,7 +449,7 @@ public class WydarzenieController {
 		wydarzenie.setDataZamk(request.dataZamk());
 
 		Wydarzenie savedWydarzenie = wydarzenieRepository.save(wydarzenie);
-		saveBilety(savedWydarzenie.getId(), request.bilety());
+		saveBilety(savedWydarzenie.getId(), request.bilety(), sala);
 		return ResponseEntity.status(CREATED).body("Wydarzenie zostalo dodane.");
 	}
 
@@ -575,10 +579,14 @@ public class WydarzenieController {
 			.toList();
 	}
 
-	private void validateBilety(List<BiletCreateRequestDto> bilety) {
+	private void validateBilety(List<BiletCreateRequestDto> bilety, Sala sala) {
 		if (bilety == null || bilety.isEmpty()) {
 			throw new ResponseStatusException(BAD_REQUEST, "Dodaj co najmniej jeden typ biletu.");
 		}
+
+		boolean hasSalaPlan = Boolean.TRUE.equals(sala.getMaPlan()) && sala.getPlanJson() != null && !sala.getPlanJson().isBlank();
+		Set<String> salaSeatIds = hasSalaPlan ? extractSalaSeatIds(sala.getPlanJson()) : Set.of();
+		Set<String> assignedSeatIds = new java.util.HashSet<>();
 
 		for (BiletCreateRequestDto bilet : bilety) {
 			if (bilet == null
@@ -601,27 +609,80 @@ public class WydarzenieController {
 			if (bilet.waluta() != null && !bilet.waluta().isBlank() && !"PLN".equalsIgnoreCase(bilet.waluta())) {
 				throw new ResponseStatusException(BAD_REQUEST, "Waluta biletu musi byc ustawiona na PLN.");
 			}
+			if (hasSalaPlan) {
+				List<String> seatIds = normalizeSeatIds(bilet.seatIds());
+				if (seatIds.isEmpty()) {
+					throw new ResponseStatusException(BAD_REQUEST, "Dla sal z planem przypisz co najmniej jedno miejsce do kazdej klasy biletu.");
+				}
+				if (bilet.ilosc() != seatIds.size()) {
+					throw new ResponseStatusException(BAD_REQUEST, "Liczba biletow musi byc rowna liczbie przypisanych miejsc.");
+				}
+				for (String seatId : seatIds) {
+					if (!salaSeatIds.contains(seatId)) {
+						throw new ResponseStatusException(BAD_REQUEST, "Wybrane miejsce nie nalezy do planu sali.");
+					}
+					if (!assignedSeatIds.add(seatId)) {
+						throw new ResponseStatusException(BAD_REQUEST, "Nie mozna przypisac tego samego miejsca do dwoch klas biletow.");
+					}
+				}
+			}
 		}
 	}
 
-	private void saveBilety(Long wydarzenieId, List<BiletCreateRequestDto> bilety) {
+	private void saveBilety(Long wydarzenieId, List<BiletCreateRequestDto> bilety, Sala sala) {
+		boolean hasSalaPlan = Boolean.TRUE.equals(sala.getMaPlan()) && sala.getPlanJson() != null && !sala.getPlanJson().isBlank();
 		for (BiletCreateRequestDto requestBilet : bilety) {
+			List<String> seatIds = normalizeSeatIds(requestBilet.seatIds());
 			Bilet bilet = new Bilet();
 			bilet.setWydarzenieId(wydarzenieId);
 			bilet.setKlasa(requestBilet.klasa().trim());
 			bilet.setCena(requestBilet.cena());
 			bilet.setWaluta("PLN");
-			bilet.setIlosc(requestBilet.ilosc());
+			bilet.setIlosc(hasSalaPlan ? seatIds.size() : requestBilet.ilosc());
 			bilet.setStartSprzedazy(requestBilet.startSprzedazy());
 			bilet.setKoniecSprzedazy(requestBilet.koniecSprzedazy());
+			bilet.setSeatIds(seatIds.isEmpty() ? null : String.join(",", seatIds));
 			Bilet savedBilet = biletRepository.save(bilet);
 
 			PozZam pozZam = new PozZam();
 			pozZam.setBiletId(savedBilet.getId());
-			pozZam.setIlosc(requestBilet.ilosc());
+			pozZam.setIlosc(hasSalaPlan ? seatIds.size() : requestBilet.ilosc());
 			pozZam.setCena(requestBilet.cena());
 			pozZamRepository.save(pozZam);
 		}
+	}
+
+	private Set<String> extractSalaSeatIds(String planJson) {
+		if (planJson == null || planJson.isBlank()) {
+			return Set.of();
+		}
+		Set<String> seatIds = new LinkedHashSet<>();
+		int index = 0;
+		while ((index = planJson.indexOf("\"id\"", index)) >= 0) {
+			int colonIndex = planJson.indexOf(':', index);
+			int firstQuote = planJson.indexOf('"', colonIndex + 1);
+			int secondQuote = planJson.indexOf('"', firstQuote + 1);
+			if (colonIndex < 0 || firstQuote < 0 || secondQuote < 0) {
+				break;
+			}
+			String value = planJson.substring(firstQuote + 1, secondQuote).trim();
+			if (!value.isBlank()) {
+				seatIds.add(value);
+			}
+			index = secondQuote + 1;
+		}
+		return seatIds;
+	}
+
+	private List<String> normalizeSeatIds(List<String> seatIds) {
+		if (seatIds == null || seatIds.isEmpty()) {
+			return List.of();
+		}
+		return seatIds.stream()
+			.filter(item -> item != null && !item.isBlank())
+			.map(String::trim)
+			.distinct()
+			.toList();
 	}
 
 	private void validateCreateStatus(User user, String status) {

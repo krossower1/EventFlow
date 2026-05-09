@@ -4,6 +4,10 @@ import { apiClient, getAuthHeaders } from '../api/apiClient';
 import { authService } from '../services/authService';
 import QRCode from 'qrcode';
 const SESSION_SETTINGS_STORAGE_KEY = 'sessionSettingsCache';
+const SEAT_BASE_WIDTH = 36;
+const SEAT_BASE_HEIGHT = 24;
+const LAYOUT_CANVAS_WIDTH = 720;
+const LAYOUT_CANVAS_HEIGHT = 420;
 
 const tabs = [
   { id: 'profil', label: 'Profil' },
@@ -92,6 +96,12 @@ const UstawieniaPage = () => {
   const [loginHistory, setLoginHistory] = useState([]);
   const [isLoadingLoginHistory, setIsLoadingLoginHistory] = useState(false);
   const [loginHistoryStatus, setLoginHistoryStatus] = useState({ type: '', message: '' });
+  const [miejscaLayoutData, setMiejscaLayoutData] = useState([]);
+  const [isLoadingLayouts, setIsLoadingLayouts] = useState(false);
+  const [layoutStatus, setLayoutStatus] = useState({ type: '', message: '' });
+  const [selectedSalaId, setSelectedSalaId] = useState(null);
+  const [selectedSeatId, setSelectedSeatId] = useState(null);
+  const [dragState, setDragState] = useState(null);
 
   const [profileForm, setProfileForm] = useState({
     imie: currentUser.imie || '',
@@ -106,6 +116,59 @@ const UstawieniaPage = () => {
     { key: 'email', label: 'Email', type: 'email' },
     { key: 'telefon', label: 'Telefon', type: 'tel' }
   ]), []);
+
+  const selectedSala = useMemo(() => {
+    for (const miejsce of miejscaLayoutData) {
+      const foundSala = (miejsce.sale || []).find((sala) => sala.id === selectedSalaId);
+      if (foundSala) {
+        return { ...foundSala, miejsceNazwa: miejsce.nazwa };
+      }
+    }
+    return null;
+  }, [miejscaLayoutData, selectedSalaId]);
+
+  const selectedSalaSeats = useMemo(() => {
+    if (!selectedSala?.planJson) {
+      return [];
+    }
+    try {
+      const parsed = JSON.parse(selectedSala.planJson);
+      return Array.isArray(parsed?.seats) ? parsed.seats : [];
+    } catch (error) {
+      return [];
+    }
+  }, [selectedSala]);
+
+  const getSeatDimensions = (seat) => (
+    seat?.rotation === 90
+      ? { width: SEAT_BASE_HEIGHT, height: SEAT_BASE_WIDTH }
+      : { width: SEAT_BASE_WIDTH, height: SEAT_BASE_HEIGHT }
+  );
+
+  const hasSeatCollision = (seats, candidateSeat) => {
+    const candidateSize = getSeatDimensions(candidateSeat);
+    return seats.some((seat) => {
+      if (seat.id === candidateSeat.id) return false;
+      const seatSize = getSeatDimensions(seat);
+      return !(
+        candidateSeat.x + candidateSize.width <= seat.x
+        || seat.x + seatSize.width <= candidateSeat.x
+        || candidateSeat.y + candidateSize.height <= seat.y
+        || seat.y + seatSize.height <= candidateSeat.y
+      );
+    });
+  };
+
+  const updateSelectedSalaPlan = (nextSeats) => {
+    setMiejscaLayoutData((prev) => prev.map((miejsce) => ({
+      ...miejsce,
+      sale: (miejsce.sale || []).map((sala) => (
+        sala.id === selectedSalaId
+          ? { ...sala, planJson: JSON.stringify({ seats: nextSeats }) }
+          : sala
+      ))
+    })));
+  };
 
   // Przywraca formularz profilu do danych aktualnie zalogowanego użytkownika.
   const resetProfileForm = () => {
@@ -138,6 +201,93 @@ const UstawieniaPage = () => {
       config.headers = getAuthHeaders(authCredentials.login, authCredentials.password);
     }
     return config;
+  };
+
+  const loadLayoutData = async () => {
+    if (String(currentUser?.rola || '').toUpperCase() !== 'ORG') {
+      setMiejscaLayoutData([]);
+      return;
+    }
+    setIsLoadingLayouts(true);
+    setLayoutStatus({ type: '', message: '' });
+    try {
+      const response = await apiClient.get('/miejsca/my', getRequestConfig());
+      const miejsca = Array.isArray(response?.data) ? response.data : [];
+      setMiejscaLayoutData(miejsca);
+      if (!selectedSalaId) {
+        const firstSalaWithPlan = miejsca.flatMap((miejsce) => miejsce.sale || []).find((sala) => sala.maPlan);
+        setSelectedSalaId(firstSalaWithPlan?.id || null);
+      }
+    } catch (error) {
+      setLayoutStatus({
+        type: 'error',
+        message: error.response?.data?.message || 'Nie udało się pobrać sal.'
+      });
+    } finally {
+      setIsLoadingLayouts(false);
+    }
+  };
+
+  const addSeatToSelectedSala = () => {
+    if (!selectedSala) return;
+    if (selectedSalaSeats.length >= Number(selectedSala.pojemnosc || 0)) {
+      setLayoutStatus({ type: 'error', message: 'Osiągnięto pojemność sali.' });
+      return;
+    }
+    const newSeat = {
+      id: `seat-${Date.now()}`,
+      x: 16,
+      y: 16,
+      rotation: 0
+    };
+    if (hasSeatCollision(selectedSalaSeats, newSeat)) {
+      setLayoutStatus({ type: 'error', message: 'Brak miejsca na dodanie kolejnego miejsca.' });
+      return;
+    }
+    updateSelectedSalaPlan([...selectedSalaSeats, newSeat]);
+    setSelectedSeatId(newSeat.id);
+    setLayoutStatus({ type: '', message: '' });
+  };
+
+  const rotateSelectedSeat = () => {
+    if (!selectedSeatId) return;
+    const nextSeats = selectedSalaSeats.map((seat) => (
+      seat.id === selectedSeatId
+        ? { ...seat, rotation: seat.rotation === 90 ? 0 : 90 }
+        : seat
+    ));
+    const rotatedSeat = nextSeats.find((seat) => seat.id === selectedSeatId);
+    const seatSize = getSeatDimensions(rotatedSeat);
+    if (
+      rotatedSeat.x < 0
+      || rotatedSeat.y < 0
+      || rotatedSeat.x + seatSize.width > LAYOUT_CANVAS_WIDTH
+      || rotatedSeat.y + seatSize.height > LAYOUT_CANVAS_HEIGHT
+      || hasSeatCollision(nextSeats, rotatedSeat)
+    ) {
+      setLayoutStatus({ type: 'error', message: 'Nie można obrócić miejsca w tej pozycji.' });
+      return;
+    }
+    updateSelectedSalaPlan(nextSeats);
+    setLayoutStatus({ type: '', message: '' });
+  };
+
+  const saveSelectedSalaPlan = async () => {
+    if (!selectedSala) return;
+    try {
+      await apiClient.put(
+        `/miejsca/sale/${selectedSala.id}/plan`,
+        { planJson: JSON.stringify({ seats: selectedSalaSeats }) },
+        getRequestConfig()
+      );
+      setLayoutStatus({ type: 'success', message: 'Układ sali został zapisany.' });
+      loadLayoutData();
+    } catch (error) {
+      setLayoutStatus({
+        type: 'error',
+        message: error.response?.data?.message || 'Nie udało się zapisać układu sali.'
+      });
+    }
   };
 
   // Zapisuje zmiany profilu; przy zmianie emaila uruchamia modal weryfikacji kodem.
@@ -289,6 +439,42 @@ const UstawieniaPage = () => {
     };
     loadTwoFactorStatus();
   }, [activeTab, activeSecurityTab]);
+
+  useEffect(() => {
+    if (activeTab === 'uklady-sal') {
+      loadLayoutData();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!dragState || !selectedSala) {
+      return undefined;
+    }
+
+    const handleMouseMove = (event) => {
+      const canvasRect = dragState.canvasRect;
+      const seat = selectedSalaSeats.find((item) => item.id === dragState.seatId);
+      if (!seat) return;
+
+      const seatSize = getSeatDimensions(seat);
+      const nextX = Math.max(0, Math.min(LAYOUT_CANVAS_WIDTH - seatSize.width, Math.round(event.clientX - canvasRect.left - dragState.offsetX)));
+      const nextY = Math.max(0, Math.min(LAYOUT_CANVAS_HEIGHT - seatSize.height, Math.round(event.clientY - canvasRect.top - dragState.offsetY)));
+      const candidateSeat = { ...seat, x: nextX, y: nextY };
+      if (hasSeatCollision(selectedSalaSeats, candidateSeat)) {
+        return;
+      }
+      updateSelectedSalaPlan(selectedSalaSeats.map((item) => item.id === seat.id ? candidateSeat : item));
+    };
+
+    const handleMouseUp = () => setDragState(null);
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [dragState, selectedSala, selectedSalaSeats]);
 
   useEffect(() => {
     // Pobiera dane sekcji "Historia logowań" dopiero po wejściu w odpowiednią podzakładkę.
@@ -1042,7 +1228,106 @@ const UstawieniaPage = () => {
         ) : (
           <div className="settings-panel">
             <h3>{tabs.find((tab) => tab.id === activeTab)?.label}</h3>
-            <p>Ta sekcja zostanie dodana w kolejnych krokach.</p>
+            {activeTab === 'uklady-sal' ? (
+              String(currentUser?.rola || '').toUpperCase() !== 'ORG' ? (
+                <p>Tylko organizator może zarządzać układami sal.</p>
+              ) : (
+                <div className="settings-layouts">
+                  {isLoadingLayouts && <p>Ładowanie sal...</p>}
+                  {layoutStatus.message && (
+                    <p className={`status-message ${layoutStatus.type === 'error' ? 'status-error' : 'status-success'}`}>
+                      {layoutStatus.message}
+                    </p>
+                  )}
+
+                  <div className="settings-layouts-list">
+                    {miejscaLayoutData.length > 0 ? miejscaLayoutData.map((miejsce) => (
+                      <div key={miejsce.id} className="settings-layouts-place">
+                        <h4>{miejsce.nazwa}</h4>
+                        {(miejsce.sale || []).length > 0 ? (
+                          <div className="settings-layouts-salas">
+                            {miejsce.sale.map((sala) => (
+                              <button
+                                key={sala.id}
+                                type="button"
+                                className={`settings-layouts-sala ${selectedSalaId === sala.id ? 'is-active' : ''}`}
+                                onClick={() => {
+                                  setSelectedSalaId(sala.id);
+                                  setSelectedSeatId(null);
+                                }}
+                                disabled={!sala.maPlan}
+                              >
+                                {sala.nazwa} {!sala.maPlan ? '(bez planu)' : ''}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p>Brak sal dla tego miejsca.</p>
+                        )}
+                      </div>
+                    )) : (
+                      <p>Nie masz jeszcze miejsc ani sal.</p>
+                    )}
+                  </div>
+
+                  {selectedSala && (
+                    <div className="settings-layout-editor">
+                      <div className="settings-layout-editor-header">
+                        <div>
+                          <h4>{selectedSala.nazwa}</h4>
+                          <p>{selectedSala.miejsceNazwa} • pojemność: {selectedSala.pojemnosc || 0}</p>
+                        </div>
+                        <div className="settings-layout-editor-actions">
+                          <button type="button" className="btn-secondary" onClick={addSeatToSelectedSala}>
+                            Dodaj miejsce
+                          </button>
+                          <button type="button" className="btn-secondary" onClick={rotateSelectedSeat} disabled={!selectedSeatId}>
+                            Obróć
+                          </button>
+                          <button type="button" className="btn-new-event" onClick={saveSelectedSalaPlan}>
+                            Zapisz układ
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="settings-layout-canvas">
+                        {selectedSalaSeats.map((seat) => {
+                          const seatSize = getSeatDimensions(seat);
+                          return (
+                            <button
+                              key={seat.id}
+                              type="button"
+                              className={`settings-layout-seat ${selectedSeatId === seat.id ? 'is-selected' : ''}`}
+                              style={{
+                                left: seat.x,
+                                top: seat.y,
+                                width: seatSize.width,
+                                height: seatSize.height,
+                                transform: `rotate(${seat.rotation || 0}deg)`
+                              }}
+                              onMouseDown={(event) => {
+                                const rect = event.currentTarget.parentElement.getBoundingClientRect();
+                                setSelectedSeatId(seat.id);
+                                setDragState({
+                                  seatId: seat.id,
+                                  offsetX: event.clientX - rect.left - seat.x,
+                                  offsetY: event.clientY - rect.top - seat.y,
+                                  canvasRect: rect
+                                });
+                              }}
+                            >
+                              {selectedSalaSeats.findIndex((item) => item.id === seat.id) + 1}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            ) : (
+              <p>Ta sekcja zostanie dodana w kolejnych krokach.</p>
+            )}
 
           </div>
         )}

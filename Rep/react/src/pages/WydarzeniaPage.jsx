@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
 import { AuthContext } from '../context/AuthContext';
 import WydarzenieCard from '../components/WydarzenieCard';
 import PurchaseModal from '../components/PurchaseModal';
+import SeatPlanMap from '../components/SeatPlanMap';
 
 const WydarzeniaPage = () => {
   const { currentUser, authCredentials } = useContext(AuthContext);
@@ -27,7 +28,7 @@ const WydarzeniaPage = () => {
     createNowaKategoria: false,
     nowaKategoriaNazwa: '',
     nowaKategoriaOpis: '',
-    bilety: [{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '' }]
+    bilety: [{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [] }]
   });
   const [status, setStatus] = useState({ type: '', message: '' });
   const [ticketForms, setTicketForms] = useState({});
@@ -36,7 +37,7 @@ const WydarzeniaPage = () => {
   const [selectedZakupEvent, setSelectedZakupEvent] = useState(null);
   const [dostepneBilety, setDostepneBilety] = useState([]);
   const [zakupLoading, setZakupLoading] = useState(false);
-  const [zakupForm, setZakupForm] = useState({ biletId: '', ilosc: '1', potwierdzPlatnosc: false });
+  const [zakupForm, setZakupForm] = useState({ biletId: '', ilosc: '1', potwierdzPlatnosc: false, seatId: '' });
   const [selectedInfoEvent, setSelectedInfoEvent] = useState(null);
   const [selectedPersonelEvent, setSelectedPersonelEvent] = useState(null);
   const [infoLoading, setInfoLoading] = useState(false);
@@ -49,6 +50,20 @@ const WydarzeniaPage = () => {
   const [systemCategoryForm, setSystemCategoryForm] = useState({ nazwa: '', opis: '' });
 
   const PERSONEL_ROLE_OPTIONS = ['ochrona', 'konferansjer', 'manager', 'prelegent', 'partner finansowy', 'gastronomia', 'animator', 'inne'];
+  const selectedSala = useMemo(
+    () => wydarzenieOptions.sale.find((item) => String(item.id) === String(wydarzenieForm.salaId)) || null,
+    [wydarzenieOptions.sale, wydarzenieForm.salaId]
+  );
+  const selectedSalaSeats = useMemo(() => {
+    if (!selectedSala?.planJson) return [];
+    try {
+      const parsed = JSON.parse(selectedSala.planJson);
+      return Array.isArray(parsed?.seats) ? parsed.seats : [];
+    } catch (error) {
+      return [];
+    }
+  }, [selectedSala]);
+  const hasSelectedSalaPlan = Boolean(selectedSala?.maPlan && selectedSalaSeats.length > 0);
 
   const getRequestConfig = useCallback(() => {
     const config = { withCredentials: true };
@@ -82,7 +97,7 @@ const WydarzeniaPage = () => {
   const addBiletForm = () => {
     setWydarzenieForm(prev => ({
       ...prev,
-      bilety: [...prev.bilety, { klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '' }]
+      bilety: [...prev.bilety, { klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [] }]
     }));
   };
 
@@ -99,6 +114,41 @@ const WydarzeniaPage = () => {
       newBilety[index] = { ...newBilety[index], [field]: value };
       return { ...prev, bilety: newBilety };
     });
+  };
+
+  const toggleBiletSeat = (index, seatId) => {
+    setWydarzenieForm((prev) => {
+      const currentSeatIds = prev.bilety[index]?.seatIds || [];
+      const nextSeatIds = currentSeatIds.includes(seatId)
+        ? currentSeatIds.filter((item) => item !== seatId)
+        : [...currentSeatIds, seatId];
+      const newBilety = [...prev.bilety];
+      newBilety[index] = {
+        ...newBilety[index],
+        seatIds: nextSeatIds,
+        ilosc: String(nextSeatIds.length)
+      };
+      return { ...prev, bilety: newBilety };
+    });
+  };
+
+  const getSeatClassById = () => wydarzenieForm.bilety.reduce((acc, bilet) => {
+    (bilet.seatIds || []).forEach((seatId) => {
+      acc[seatId] = bilet.klasa;
+    });
+    return acc;
+  }, {});
+
+  const getSelectableSeatIds = (index) => {
+    const currentSeatIds = wydarzenieForm.bilety[index]?.seatIds || [];
+    const blocked = new Set(
+      wydarzenieForm.bilety.flatMap((bilet, biletIndex) => (biletIndex === index ? [] : (bilet.seatIds || [])))
+    );
+    return new Set(
+      selectedSalaSeats
+        .map((seat) => seat.id)
+        .filter((seatId) => !blocked.has(seatId) || currentSeatIds.includes(seatId))
+    );
   };
 
   const onWydarzenieSubmit = async (event) => {
@@ -120,7 +170,8 @@ const WydarzeniaPage = () => {
           ilosc: Number(b.ilosc),
           waluta: b.waluta,
           startSprzedazy: b.start_sprzedazy || null,
-          koniecSprzedazy: b.koniec_sprzedazy || null
+          koniecSprzedazy: b.koniec_sprzedazy || null,
+          seatIds: b.seatIds || []
         }))
       });
 
@@ -144,7 +195,8 @@ const WydarzeniaPage = () => {
             waluta: b.waluta,
             ilosc: Number(b.ilosc),
             startSprzedazy: b.start_sprzedazy || null,
-            koniecSprzedazy: b.koniec_sprzedazy || null
+            koniecSprzedazy: b.koniec_sprzedazy || null,
+            seatIds: b.seatIds || []
           }))
         },
         getRequestConfig()
@@ -156,7 +208,7 @@ const WydarzeniaPage = () => {
         salaId: '', tytul: '', opis: '', kategoriaId: '', rola: '', status: '',
         dataRozp: '', dataZamk: '', createNowaKategoria: false,
         nowaKategoriaNazwa: '', nowaKategoriaOpis: '',
-        bilety: [{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '' }]
+        bilety: [{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [] }]
       });
       fetchWydarzeniaOptions();
       fetchMyWydarzenia();
@@ -217,7 +269,8 @@ const WydarzeniaPage = () => {
       setZakupForm({
         biletId: response.data[0]?.biletId ? String(response.data[0].biletId) : '',
         ilosc: '1',
-        potwierdzPlatnosc: false
+        potwierdzPlatnosc: false,
+        seatId: ''
       });
       setZakupFormOpen(true);
     } catch (error) {
@@ -236,14 +289,19 @@ const WydarzeniaPage = () => {
       await apiClient.post(`/zakupy/wydarzenia/${selectedZakupEvent.id}`, {
         biletId: Number(zakupForm.biletId),
         ilosc: Number(zakupForm.ilosc),
-        potwierdzPlatnosc: zakupForm.potwierdzPlatnosc
+        potwierdzPlatnosc: zakupForm.potwierdzPlatnosc,
+        seatId: zakupForm.seatId || null
       }, getRequestConfig());
       setStatus({ type: 'success', message: 'Zakup zakończony pomyślnie.' });
       setZakupFormOpen(false);
       setSelectedZakupEvent(null);
       fetchMyWydarzenia();
     } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udało się zakończyć zakupu.' });
+      const message = error.response?.data?.message
+        || error.response?.data?.detail
+        || (typeof error.response?.data === 'string' ? error.response.data : null)
+        || 'Nie udało się zakończyć zakupu.';
+      setStatus({ type: 'error', message });
     } finally {
       setZakupLoading(false);
     }
@@ -482,7 +540,18 @@ const WydarzeniaPage = () => {
                   <select
                     id="wyd-sala"
                     value={wydarzenieForm.salaId}
-                    onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, salaId: event.target.value })}
+                    onChange={(event) => {
+                      const nextSala = wydarzenieOptions.sale.find((item) => String(item.id) === String(event.target.value));
+                      setWydarzenieForm({
+                        ...wydarzenieForm,
+                        salaId: event.target.value,
+                        bilety: wydarzenieForm.bilety.map((bilet) => ({
+                          ...bilet,
+                          seatIds: [],
+                          ilosc: nextSala?.maPlan ? '' : bilet.ilosc
+                        }))
+                      });
+                    }}
                     required
                   >
                     <option value="">Wybierz salę</option>
@@ -589,7 +658,7 @@ const WydarzeniaPage = () => {
                           <input id={`bilet-cena-${index}`} type="number" step="0.01" placeholder="Cena" value={bilet.cena} onChange={(e) => updateBiletInForm(index, 'cena', e.target.value)} required />
 
                           <label htmlFor={`bilet-ilosc-${index}`}>Ilość</label>
-                          <input id={`bilet-ilosc-${index}`} type="number" placeholder="Ilość" value={bilet.ilosc} onChange={(e) => updateBiletInForm(index, 'ilosc', e.target.value)} required />
+                          <input id={`bilet-ilosc-${index}`} type="number" placeholder="Ilość" value={bilet.ilosc} onChange={(e) => updateBiletInForm(index, 'ilosc', e.target.value)} disabled={hasSelectedSalaPlan} required />
 
                           <label htmlFor={`bilet-waluta-${index}`}>Waluta</label>
                           <select id={`bilet-waluta-${index}`} value={bilet.waluta} onChange={(e) => updateBiletInForm(index, 'waluta', e.target.value)} required>
@@ -603,6 +672,20 @@ const WydarzeniaPage = () => {
 
                           <label htmlFor={`bilet-koniec-${index}`}>Koniec sprzedaży</label>
                           <input id={`bilet-koniec-${index}`} type="datetime-local" value={bilet.koniec_sprzedazy} onChange={(e) => updateBiletInForm(index, 'koniec_sprzedazy', e.target.value)} />
+
+                          {hasSelectedSalaPlan && (
+                            <>
+                              <p style={{ margin: '8px 0 0', color: '#cbd5e1' }}>Wybierz miejsca tej klasy. Ilość ustala się automatycznie.</p>
+                              <SeatPlanMap
+                                seats={selectedSalaSeats}
+                                seatClassById={getSeatClassById()}
+                                selectedSeatIds={bilet.seatIds || []}
+                                selectableSeatIds={getSelectableSeatIds(index)}
+                                onSeatClick={(seatId) => toggleBiletSeat(index, seatId)}
+                                showLegend
+                              />
+                            </>
+                          )}
 
                           <button type="button" onClick={() => removeBiletForm(index)} className="btn-delete">X</button>
                         </div>

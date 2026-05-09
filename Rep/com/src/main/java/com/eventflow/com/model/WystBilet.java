@@ -33,4 +33,7 @@ public class WystBilet {
 	private LocalDateTime uzytyData;
 
 	private String kod;
+
+	@Column(name = "seat_id")
+	private String seatId;
 }
