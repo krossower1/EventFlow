@@ -100,6 +100,29 @@ public class MiejsceController {
 		return ResponseEntity.status(CREATED).body(toSalaDto(saved));
 	}
 
+	@PutMapping("/sale/{salaId}/plan")
+	public ResponseEntity<SalaResponseDto> updateSalaPlan(
+		@PathVariable Long salaId,
+		Authentication authentication,
+		@Valid @RequestBody SalaPlanUpdateRequestDto request
+	) {
+		User currentUser = requireOrg(authentication);
+		Sala sala = salaRepository.findById(salaId)
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono sali."));
+		Miejsce miejsce = miejsceRepository.findById(sala.getMiejsceId())
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono miejsca dla sali."));
+		if (!miejsce.getUserId().equals(currentUser.getId())) {
+			throw new ResponseStatusException(FORBIDDEN, "Ta sala nie nalezy do Ciebie.");
+		}
+		if (!Boolean.TRUE.equals(sala.getMaPlan())) {
+			throw new ResponseStatusException(BAD_REQUEST, "Ta sala nie obsluguje ukladu planu.");
+		}
+
+		sala.setPlanJson(request.planJson());
+		Sala updated = salaRepository.save(sala);
+		return ResponseEntity.ok(toSalaDto(updated));
+	}
+
 	@PatchMapping("/{miejsceId}/ilosc-sal")
 	public ResponseEntity<MiejsceResponseDto> increaseIloscSal(
 		@PathVariable Long miejsceId,
@@ -157,7 +180,8 @@ public class MiejsceController {
 			sala.getNazwa(),
 			sala.getPojemnosc(),
 			sala.getPietro(),
-			sala.getMaPlan()
+			sala.getMaPlan(),
+			sala.getPlanJson()
 		);
 	}
 

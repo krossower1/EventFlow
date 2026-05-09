@@ -20,4 +20,7 @@ public class Sala {
 
 	@Column(name = "ma_plan")
 	private Boolean maPlan;
+
+	@Column(name = "plan_json", columnDefinition = "TEXT")
+	private String planJson;
 }
