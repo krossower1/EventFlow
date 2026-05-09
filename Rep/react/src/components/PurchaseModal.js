@@ -58,7 +58,7 @@ const PurchaseModal = ({
           <select
             id="zakup-bilet"
             value={zakupForm.biletId}
-            onChange={(event) => setZakupForm({ ...zakupForm, biletId: event.target.value, seatId: '' })}
+            onChange={(event) => setZakupForm((prev) => ({ ...prev, biletId: event.target.value, seatId: '' }))}
             required
           >
             <option value="">Wybierz klasę biletu</option>
@@ -75,7 +75,7 @@ const PurchaseModal = ({
             type="number"
             min="1"
             value={zakupForm.ilosc}
-            onChange={(event) => setZakupForm({ ...zakupForm, ilosc: event.target.value })}
+            onChange={(event) => setZakupForm((prev) => ({ ...prev, ilosc: event.target.value }))}
             disabled={Boolean(selectedBilet?.requiresSeatSelection)}
             required
           />
@@ -89,9 +89,10 @@ const PurchaseModal = ({
                 occupiedSeatIds={occupiedSeatIds}
                 activeSeatId={zakupForm.seatId}
                 selectableSeatIds={selectableSeatIds}
-                onSeatClick={(seatId) => setZakupForm({ ...zakupForm, seatId, ilosc: '1' })}
+                onSeatClick={(seatId) => setZakupForm((prev) => ({ ...prev, seatId, ilosc: '1' }))}
                 showLegend
               />
+              <input type="hidden" name="seatId" value={zakupForm.seatId || ''} />
             </>
           )}
 
@@ -100,7 +101,7 @@ const PurchaseModal = ({
               id="zakup-potwierdzenie"
               type="checkbox"
               checked={zakupForm.potwierdzPlatnosc}
-              onChange={(event) => setZakupForm({ ...zakupForm, potwierdzPlatnosc: event.target.checked })}
+              onChange={(event) => setZakupForm((prev) => ({ ...prev, potwierdzPlatnosc: event.target.checked }))}
             />
             Potwierdzam płatność testową
           </label>
