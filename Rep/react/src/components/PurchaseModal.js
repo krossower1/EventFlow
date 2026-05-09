@@ -1,4 +1,5 @@
 import React from 'react';
+import SeatPlanMap from './SeatPlanMap';
 
 const PurchaseModal = ({
   isOpen,
@@ -20,6 +21,13 @@ const PurchaseModal = ({
     seats = [];
   }
   const occupiedSeatIds = selectedBilet?.occupiedSeatIds || [];
+  const seatClassById = dostepneBilety.reduce((acc, bilet) => {
+    (bilet.assignedSeatIds || []).forEach((seatId) => {
+      acc[seatId] = bilet.klasa;
+    });
+    return acc;
+  }, {});
+  const selectableSeatIds = new Set(selectedBilet?.assignedSeatIds || []);
 
   return (
     <div
@@ -74,31 +82,16 @@ const PurchaseModal = ({
 
           {selectedBilet?.requiresSeatSelection && (
             <>
-              <p>Wybierz wolne miejsce z planu sali.</p>
-              <div className="purchase-seat-map">
-                {seats.map((seat, index) => {
-                  const occupied = occupiedSeatIds.includes(seat.id);
-                  const selected = zakupForm.seatId === seat.id;
-                  return (
-                    <button
-                      key={seat.id || index}
-                      type="button"
-                      className={`purchase-seat ${occupied ? 'is-occupied' : ''} ${selected ? 'is-selected' : ''}`}
-                      style={{
-                        left: seat.x,
-                        top: seat.y,
-                        width: seat.rotation === 90 ? 24 : 36,
-                        height: seat.rotation === 90 ? 36 : 24,
-                        transform: `rotate(${seat.rotation || 0}deg)`
-                      }}
-                      disabled={occupied}
-                      onClick={() => setZakupForm({ ...zakupForm, seatId: seat.id, ilosc: '1' })}
-                    >
-                      {index + 1}
-                    </button>
-                  );
-                })}
-              </div>
+              <p>Wybierz wolne miejsce przypisane do tej klasy biletu.</p>
+              <SeatPlanMap
+                seats={seats}
+                seatClassById={seatClassById}
+                occupiedSeatIds={occupiedSeatIds}
+                activeSeatId={zakupForm.seatId}
+                selectableSeatIds={selectableSeatIds}
+                onSeatClick={(seatId) => setZakupForm({ ...zakupForm, seatId, ilosc: '1' })}
+                showLegend
+              />
             </>
           )}
 

@@ -13,6 +13,7 @@ public record DostepnyBiletDto(
 	LocalDateTime startSprzedazy,
 	LocalDateTime koniecSprzedazy,
 	Boolean requiresSeatSelection,
+	List<String> assignedSeatIds,
 	String salaPlanJson,
 	List<String> occupiedSeatIds
 ) {

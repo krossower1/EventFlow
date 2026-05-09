@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -128,11 +129,15 @@ public class ZakupController {
 			throw new ResponseStatusException(BAD_REQUEST, "Brak wymaganej liczby biletow w dostepnej puli.");
 		}
 		if (requiresSeatSelection) {
+			List<String> assignedSeatIds = parseSeatIds(bilet.getSeatIds());
 			if (request.ilosc() != 1) {
 				throw new ResponseStatusException(BAD_REQUEST, "Dla sal z planem mozesz kupic tylko jedno miejsce na raz.");
 			}
 			if (request.seatId() == null || request.seatId().isBlank()) {
 				throw new ResponseStatusException(BAD_REQUEST, "Wybierz miejsce z planu sali.");
+			}
+			if (!assignedSeatIds.contains(request.seatId())) {
+				throw new ResponseStatusException(BAD_REQUEST, "Wybrane miejsce nie nalezy do tej klasy biletu.");
 			}
 			boolean occupied = wystBiletRepository.findByBiletIdIn(
 				biletRepository.findByWydarzenieId(wydarzenieId).stream().map(Bilet::getId).toList()
@@ -182,6 +187,7 @@ public class ZakupController {
 		Wydarzenie wydarzenie = wydarzenieRepository.findById(bilet.getWydarzenieId()).orElse(null);
 		Sala sala = wydarzenie == null ? null : salaRepository.findById(wydarzenie.getSalaId()).orElse(null);
 		boolean requiresSeatSelection = sala != null && Boolean.TRUE.equals(sala.getMaPlan()) && sala.getPlanJson() != null && !sala.getPlanJson().isBlank();
+		List<String> assignedSeatIds = parseSeatIds(bilet.getSeatIds());
 		List<String> occupiedSeatIds = requiresSeatSelection
 			? wystBiletRepository.findByBiletIdIn(biletRepository.findByWydarzenieId(bilet.getWydarzenieId()).stream().map(Bilet::getId).toList())
 				.stream()
@@ -201,6 +207,9 @@ public class ZakupController {
 		if (bilet.getKoniecSprzedazy() != null && bilet.getKoniecSprzedazy().isBefore(now)) {
 			return null;
 		}
+		if (requiresSeatSelection && assignedSeatIds.isEmpty()) {
+			return null;
+		}
 
 		return new DostepnyBiletDto(
 			bilet.getId(),
@@ -211,9 +220,21 @@ public class ZakupController {
 			bilet.getStartSprzedazy(),
 			bilet.getKoniecSprzedazy(),
 			requiresSeatSelection,
+			assignedSeatIds,
 			requiresSeatSelection ? sala.getPlanJson() : null,
 			occupiedSeatIds
 		);
+	}
+
+	private List<String> parseSeatIds(String seatIds) {
+		if (seatIds == null || seatIds.isBlank()) {
+			return List.of();
+		}
+		return Arrays.stream(seatIds.split(","))
+			.map(String::trim)
+			.filter(item -> !item.isBlank())
+			.distinct()
+			.toList();
 	}
 
 	private User requireAuthenticatedUser(Authentication authentication) {

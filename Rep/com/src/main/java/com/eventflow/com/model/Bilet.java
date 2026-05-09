@@ -35,4 +35,7 @@ public class Bilet {
 
 	@Column(name = "koniec_sprzedazy")
 	private LocalDateTime koniecSprzedazy;
+
+	@Column(name = "seat_ids", columnDefinition = "TEXT")
+	private String seatIds;
 }
