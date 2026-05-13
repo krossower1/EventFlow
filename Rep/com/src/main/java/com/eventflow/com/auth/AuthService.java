@@ -254,6 +254,24 @@ public class AuthService {
 		userRepository.save(user);
 	}
 
+	@Transactional
+	public void adminForcePasswordReset(User target, User adminActor) {
+		if (target == null || adminActor == null) {
+			throw new RuntimeException("Brak danych użytkownika");
+		}
+		if ("ADMIN".equalsIgnoreCase(target.getRola())) {
+			throw new RuntimeException("Nie można wymusić resetu hasła na koncie administratora");
+		}
+		if (target.getEmail() == null || target.getEmail().isBlank()) {
+			throw new RuntimeException("Konto nie ma adresu email — nie można wysłać tymczasowego hasła");
+		}
+		String temporaryPassword = generateToken(14);
+		target.setHaslo(passwordEncoder.encode(temporaryPassword));
+		target.setSalt(generateToken(SALT_LENGTH));
+		userRepository.save(target);
+		emailService.sendForcedPasswordResetNotice(target.getEmail(), temporaryPassword);
+	}
+
 	// Rozpoczyna proces weryfikacji nowego emaila: generuje kod, ustawia TTL i wysyła wiadomość.
 	@Transactional
 	public void requestEmailVerification(User user, String newEmail) {

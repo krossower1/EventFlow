@@ -38,7 +38,11 @@ public class AuthController {
 	private final TotpService totpService;
 	private final AuthenticationManager authenticationManager;
 
-	public AuthController(AuthService authService, TotpService totpService, AuthenticationManager authenticationManager) {
+	public AuthController(
+		AuthService authService,
+		TotpService totpService,
+		AuthenticationManager authenticationManager
+	) {
 		this.authService = authService;
 		this.totpService = totpService;
 		this.authenticationManager = authenticationManager;
@@ -229,6 +233,7 @@ public class AuthController {
 
 	private SessionUserResponse toSessionUser(User user) {
 		return new SessionUserResponse(
+			user.getId(),
 			user.getLogin(),
 			user.getRola(),
 			user.getImie(),

@@ -2,6 +2,8 @@ import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
 import { authService } from '../services/authService';
+/** Skrzynka zgłoszeń bezpieczeństwa (wklejana w podzakładce „Zgłoszenia” tylko dla ADMIN). */
+import SecurityInboxPage from './SecurityInboxPage';
 import QRCode from 'qrcode';
 const SESSION_SETTINGS_STORAGE_KEY = 'sessionSettingsCache';
 const SEAT_BASE_WIDTH = 36;
@@ -17,13 +19,6 @@ const tabs = [
   { id: 'wyglad', label: 'Wygląd' },
   { id: 'jezyk-region', label: 'Język i region' },
   { id: 'platnosci', label: 'Płatności' }
-];
-
-const securityTabs = [
-  { id: 'zmiana-hasla', label: 'Zmiana hasła' },
-  { id: '2fa', label: '2FA' },
-  { id: 'czas-sesji', label: 'Czas sesji' },
-  { id: 'historia-logowan', label: 'Historia logowań' }
 ];
 
 const UstawieniaPage = () => {
@@ -96,6 +91,10 @@ const UstawieniaPage = () => {
   const [loginHistory, setLoginHistory] = useState([]);
   const [isLoadingLoginHistory, setIsLoadingLoginHistory] = useState(false);
   const [loginHistoryStatus, setLoginHistoryStatus] = useState({ type: '', message: '' });
+  /** Modal zgłoszenia wpisu historii: ID wybranego LoginLog, opcjonalna notatka, stan wysyłki POST report-login. */
+  const [reportLoginLogId, setReportLoginLogId] = useState(null);
+  const [reportNote, setReportNote] = useState('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [miejscaLayoutData, setMiejscaLayoutData] = useState([]);
   const [isLoadingLayouts, setIsLoadingLayouts] = useState(false);
   const [layoutStatus, setLayoutStatus] = useState({ type: '', message: '' });
@@ -116,6 +115,19 @@ const UstawieniaPage = () => {
     { key: 'email', label: 'Email', type: 'email' },
     { key: 'telefon', label: 'Telefon', type: 'tel' }
   ]), []);
+
+  const isAdminUser = String(currentUser?.rola || '').toUpperCase() === 'ADMIN';
+
+  /** Podzakładki sekcji Bezpieczeństwo; „Zgłoszenia” tylko dla admina (UI: tooltip + disabled). */
+  const securityTabs = useMemo(() => {
+    return [
+      { id: 'zmiana-hasla', label: 'Zmiana hasła' },
+      { id: '2fa', label: '2FA' },
+      { id: 'czas-sesji', label: 'Czas sesji' },
+      { id: 'historia-logowan', label: 'Historia logowań' },
+      { id: 'zgłoszenia', label: 'Zgłoszenia', adminOnly: true }
+    ];
+  }, []);
 
   const selectedSala = useMemo(() => {
     for (const miejsce of miejscaLayoutData) {
@@ -526,7 +538,37 @@ const UstawieniaPage = () => {
     }
   };
 
-  const isAdminUser = String(currentUser?.rola || '').toUpperCase() === 'ADMIN';
+  /**
+   * Wysyła zgłoszenie bezpieczeństwa z historii logowań: POST /api/users/me/security-tickets/report-login.
+   * Backend tworzy wiersz security_tickets tylko jeśli loginLogId należy do zalogowanego użytkownika.
+   */
+  const handleSubmitLoginReport = async (event) => {
+    event.preventDefault();
+    if (reportLoginLogId == null) return;
+    setIsSubmittingReport(true);
+    setLoginHistoryStatus({ type: '', message: '' });
+    try {
+      const payload = { loginLogId: reportLoginLogId };
+      const trimmed = reportNote.trim();
+      if (trimmed) payload.note = trimmed;
+      await apiClient.post('/users/me/security-tickets/report-login', payload, getRequestConfig());
+      setLoginHistoryStatus({ type: 'success', message: 'Zgłoszenie zostało wysłane do skrzynki administratorów.' });
+      setReportLoginLogId(null);
+      setReportNote('');
+    } catch (error) {
+      const msg = error.response?.data?.message || error.response?.data?.detail || 'Nie udało się wysłać zgłoszenia.';
+      setLoginHistoryStatus({ type: 'error', message: msg });
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
+
+  /** Nie-admin nie może zostawać na podzakładce „Zgłoszenia” (np. po zmianie roli) — bezpieczne przekierowanie. */
+  useEffect(() => {
+    if (activeTab === 'bezpieczenstwo' && activeSecurityTab === 'zgłoszenia' && !isAdminUser) {
+      setActiveSecurityTab('zmiana-hasla');
+    }
+  }, [activeTab, activeSecurityTab, isAdminUser]);
 
   useEffect(() => {
     // Front generuje obraz QR lokalnie z URI otpauth zwróconego przez backend.
@@ -799,14 +841,23 @@ const UstawieniaPage = () => {
             <h3>Bezpieczeństwo</h3>
             <nav className="settings-subnav" aria-label="Sekcje bezpieczeństwa">
               {securityTabs.map((tab) => (
-                <button
+                <span
                   key={tab.id}
-                  type="button"
-                  className={`settings-subnav-item ${activeSecurityTab === tab.id ? 'active' : ''}`}
-                  onClick={() => setActiveSecurityTab(tab.id)}
+                  className={`permission-tooltip ${tab.adminOnly && !isAdminUser ? 'has-tooltip' : ''}`}
+                  data-tooltip={tab.adminOnly && !isAdminUser ? 'Dostępne tylko dla administratora' : ''}
                 >
-                  {tab.label}
-                </button>
+                  <button
+                    type="button"
+                    className={`settings-subnav-item ${activeSecurityTab === tab.id ? 'active' : ''} ${tab.adminOnly && !isAdminUser ? 'is-disabled' : ''}`}
+                    aria-disabled={tab.adminOnly && !isAdminUser ? 'true' : undefined}
+                    onClick={() => {
+                      if (tab.adminOnly && !isAdminUser) return;
+                      setActiveSecurityTab(tab.id);
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                </span>
               ))}
             </nav>
 
@@ -1181,11 +1232,11 @@ const UstawieniaPage = () => {
                               </td>
                             </tr>
                           ) : (
-                            loginHistory.map((entry, index) => {
+                            loginHistory.map((entry) => {
                               const statusLabel = mapLoginStatusLabel(entry.status);
                               const isSuccess = entry.status === 'SUKCES';
                               return (
-                                <tr key={`${entry.loginTime || 'log'}-${index}`}>
+                                <tr key={entry.id != null ? String(entry.id) : `${entry.loginTime}-${entry.status}`}>
                                   <td>{formatLoginTime(entry.loginTime)}</td>
                                   <td>{entry.deviceInfo || 'Nieznane urządzenie'}</td>
                                   <td>{entry.location || 'Nieznana lokalizacja'}</td>
@@ -1195,18 +1246,25 @@ const UstawieniaPage = () => {
                                     </span>
                                   </td>
                                   <td>
-                                    {index === 0 && isSuccess ? (
-                                      <span className="settings-login-action-me">To jesteś Ty</span>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        className="btn-secondary settings-login-action-report"
-                                        disabled={isAdminUser}
-                                        title={isAdminUser ? 'Administrator nie zgłasza logowań z tego poziomu.' : ''}
-                                      >
-                                        Zgłoś
-                                      </button>
-                                    )}
+                                    <button
+                                      type="button"
+                                      className="btn-secondary settings-login-action-report"
+                                      disabled={isAdminUser || entry.id == null}
+                                      title={
+                                        isAdminUser
+                                          ? 'Administrator nie zgłasza logowań z tego poziomu.'
+                                          : entry.id == null
+                                            ? 'Brak identyfikatora wpisu — odśwież stronę.'
+                                            : 'Wyślij zgłoszenie do administratorów'
+                                      }
+                                      onClick={() => {
+                                        if (isAdminUser || entry.id == null) return;
+                                        setReportLoginLogId(entry.id);
+                                        setReportNote('');
+                                      }}
+                                    >
+                                      Zgłoś
+                                    </button>
                                   </td>
                                 </tr>
                               );
@@ -1221,6 +1279,45 @@ const UstawieniaPage = () => {
                       {loginHistoryStatus.message}
                     </p>
                   )}
+                  {reportLoginLogId != null && (
+                    <div
+                      className="settings-report-overlay"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="settings-report-title"
+                      onClick={() => !isSubmittingReport && setReportLoginLogId(null)}
+                    >
+                      <div className="settings-report-dialog" onClick={(e) => e.stopPropagation()}>
+                        <h4 id="settings-report-title">Zgłoś wpis z historii logowań</h4>
+                        <p>Administratorzy zobaczą to zgłoszenie w zakładce Bezpieczeństwo → Zgłoszenia lub na stronie skrzynki.</p>
+                        <label htmlFor="settings-report-note">Opcjonalna wiadomość</label>
+                        <textarea
+                          id="settings-report-note"
+                          rows={4}
+                          value={reportNote}
+                          onChange={(e) => setReportNote(e.target.value)}
+                          placeholder="Np. nie rozpoznaję tego urządzenia ani miejsca…"
+                          disabled={isSubmittingReport}
+                        />
+                        <div className="settings-report-actions">
+                          <button type="button" className="btn-secondary" onClick={() => !isSubmittingReport && setReportLoginLogId(null)} disabled={isSubmittingReport}>
+                            Anuluj
+                          </button>
+                          <button type="button" className="btn-new-event" onClick={handleSubmitLoginReport} disabled={isSubmittingReport}>
+                            {isSubmittingReport ? 'Wysyłanie…' : 'Wyślij zgłoszenie'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+              {activeSecurityTab === 'zgłoszenia' && isAdminUser && (
+                <>
+                  <h4>Zgłoszenia</h4>
+                  <p>Wspólna skrzynka alertów bezpieczeństwa. Nowe pozycje są widoczne dla wszystkich administratorów.</p>
+                  {/* Ta sama logika co trasa /admin/security-inbox; prop embedded zarezerwowany na ewentualne różnice layoutu. */}
+                  <SecurityInboxPage embedded />
                 </>
               )}
             </div>

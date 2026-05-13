@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
   
   // Dane użytkownika
   const [currentUser, setCurrentUser] = useState({
+    id: null,
     login: '',
     rola: '',
     imie: '',
@@ -109,6 +110,7 @@ export const AuthProvider = ({ children }) => {
     setIsLoggedIn(true);
     const userSource = user?.user || user;
     const normalizedUser = {
+      id: userSource.id != null ? Number(userSource.id) : null,
       login: userSource.login || '',
       rola: userSource.rola || '',
       imie: userSource.imie || '',
@@ -196,7 +198,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('explicitLogout', 'true');
       
       setIsLoggedIn(false);
-      setCurrentUser({ login: '', rola: '', imie: '', nazwisko: '', email: '', telefon: '' });
+      setCurrentUser({ id: null, login: '', rola: '', imie: '', nazwisko: '', email: '', telefon: '' });
       setAuthCredentials({ login: '', password: '' });
       setSessionTimeoutEnabled(true);
       setSessionTimeoutMinutes(DEFAULT_SESSION_TIMEOUT_MINUTES);

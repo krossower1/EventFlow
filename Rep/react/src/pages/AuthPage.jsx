@@ -139,6 +139,20 @@ const AuthPage = () => {
             telefon: response.telefon || response.phone || response.user?.telefon || response.user?.phone || ''
           };
 
+        if (!resolvedUser.email && !resolvedUser.mail) {
+          try {
+            const ownProfile = await authService.getOwnProfile({
+              withCredentials: true,
+              headers: {
+                Authorization: `Basic ${btoa(`${pending2faLogin.login}:${pending2faLogin.password}`)}`
+              }
+            });
+            if (ownProfile) Object.assign(resolvedUser, ownProfile);
+          } catch (profileError) {
+            // Profil opcjonalny
+          }
+        }
+
         applyAuthenticatedUser(
           resolvedUser,
           { login: pending2faLogin.login, password: pending2faLogin.password }
