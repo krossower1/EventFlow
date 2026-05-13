@@ -4,6 +4,8 @@ import com.eventflow.com.controller.dto.UserResponse;
 import com.eventflow.com.controller.dto.UpdateOwnProfileRequest;
 import com.eventflow.com.controller.dto.ChangeOwnPasswordRequest;
 import com.eventflow.com.controller.dto.LoginLogResponse;
+import com.eventflow.com.controller.dto.ReportSuspiciousLoginRequest;
+import com.eventflow.com.controller.dto.SecurityTicketAdminResponse;
 import com.eventflow.com.controller.dto.SessionSettingsResponse;
 import com.eventflow.com.controller.dto.UpdateSessionSettingsRequest;
 import com.eventflow.com.auth.AuthService;
@@ -11,6 +13,7 @@ import com.eventflow.com.model.LoginLog;
 import com.eventflow.com.model.User;
 import com.eventflow.com.repository.LoginLogRepository;
 import com.eventflow.com.repository.UserRepository;
+import com.eventflow.com.service.SecurityTicketService;
 import com.eventflow.com.service.UserCascadeDeleteService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -35,17 +38,21 @@ public class UserController {
     private final LoginLogRepository loginLogRepository;
     private final UserCascadeDeleteService userCascadeDeleteService;
     private final AuthService authService;
+    /** Tworzenie zgłoszeń bezpieczeństwa z poziomu profilu (historia logowań). */
+    private final SecurityTicketService securityTicketService;
 
     public UserController(
         UserRepository userRepository,
         LoginLogRepository loginLogRepository,
         UserCascadeDeleteService userCascadeDeleteService,
-        AuthService authService
+        AuthService authService,
+        SecurityTicketService securityTicketService
     ) {
         this.userRepository = userRepository;
         this.loginLogRepository = loginLogRepository;
         this.userCascadeDeleteService = userCascadeDeleteService;
         this.authService = authService;
+        this.securityTicketService = securityTicketService;
     }
 
     @GetMapping
@@ -199,12 +206,31 @@ public class UserController {
         );
         return logs.stream()
             .map(log -> new LoginLogResponse(
+                log.getId(),
                 log.getLoginTime(),
                 log.getLocation(),
                 log.getDeviceInfo(),
                 log.getStatus()
             ))
             .toList();
+    }
+
+    /**
+     * Zgłoszenie wpisu z własnej historii logowań do skrzynki administratorów.
+     * Weryfikuje, że {@link ReportSuspiciousLoginRequest#loginLogId()} należy do zalogowanego użytkownika (w serwisie).
+     * Zwraca ten sam kształt JSON co lista admina, żeby ewentualny front mógł od razu pokazać utworzone zgłoszenie.
+     */
+    @PostMapping("/me/security-tickets/report-login")
+    public SecurityTicketAdminResponse reportSuspiciousLoginFromHistory(
+        @RequestBody ReportSuspiciousLoginRequest request,
+        Authentication authentication
+    ) {
+        User currentUser = requireCurrentUser(authentication);
+        return securityTicketService.reportSuspiciousLoginReturningDto(
+            currentUser,
+            request.loginLogId(),
+            request.note()
+        );
     }
 
     @DeleteMapping("/me")

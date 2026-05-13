@@ -134,14 +134,20 @@ const MiejscaPage = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>{currentUser?.rola === 'ORG' ? 'Zarządzaj miejscami' : 'Przeglądaj miejsca (zarządzanie tylko dla organizatorów)'}</h2>
-        <div>
+        <div className="miejsca-page-toolbar-actions">
           <span
             className={`permission-tooltip ${currentUser?.rola !== 'ORG' ? 'has-tooltip' : ''}`}
             data-tooltip={currentUser?.rola !== 'ORG' ? 'Dostępne tylko dla organizatora' : ''}
-            style={{ marginRight: '10px' }}
           >
-            <button className="btn-refresh" onClick={fetchMyMiejsca} disabled={currentUser?.rola !== 'ORG'}>
-              Odśwież
+            <button
+              type="button"
+              className="btn-refresh-icon"
+              onClick={fetchMyMiejsca}
+              disabled={currentUser?.rola !== 'ORG'}
+              aria-label="Odśwież"
+              title="Odśwież"
+            >
+              <img src="/refresh.png" alt="" width={22} height={22} />
             </button>
           </span>
           <span
