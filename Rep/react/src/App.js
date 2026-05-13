@@ -16,6 +16,7 @@ import EventDetailPage from './pages/EventDetailPage';
 import UsersPage from './pages/UsersPage';
 import UstawieniaPage from './pages/UstawieniaPage';
 import SecurityInboxPage from './pages/SecurityInboxPage';
+import AnalitykaPage from './pages/AnalitykaPage';
 
 // Moduł sterujący dostępem
 const AppRoutes = () => {
@@ -53,6 +54,7 @@ const AppRoutes = () => {
         <Route path="wydarzenia" element={<WydarzeniaPage />} />
         <Route path="wydarzenia/:id" element={<EventDetailPage />} />
         <Route path="miejsca" element={<MiejscaPage />} />
+        <Route path="analityka" element={<AnalitykaPage />} />
         <Route path="uczestnicy" element={<UsersPage />} />
         <Route path="ustawienia" element={<UstawieniaPage />} />
         <Route path="admin/security-inbox" element={<SecurityInboxPage />} />
