@@ -12,11 +12,19 @@ const getSeatTone = (seatClass) => {
   return 'is-other';
 };
 
-const getSeatSize = (seat) => (
-  seat?.rotation === 90
-    ? { width: 24, height: 36 }
-    : { width: 36, height: 24 }
-);
+const getSeatSize = (seat) => {
+  const rotation = seat?.rotation || 0;
+  if (rotation === 45 || rotation === 135 || rotation === 225 || rotation === 315) {
+    // For 45-degree rotations, scale down so the rotated seat appears the same size
+    // The diagonal of a square with side s is s * sqrt(2)
+    // To make the diagonal equal to 36, we use 36 / sqrt(2)
+    const scaledSize = 36 / Math.sqrt(2);
+    const diagonal = Math.sqrt(scaledSize * scaledSize + scaledSize * scaledSize);
+    return { width: diagonal, height: diagonal };
+  } else {
+    return { width: 36, height: 36 };
+  }
+};
 
 const normalizeSeats = (seats) => {
   if (!Array.isArray(seats) || seats.length === 0) {

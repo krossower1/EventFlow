@@ -7,7 +7,7 @@ import SecurityInboxPage from './SecurityInboxPage';
 import QRCode from 'qrcode';
 const SESSION_SETTINGS_STORAGE_KEY = 'sessionSettingsCache';
 const SEAT_BASE_WIDTH = 36;
-const SEAT_BASE_HEIGHT = 24;
+const SEAT_BASE_HEIGHT = 36;
 const LAYOUT_CANVAS_WIDTH = 720;
 const LAYOUT_CANVAS_HEIGHT = 420;
 
@@ -151,11 +151,19 @@ const UstawieniaPage = () => {
     }
   }, [selectedSala]);
 
-  const getSeatDimensions = (seat) => (
-    seat?.rotation === 90
-      ? { width: SEAT_BASE_HEIGHT, height: SEAT_BASE_WIDTH }
-      : { width: SEAT_BASE_WIDTH, height: SEAT_BASE_HEIGHT }
-  );
+  const getSeatDimensions = (seat) => {
+    const rotation = seat?.rotation || 0;
+    if (rotation === 45 || rotation === 135 || rotation === 225 || rotation === 315) {
+      // For 45-degree rotations, scale down so the rotated seat appears the same size
+      // The diagonal of a square with side s is s * sqrt(2)
+      // To make the diagonal equal to SEAT_BASE_WIDTH, we use SEAT_BASE_WIDTH / sqrt(2)
+      const scaledSize = SEAT_BASE_WIDTH / Math.sqrt(2);
+      const diagonal = Math.sqrt(scaledSize * scaledSize + scaledSize * scaledSize);
+      return { width: diagonal, height: diagonal };
+    } else {
+      return { width: SEAT_BASE_WIDTH, height: SEAT_BASE_HEIGHT };
+    }
+  };
 
   const hasSeatCollision = (seats, candidateSeat) => {
     const candidateSize = getSeatDimensions(candidateSeat);
@@ -261,7 +269,7 @@ const UstawieniaPage = () => {
     if (!selectedSeatId) return;
     const nextSeats = selectedSalaSeats.map((seat) => (
       seat.id === selectedSeatId
-        ? { ...seat, rotation: seat.rotation === 90 ? 0 : 90 }
+        ? { ...seat, rotation: ((seat.rotation || 0) + 45) % 360 }
         : seat
     ));
     const rotatedSeat = nextSeats.find((seat) => seat.id === selectedSeatId);
@@ -1413,7 +1421,8 @@ const UstawieniaPage = () => {
                                 top: seat.y,
                                 width: seatSize.width,
                                 height: seatSize.height,
-                                transform: `rotate(${seat.rotation || 0}deg)`
+                                transform: `rotate(${seat.rotation || 0}deg)`,
+                                transformOrigin: 'center center'
                               }}
                               onMouseDown={(event) => {
                                 const rect = event.currentTarget.parentElement.getBoundingClientRect();
