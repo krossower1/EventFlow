@@ -252,10 +252,6 @@ const UstawieniaPage = () => {
       y: 16,
       rotation: 0
     };
-    if (hasSeatCollision(selectedSalaSeats, newSeat)) {
-      setLayoutStatus({ type: 'error', message: 'Brak miejsca na dodanie kolejnego miejsca.' });
-      return;
-    }
     updateSelectedSalaPlan([...selectedSalaSeats, newSeat]);
     setSelectedSeatId(newSeat.id);
     setLayoutStatus({ type: '', message: '' });
@@ -275,9 +271,8 @@ const UstawieniaPage = () => {
       || rotatedSeat.y < 0
       || rotatedSeat.x + seatSize.width > LAYOUT_CANVAS_WIDTH
       || rotatedSeat.y + seatSize.height > LAYOUT_CANVAS_HEIGHT
-      || hasSeatCollision(nextSeats, rotatedSeat)
     ) {
-      setLayoutStatus({ type: 'error', message: 'Nie można obrócić miejsca w tej pozycji.' });
+      setLayoutStatus({ type: 'error', message: 'Nie można obrócić miejsca w tej pozycji - wykracza poza obszar.' });
       return;
     }
     updateSelectedSalaPlan(nextSeats);
@@ -286,6 +281,27 @@ const UstawieniaPage = () => {
 
   const saveSelectedSalaPlan = async () => {
     if (!selectedSala) return;
+    
+    // Check for overlapping seats
+    const hasOverlaps = selectedSalaSeats.some((seat) => {
+      const candidateSize = getSeatDimensions(seat);
+      return selectedSalaSeats.some((otherSeat) => {
+        if (seat.id === otherSeat.id) return false;
+        const otherSize = getSeatDimensions(otherSeat);
+        return !(
+          seat.x + candidateSize.width <= otherSeat.x
+          || otherSeat.x + otherSize.width <= seat.x
+          || seat.y + candidateSize.height <= otherSeat.y
+          || otherSeat.y + otherSize.height <= seat.y
+        );
+      });
+    });
+
+    if (hasOverlaps) {
+      setLayoutStatus({ type: 'error', message: 'Nie można zapisać układu - miejsca nachodzą na siebie.' });
+      return;
+    }
+
     try {
       await apiClient.put(
         `/miejsca/sale/${selectedSala.id}/plan`,
@@ -472,9 +488,6 @@ const UstawieniaPage = () => {
       const nextX = Math.max(0, Math.min(LAYOUT_CANVAS_WIDTH - seatSize.width, Math.round(event.clientX - canvasRect.left - dragState.offsetX)));
       const nextY = Math.max(0, Math.min(LAYOUT_CANVAS_HEIGHT - seatSize.height, Math.round(event.clientY - canvasRect.top - dragState.offsetY)));
       const candidateSeat = { ...seat, x: nextX, y: nextY };
-      if (hasSeatCollision(selectedSalaSeats, candidateSeat)) {
-        return;
-      }
       updateSelectedSalaPlan(selectedSalaSeats.map((item) => item.id === seat.id ? candidateSeat : item));
     };
 
