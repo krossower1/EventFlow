@@ -7,7 +7,7 @@ import SecurityInboxPage from './SecurityInboxPage';
 import QRCode from 'qrcode';
 const SESSION_SETTINGS_STORAGE_KEY = 'sessionSettingsCache';
 const SEAT_BASE_WIDTH = 36;
-const SEAT_BASE_HEIGHT = 24;
+const SEAT_BASE_HEIGHT = 36;
 const LAYOUT_CANVAS_WIDTH = 720;
 const LAYOUT_CANVAS_HEIGHT = 420;
 
@@ -151,11 +151,19 @@ const UstawieniaPage = () => {
     }
   }, [selectedSala]);
 
-  const getSeatDimensions = (seat) => (
-    seat?.rotation === 90
-      ? { width: SEAT_BASE_HEIGHT, height: SEAT_BASE_WIDTH }
-      : { width: SEAT_BASE_WIDTH, height: SEAT_BASE_HEIGHT }
-  );
+  const getSeatDimensions = (seat) => {
+    const rotation = seat?.rotation || 0;
+    if (rotation === 45 || rotation === 135 || rotation === 225 || rotation === 315) {
+      // For 45-degree rotations, scale down so the rotated seat appears the same size
+      // The diagonal of a square with side s is s * sqrt(2)
+      // To make the diagonal equal to SEAT_BASE_WIDTH, we use SEAT_BASE_WIDTH / sqrt(2)
+      const scaledSize = SEAT_BASE_WIDTH / Math.sqrt(2);
+      const diagonal = Math.sqrt(scaledSize * scaledSize + scaledSize * scaledSize);
+      return { width: diagonal, height: diagonal };
+    } else {
+      return { width: SEAT_BASE_WIDTH, height: SEAT_BASE_HEIGHT };
+    }
+  };
 
   const hasSeatCollision = (seats, candidateSeat) => {
     const candidateSize = getSeatDimensions(candidateSeat);
@@ -252,10 +260,6 @@ const UstawieniaPage = () => {
       y: 16,
       rotation: 0
     };
-    if (hasSeatCollision(selectedSalaSeats, newSeat)) {
-      setLayoutStatus({ type: 'error', message: 'Brak miejsca na dodanie kolejnego miejsca.' });
-      return;
-    }
     updateSelectedSalaPlan([...selectedSalaSeats, newSeat]);
     setSelectedSeatId(newSeat.id);
     setLayoutStatus({ type: '', message: '' });
@@ -265,7 +269,7 @@ const UstawieniaPage = () => {
     if (!selectedSeatId) return;
     const nextSeats = selectedSalaSeats.map((seat) => (
       seat.id === selectedSeatId
-        ? { ...seat, rotation: seat.rotation === 90 ? 0 : 90 }
+        ? { ...seat, rotation: ((seat.rotation || 0) + 45) % 360 }
         : seat
     ));
     const rotatedSeat = nextSeats.find((seat) => seat.id === selectedSeatId);
@@ -275,9 +279,8 @@ const UstawieniaPage = () => {
       || rotatedSeat.y < 0
       || rotatedSeat.x + seatSize.width > LAYOUT_CANVAS_WIDTH
       || rotatedSeat.y + seatSize.height > LAYOUT_CANVAS_HEIGHT
-      || hasSeatCollision(nextSeats, rotatedSeat)
     ) {
-      setLayoutStatus({ type: 'error', message: 'Nie można obrócić miejsca w tej pozycji.' });
+      setLayoutStatus({ type: 'error', message: 'Nie można obrócić miejsca w tej pozycji - wykracza poza obszar.' });
       return;
     }
     updateSelectedSalaPlan(nextSeats);
@@ -286,6 +289,27 @@ const UstawieniaPage = () => {
 
   const saveSelectedSalaPlan = async () => {
     if (!selectedSala) return;
+    
+    // Check for overlapping seats
+    const hasOverlaps = selectedSalaSeats.some((seat) => {
+      const candidateSize = getSeatDimensions(seat);
+      return selectedSalaSeats.some((otherSeat) => {
+        if (seat.id === otherSeat.id) return false;
+        const otherSize = getSeatDimensions(otherSeat);
+        return !(
+          seat.x + candidateSize.width <= otherSeat.x
+          || otherSeat.x + otherSize.width <= seat.x
+          || seat.y + candidateSize.height <= otherSeat.y
+          || otherSeat.y + otherSize.height <= seat.y
+        );
+      });
+    });
+
+    if (hasOverlaps) {
+      setLayoutStatus({ type: 'error', message: 'Nie można zapisać układu - miejsca nachodzą na siebie.' });
+      return;
+    }
+
     try {
       await apiClient.put(
         `/miejsca/sale/${selectedSala.id}/plan`,
@@ -472,9 +496,6 @@ const UstawieniaPage = () => {
       const nextX = Math.max(0, Math.min(LAYOUT_CANVAS_WIDTH - seatSize.width, Math.round(event.clientX - canvasRect.left - dragState.offsetX)));
       const nextY = Math.max(0, Math.min(LAYOUT_CANVAS_HEIGHT - seatSize.height, Math.round(event.clientY - canvasRect.top - dragState.offsetY)));
       const candidateSeat = { ...seat, x: nextX, y: nextY };
-      if (hasSeatCollision(selectedSalaSeats, candidateSeat)) {
-        return;
-      }
       updateSelectedSalaPlan(selectedSalaSeats.map((item) => item.id === seat.id ? candidateSeat : item));
     };
 
@@ -1400,7 +1421,8 @@ const UstawieniaPage = () => {
                                 top: seat.y,
                                 width: seatSize.width,
                                 height: seatSize.height,
-                                transform: `rotate(${seat.rotation || 0}deg)`
+                                transform: `rotate(${seat.rotation || 0}deg)`,
+                                transformOrigin: 'center center'
                               }}
                               onMouseDown={(event) => {
                                 const rect = event.currentTarget.parentElement.getBoundingClientRect();

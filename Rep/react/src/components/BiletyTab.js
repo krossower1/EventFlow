@@ -85,6 +85,15 @@ const BiletyTab = ({ currentUserRole, getRequestConfig, setStatus, API_BASE_URL,
                 <span className="event-badge">{b.stan}</span>
                 <h3>{b.wydarzenieTytul}</h3>
                 <p>Kod: {b.kod} | Klasa: {b.klasa}</p>
+                {b.qrCode && (
+                  <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                    <img 
+                      src={b.qrCode} 
+                      alt="QR Code biletu" 
+                      style={{ width: '150px', height: '150px', border: '1px solid #ddd' }}
+                    />
+                  </div>
+                )}
                 <button 
                   className="btn-new-event" 
                   disabled={currentUserRole === 'ADMIN' || b.maProsbeZwrotu} 
