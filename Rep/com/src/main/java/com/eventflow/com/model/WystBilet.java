@@ -36,4 +36,7 @@ public class WystBilet {
 
 	@Column(name = "seat_id")
 	private String seatId;
+
+	@Column(name = "qr_code", columnDefinition = "TEXT")
+	private String qrCode;
 }

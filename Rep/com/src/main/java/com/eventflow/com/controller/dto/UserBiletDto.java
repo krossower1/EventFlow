@@ -14,6 +14,7 @@ public record UserBiletDto(
 	BigDecimal cena,
 	String waluta,
 	Boolean maProsbeZwrotu,
-	String stanZwrotu
+	String stanZwrotu,
+	String qrCode
 ) {
 }

@@ -103,7 +103,8 @@ public class BiletController {
 					bilet != null ? bilet.getCena() : null,
 					bilet != null ? bilet.getWaluta() : "PLN",
 					zwrot != null,
-					zwrot != null ? zwrot.getStan() : null
+					zwrot != null ? zwrot.getStan() : null,
+					wystBilet.getQrCode()
 				);
 			})
 			.toList();

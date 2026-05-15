@@ -18,6 +18,7 @@ import com.eventflow.com.repository.UserRepository;
 import com.eventflow.com.repository.WydarzenieRepository;
 import com.eventflow.com.repository.WystBiletRepository;
 import com.eventflow.com.repository.ZamowienieRepository;
+import com.eventflow.com.service.QrCodeService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +53,8 @@ public class ZakupController {
 	private final WydarzenieRepository wydarzenieRepository;
 	private final SalaRepository salaRepository;
 
+	private final QrCodeService qrCodeService;
+
 	public ZakupController(
 		UserRepository userRepository,
 		BiletRepository biletRepository,
@@ -60,7 +63,8 @@ public class ZakupController {
 		ZamowienieRepository zamowienieRepository,
 		WystBiletRepository wystBiletRepository,
 		WydarzenieRepository wydarzenieRepository,
-		SalaRepository salaRepository
+		SalaRepository salaRepository,
+		QrCodeService qrCodeService
 	) {
 		this.userRepository = userRepository;
 		this.biletRepository = biletRepository;
@@ -70,6 +74,7 @@ public class ZakupController {
 		this.wystBiletRepository = wystBiletRepository;
 		this.wydarzenieRepository = wydarzenieRepository;
 		this.salaRepository = salaRepository;
+		this.qrCodeService = qrCodeService;
 	}
 
 	@GetMapping("/wydarzenia/{wydarzenieId}/bilety")
@@ -177,6 +182,8 @@ public class ZakupController {
 			wystBilet.setUzytyData(null);
 			wystBilet.setKod(generateTicketCode(savedZamowienie.getId(), i));
 			wystBilet.setSeatId(requiresSeatSelection ? request.seatId() : null);
+			String qrCodeData = qrCodeService.generateQrCodeDataUrl(wystBilet.getKod());
+			wystBilet.setQrCode(qrCodeData);
 			wystBiletRepository.save(wystBilet);
 		}
 
