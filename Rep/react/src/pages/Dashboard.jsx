@@ -16,7 +16,7 @@ const Dashboard = () => {
   const [selectedZakupEvent, setSelectedZakupEvent] = useState(null);
   const [dostepneBilety, setDostepneBilety] = useState([]);
   const [zakupLoading, setZakupLoading] = useState(false);
-  const[zakupForm, setZakupForm] = useState({ biletId: '', ilosc: '1', potwierdzPlatnosc: false });
+  const[zakupForm, setZakupForm] = useState({ biletId: '', ilosc: '1', potwierdzPlatnosc: false, seatId: '' });
 
   // Pobieranie aktywnych wydarzeń
   const fetchOpenWydarzenia = useCallback(async () => {
@@ -65,7 +65,8 @@ const Dashboard = () => {
       setZakupForm({
         biletId: response.data[0]?.biletId ? String(response.data[0].biletId) : '',
         ilosc: '1',
-        potwierdzPlatnosc: false
+        potwierdzPlatnosc: false,
+        seatId: ''
       });
       setZakupFormOpen(true);
     } catch (error) {
@@ -91,7 +92,8 @@ const Dashboard = () => {
       await apiClient.post(`/zakupy/wydarzenia/${selectedZakupEvent.id}`, {
         biletId: Number(zakupForm.biletId),
         ilosc: Number(zakupForm.ilosc),
-        potwierdzPlatnosc: zakupForm.potwierdzPlatnosc
+        potwierdzPlatnosc: zakupForm.potwierdzPlatnosc,
+        seatId: zakupForm.seatId || null
       }, getRequestConfig());
       setStatus({ type: 'success', message: 'Zakup zakończony pomyślnie.' });
       setZakupFormOpen(false);
