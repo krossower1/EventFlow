@@ -1,6 +1,8 @@
 package com.eventflow.com.controller.dto;
 
+import java.util.List;
+
 public record SalaPlanUpdateRequestDto(
-	String planJson
+	List<SalaMiejsceDto> seats
 ) {
 }

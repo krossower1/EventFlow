@@ -1,0 +1,36 @@
+package com.eventflow.com.model;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.Data;
+
+@Entity
+@Table(name = "sala_miejsca")
+@Data
+public class SalaMiejsce {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+
+	@ManyToOne(optional = false)
+	@JoinColumn(name = "sala_id", nullable = false)
+	private Sala sala;
+
+	@Column(name = "seat_key", nullable = false)
+	private String seatKey;
+
+	@Column(name = "pos_x", nullable = false)
+	private Integer x;
+
+	@Column(name = "pos_y", nullable = false)
+	private Integer y;
+
+	@Column(name = "rotation_deg", nullable = false)
+	private Integer rotation;
+}

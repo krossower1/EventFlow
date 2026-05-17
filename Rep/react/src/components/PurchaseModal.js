@@ -14,12 +14,7 @@ const PurchaseModal = ({
   if (!isOpen || !selectedEvent) return null;
 
   const selectedBilet = dostepneBilety.find((bilet) => String(bilet.biletId) === String(zakupForm.biletId));
-  let seats = [];
-  try {
-    seats = selectedBilet?.salaPlanJson ? (JSON.parse(selectedBilet.salaPlanJson)?.seats || []) : [];
-  } catch (error) {
-    seats = [];
-  }
+  const seats = Array.isArray(selectedBilet?.salaSeats) ? selectedBilet.salaSeats : [];
   const occupiedSeatIds = selectedBilet?.occupiedSeatIds || [];
   const seatClassById = dostepneBilety.reduce((acc, bilet) => {
     (bilet.assignedSeatIds || []).forEach((seatId) => {

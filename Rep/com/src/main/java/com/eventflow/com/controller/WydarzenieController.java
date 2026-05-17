@@ -23,6 +23,7 @@ import com.eventflow.com.model.Organizator;
 import com.eventflow.com.model.Personel;
 import com.eventflow.com.model.PozZam;
 import com.eventflow.com.model.Sala;
+import com.eventflow.com.model.SalaMiejsce;
 import com.eventflow.com.model.User;
 import com.eventflow.com.model.Wydarzenie;
 import com.eventflow.com.model.Zgloszenie;
@@ -54,7 +55,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -130,7 +130,9 @@ public class WydarzenieController {
 				s.getNazwa(),
 				miejsceNameById.getOrDefault(s.getMiejsceId(), "-"),
 				s.getMaPlan(),
-				s.getPlanJson()
+				s.getSeats().stream()
+					.map(this::toSalaMiejsceDto)
+					.toList()
 			))
 			.toList();
 
@@ -584,8 +586,10 @@ public class WydarzenieController {
 			throw new ResponseStatusException(BAD_REQUEST, "Dodaj co najmniej jeden typ biletu.");
 		}
 
-		boolean hasSalaPlan = Boolean.TRUE.equals(sala.getMaPlan()) && sala.getPlanJson() != null && !sala.getPlanJson().isBlank();
-		Set<String> salaSeatIds = hasSalaPlan ? extractSalaSeatIds(sala.getPlanJson()) : Set.of();
+		boolean hasSalaPlan = Boolean.TRUE.equals(sala.getMaPlan()) && sala.getSeats() != null && !sala.getSeats().isEmpty();
+		Set<String> salaSeatIds = hasSalaPlan
+			? sala.getSeats().stream().map(SalaMiejsce::getSeatKey).filter(item -> item != null && !item.isBlank()).collect(java.util.stream.Collectors.toSet())
+			: Set.of();
 		Set<String> assignedSeatIds = new java.util.HashSet<>();
 
 		for (BiletCreateRequestDto bilet : bilety) {
@@ -630,7 +634,7 @@ public class WydarzenieController {
 	}
 
 	private void saveBilety(Long wydarzenieId, List<BiletCreateRequestDto> bilety, Sala sala) {
-		boolean hasSalaPlan = Boolean.TRUE.equals(sala.getMaPlan()) && sala.getPlanJson() != null && !sala.getPlanJson().isBlank();
+		boolean hasSalaPlan = Boolean.TRUE.equals(sala.getMaPlan()) && sala.getSeats() != null && !sala.getSeats().isEmpty();
 		for (BiletCreateRequestDto requestBilet : bilety) {
 			List<String> seatIds = normalizeSeatIds(requestBilet.seatIds());
 			Bilet bilet = new Bilet();
@@ -652,28 +656,6 @@ public class WydarzenieController {
 		}
 	}
 
-	private Set<String> extractSalaSeatIds(String planJson) {
-		if (planJson == null || planJson.isBlank()) {
-			return Set.of();
-		}
-		Set<String> seatIds = new LinkedHashSet<>();
-		int index = 0;
-		while ((index = planJson.indexOf("\"id\"", index)) >= 0) {
-			int colonIndex = planJson.indexOf(':', index);
-			int firstQuote = planJson.indexOf('"', colonIndex + 1);
-			int secondQuote = planJson.indexOf('"', firstQuote + 1);
-			if (colonIndex < 0 || firstQuote < 0 || secondQuote < 0) {
-				break;
-			}
-			String value = planJson.substring(firstQuote + 1, secondQuote).trim();
-			if (!value.isBlank()) {
-				seatIds.add(value);
-			}
-			index = secondQuote + 1;
-		}
-		return seatIds;
-	}
-
 	private List<String> normalizeSeatIds(List<String> seatIds) {
 		if (seatIds == null || seatIds.isEmpty()) {
 			return List.of();
@@ -683,6 +665,15 @@ public class WydarzenieController {
 			.map(String::trim)
 			.distinct()
 			.toList();
+	}
+
+	private com.eventflow.com.controller.dto.SalaMiejsceDto toSalaMiejsceDto(SalaMiejsce seat) {
+		return new com.eventflow.com.controller.dto.SalaMiejsceDto(
+			seat.getSeatKey(),
+			seat.getX(),
+			seat.getY(),
+			seat.getRotation()
+		);
 	}
 
 	private void validateCreateStatus(User user, String status) {

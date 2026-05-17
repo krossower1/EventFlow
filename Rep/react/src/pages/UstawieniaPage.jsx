@@ -139,17 +139,9 @@ const UstawieniaPage = () => {
     return null;
   }, [miejscaLayoutData, selectedSalaId]);
 
-  const selectedSalaSeats = useMemo(() => {
-    if (!selectedSala?.planJson) {
-      return [];
-    }
-    try {
-      const parsed = JSON.parse(selectedSala.planJson);
-      return Array.isArray(parsed?.seats) ? parsed.seats : [];
-    } catch (error) {
-      return [];
-    }
-  }, [selectedSala]);
+  const selectedSalaSeats = useMemo(() => (
+    Array.isArray(selectedSala?.seats) ? selectedSala.seats : []
+  ), [selectedSala]);
 
   const getSeatDimensions = (seat) => {
     const rotation = seat?.rotation || 0;
@@ -184,7 +176,7 @@ const UstawieniaPage = () => {
       ...miejsce,
       sale: (miejsce.sale || []).map((sala) => (
         sala.id === selectedSalaId
-          ? { ...sala, planJson: JSON.stringify({ seats: nextSeats }) }
+          ? { ...sala, seats: nextSeats }
           : sala
       ))
     })));
@@ -313,7 +305,7 @@ const UstawieniaPage = () => {
     try {
       await apiClient.put(
         `/miejsca/sale/${selectedSala.id}/plan`,
-        { planJson: JSON.stringify({ seats: selectedSalaSeats }) },
+        { seats: selectedSalaSeats },
         getRequestConfig()
       );
       setLayoutStatus({ type: 'success', message: 'Układ sali został zapisany.' });
