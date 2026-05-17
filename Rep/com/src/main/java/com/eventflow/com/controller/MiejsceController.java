@@ -12,6 +12,7 @@ import com.eventflow.com.repository.UserRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -106,6 +107,7 @@ public class MiejsceController {
 	}
 
 	@PutMapping("/sale/{salaId}/plan")
+	@Transactional
 	public ResponseEntity<SalaResponseDto> updateSalaPlan(
 		@PathVariable Long salaId,
 		Authentication authentication,
@@ -123,6 +125,7 @@ public class MiejsceController {
 			throw new ResponseStatusException(BAD_REQUEST, "Ta sala nie obsluguje ukladu planu.");
 		}
 
+		sala.getSeats().clear();
 		salaMiejsceRepository.deleteBySalaId(sala.getId());
 		List<SalaMiejsce> seats = request.seats() == null ? List.of() : request.seats().stream()
 			.filter(item -> item != null && item.id() != null && !item.id().isBlank())
@@ -137,8 +140,8 @@ public class MiejsceController {
 			})
 			.toList();
 		salaMiejsceRepository.saveAll(seats);
-		Sala updated = salaRepository.save(sala);
-		return ResponseEntity.ok(toSalaDto(updated));
+		sala.getSeats().addAll(seats);
+		return ResponseEntity.ok(toSalaDto(sala));
 	}
 
 	@PatchMapping("/{miejsceId}/ilosc-sal")
