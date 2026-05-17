@@ -54,15 +54,10 @@ const WydarzeniaPage = () => {
     () => wydarzenieOptions.sale.find((item) => String(item.id) === String(wydarzenieForm.salaId)) || null,
     [wydarzenieOptions.sale, wydarzenieForm.salaId]
   );
-  const selectedSalaSeats = useMemo(() => {
-    if (!selectedSala?.planJson) return [];
-    try {
-      const parsed = JSON.parse(selectedSala.planJson);
-      return Array.isArray(parsed?.seats) ? parsed.seats : [];
-    } catch (error) {
-      return [];
-    }
-  }, [selectedSala]);
+  const selectedSalaSeats = useMemo(
+    () => Array.isArray(selectedSala?.seats) ? selectedSala.seats : [],
+    [selectedSala]
+  );
   const hasSelectedSalaPlan = Boolean(selectedSala?.maPlan && selectedSalaSeats.length > 0);
 
   const getRequestConfig = useCallback(() => {

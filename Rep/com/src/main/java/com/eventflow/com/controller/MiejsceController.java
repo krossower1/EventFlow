@@ -3,8 +3,10 @@ package com.eventflow.com.controller;
 import com.eventflow.com.controller.dto.*;
 import com.eventflow.com.model.Miejsce;
 import com.eventflow.com.model.Sala;
+import com.eventflow.com.model.SalaMiejsce;
 import com.eventflow.com.model.User;
 import com.eventflow.com.repository.MiejsceRepository;
+import com.eventflow.com.repository.SalaMiejsceRepository;
 import com.eventflow.com.repository.SalaRepository;
 import com.eventflow.com.repository.UserRepository;
 import jakarta.validation.Valid;
@@ -23,15 +25,18 @@ import static org.springframework.http.HttpStatus.*;
 public class MiejsceController {
 	private final MiejsceRepository miejsceRepository;
 	private final SalaRepository salaRepository;
+	private final SalaMiejsceRepository salaMiejsceRepository;
 	private final UserRepository userRepository;
 
 	public MiejsceController(
 		MiejsceRepository miejsceRepository,
 		SalaRepository salaRepository,
+		SalaMiejsceRepository salaMiejsceRepository,
 		UserRepository userRepository
 	) {
 		this.miejsceRepository = miejsceRepository;
 		this.salaRepository = salaRepository;
+		this.salaMiejsceRepository = salaMiejsceRepository;
 		this.userRepository = userRepository;
 	}
 
@@ -118,7 +123,20 @@ public class MiejsceController {
 			throw new ResponseStatusException(BAD_REQUEST, "Ta sala nie obsluguje ukladu planu.");
 		}
 
-		sala.setPlanJson(request.planJson());
+		salaMiejsceRepository.deleteBySalaId(sala.getId());
+		List<SalaMiejsce> seats = request.seats() == null ? List.of() : request.seats().stream()
+			.filter(item -> item != null && item.id() != null && !item.id().isBlank())
+			.map(item -> {
+				SalaMiejsce seat = new SalaMiejsce();
+				seat.setSala(sala);
+				seat.setSeatKey(item.id().trim());
+				seat.setX(item.x() == null ? 0 : item.x());
+				seat.setY(item.y() == null ? 0 : item.y());
+				seat.setRotation(item.rotation() == null ? 0 : item.rotation());
+				return seat;
+			})
+			.toList();
+		salaMiejsceRepository.saveAll(seats);
 		Sala updated = salaRepository.save(sala);
 		return ResponseEntity.ok(toSalaDto(updated));
 	}
@@ -181,7 +199,18 @@ public class MiejsceController {
 			sala.getPojemnosc(),
 			sala.getPietro(),
 			sala.getMaPlan(),
-			sala.getPlanJson()
+			salaMiejsceRepository.findBySalaId(sala.getId()).stream()
+				.map(this::toSalaMiejsceDto)
+				.toList()
+		);
+	}
+
+	private SalaMiejsceDto toSalaMiejsceDto(SalaMiejsce seat) {
+		return new SalaMiejsceDto(
+			seat.getSeatKey(),
+			seat.getX(),
+			seat.getY(),
+			seat.getRotation()
 		);
 	}
 

@@ -1,5 +1,7 @@
 package com.eventflow.com.controller.dto;
 
+import java.util.List;
+
 public record SalaResponseDto(
 	Long id,
 	Long miejsceId,
@@ -7,6 +9,6 @@ public record SalaResponseDto(
 	Integer pojemnosc,
 	Integer pietro,
 	Boolean maPlan,
-	String planJson
+	List<SalaMiejsceDto> seats
 ) {
 }

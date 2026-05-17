@@ -6,6 +6,7 @@ import com.eventflow.com.model.Bilet;
 import com.eventflow.com.model.Platnosc;
 import com.eventflow.com.model.PozZam;
 import com.eventflow.com.model.Sala;
+import com.eventflow.com.model.SalaMiejsce;
 import com.eventflow.com.model.User;
 import com.eventflow.com.model.Wydarzenie;
 import com.eventflow.com.model.WystBilet;
@@ -118,7 +119,7 @@ public class ZakupController {
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono wydarzenia."));
 		Sala sala = salaRepository.findById(wydarzenie.getSalaId())
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono sali dla wydarzenia."));
-		boolean requiresSeatSelection = Boolean.TRUE.equals(sala.getMaPlan()) && sala.getPlanJson() != null && !sala.getPlanJson().isBlank();
+		boolean requiresSeatSelection = Boolean.TRUE.equals(sala.getMaPlan()) && sala.getSeats() != null && !sala.getSeats().isEmpty();
 
 		LocalDateTime now = LocalDateTime.now();
 		if (bilet.getStartSprzedazy() != null && bilet.getStartSprzedazy().isAfter(now)) {
@@ -193,7 +194,7 @@ public class ZakupController {
 	private DostepnyBiletDto toDostepnyBiletDto(Bilet bilet, LocalDateTime now) {
 		Wydarzenie wydarzenie = wydarzenieRepository.findById(bilet.getWydarzenieId()).orElse(null);
 		Sala sala = wydarzenie == null ? null : salaRepository.findById(wydarzenie.getSalaId()).orElse(null);
-		boolean requiresSeatSelection = sala != null && Boolean.TRUE.equals(sala.getMaPlan()) && sala.getPlanJson() != null && !sala.getPlanJson().isBlank();
+		boolean requiresSeatSelection = sala != null && Boolean.TRUE.equals(sala.getMaPlan()) && sala.getSeats() != null && !sala.getSeats().isEmpty();
 		List<String> assignedSeatIds = parseSeatIds(bilet.getSeatIds());
 		List<String> occupiedSeatIds = requiresSeatSelection
 			? wystBiletRepository.findByBiletIdIn(biletRepository.findByWydarzenieId(bilet.getWydarzenieId()).stream().map(Bilet::getId).toList())
@@ -228,7 +229,9 @@ public class ZakupController {
 			bilet.getKoniecSprzedazy(),
 			requiresSeatSelection,
 			assignedSeatIds,
-			requiresSeatSelection ? sala.getPlanJson() : null,
+			requiresSeatSelection
+				? sala.getSeats().stream().map(this::toSalaMiejsceDto).toList()
+				: List.of(),
 			occupiedSeatIds
 		);
 	}
@@ -242,6 +245,15 @@ public class ZakupController {
 			.filter(item -> !item.isBlank())
 			.distinct()
 			.toList();
+	}
+
+	private com.eventflow.com.controller.dto.SalaMiejsceDto toSalaMiejsceDto(SalaMiejsce seat) {
+		return new com.eventflow.com.controller.dto.SalaMiejsceDto(
+			seat.getSeatKey(),
+			seat.getX(),
+			seat.getY(),
+			seat.getRotation()
+		);
 	}
 
 	private User requireAuthenticatedUser(Authentication authentication) {
