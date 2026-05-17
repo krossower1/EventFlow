@@ -2,10 +2,23 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from 're
 import { apiClient, getAuthHeaders } from '../../api/apiClient';
 import { AuthContext } from '../../context/AuthContext';
 
+const formatMessageTime = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('pl-PL', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
 const ChatWidget = () => {
   const { currentUser, authCredentials } = useContext(AuthContext);
   const [favorites, setFavorites] = useState([]);
-  const [activeChat, setActiveChat] = useState(null);
+  const [activeChatId, setActiveChatId] = useState(null);
+  const [externalActiveChat, setExternalActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
   const [collapsed, setCollapsed] = useState(false);
@@ -24,19 +37,20 @@ const ChatWidget = () => {
       const response = await apiClient.get('/chat/favorites', getRequestConfig());
       const nextFavorites = Array.isArray(response.data) ? response.data : [];
       setFavorites(nextFavorites);
-      if (activeChat) {
-        const refreshed = nextFavorites.find((item) => item.id === activeChat.id);
-        if (!refreshed) {
-          setActiveChat(null);
-          setMessages([]);
-        } else {
-          setActiveChat(refreshed);
-        }
+      setStatus('');
+
+      if (activeChatId && !nextFavorites.some((item) => item.id === activeChatId)) {
+        setActiveChatId(null);
+        setExternalActiveChat(null);
+        setMessages([]);
+      } else if (!activeChatId && nextFavorites.length > 0) {
+        setActiveChatId(nextFavorites[0].id);
+        setExternalActiveChat(nextFavorites[0]);
       }
     } catch (error) {
       setStatus(error.response?.data?.message || 'Nie udało się pobrać ulubionych.');
     }
-  }, [activeChat, getRequestConfig]);
+  }, [activeChatId, getRequestConfig]);
 
   const loadConversation = useCallback(async (userId) => {
     if (!userId) return;
@@ -51,22 +65,25 @@ const ChatWidget = () => {
 
   useEffect(() => {
     loadFavorites();
+    const intervalId = window.setInterval(loadFavorites, 4000);
+    return () => window.clearInterval(intervalId);
   }, [loadFavorites]);
 
   useEffect(() => {
-    if (!activeChat) return undefined;
-    loadConversation(activeChat.id);
-    const intervalId = window.setInterval(() => loadConversation(activeChat.id), 4000);
+    if (!activeChatId) return undefined;
+    setMessages([]);
+    loadConversation(activeChatId);
+    const intervalId = window.setInterval(() => loadConversation(activeChatId), 4000);
     return () => window.clearInterval(intervalId);
-  }, [activeChat, loadConversation]);
+  }, [activeChatId, loadConversation]);
 
   useEffect(() => {
     const handleOpenChat = (event) => {
       const detail = event.detail || {};
       if (!detail.userId) return;
-      const favorite = favorites.find((item) => item.id === detail.userId);
       setCollapsed(false);
-      setActiveChat(favorite || {
+      setActiveChatId(detail.userId);
+      setExternalActiveChat({
         id: detail.userId,
         login: detail.login,
         imie: detail.imie,
@@ -75,20 +92,26 @@ const ChatWidget = () => {
     };
     window.addEventListener('eventflow-open-chat', handleOpenChat);
     return () => window.removeEventListener('eventflow-open-chat', handleOpenChat);
-  }, [favorites]);
+  }, []);
 
   const sortedFavorites = useMemo(
     () => [...favorites].sort((a, b) => `${a.imie || ''} ${a.nazwisko || ''} ${a.login}`.localeCompare(`${b.imie || ''} ${b.nazwisko || ''} ${b.login}`)),
     [favorites]
   );
 
+  const activeChat = useMemo(() => {
+    if (!activeChatId) return null;
+    return favorites.find((item) => item.id === activeChatId) || externalActiveChat;
+  }, [activeChatId, favorites, externalActiveChat]);
+
   const sendMessage = async (event) => {
     event.preventDefault();
-    if (!activeChat || !draft.trim()) return;
+    if (!activeChatId || !draft.trim()) return;
     try {
-      await apiClient.post(`/chat/conversations/${activeChat.id}`, { content: draft.trim() }, getRequestConfig());
+      await apiClient.post(`/chat/conversations/${activeChatId}`, { content: draft.trim() }, getRequestConfig());
       setDraft('');
-      loadConversation(activeChat.id);
+      loadFavorites();
+      loadConversation(activeChatId);
     } catch (error) {
       setStatus(error.response?.data?.message || 'Nie udało się wysłać wiadomości.');
     }
@@ -110,8 +133,11 @@ const ChatWidget = () => {
                 <button
                   key={item.id}
                   type="button"
-                  className={`chat-favorite-button ${activeChat?.id === item.id ? 'is-active' : ''}`}
-                  onClick={() => setActiveChat(item)}
+                  className={`chat-favorite-button ${activeChatId === item.id ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setActiveChatId(item.id);
+                    setExternalActiveChat(item);
+                  }}
                 >
                   <span>{item.imie || '-'} {item.nazwisko || '-'}</span>
                   <small>@{item.login}</small>
@@ -128,7 +154,8 @@ const ChatWidget = () => {
             <div className="chat-widget-messages">
               {activeChat ? messages.map((message) => (
                 <div key={message.id} className={`chat-message ${message.senderId === currentUser.id ? 'is-own' : ''}`}>
-                  {message.content}
+                  <div>{message.content}</div>
+                  <small className="chat-message-time">{formatMessageTime(message.sentAt)}</small>
                 </div>
               )) : (
                 <p className="chat-widget-empty">Kliknij osobę z ulubionych, aby rozpocząć rozmowę.</p>

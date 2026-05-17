@@ -2702,6 +2702,13 @@ option {
   background: #0ea5e9;
 }
 
+.chat-message-time {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  opacity: 0.8;
+}
+
 .chat-widget-form {
   display: grid;
   grid-template-columns: 1fr auto;

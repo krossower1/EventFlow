@@ -136,6 +136,7 @@ public class ChatController {
 		message.setContent(request.content().trim());
 		message.setSentAt(LocalDateTime.now());
 		ChatMessage saved = chatMessageRepository.save(message);
+		ensureFavoriteExists(otherUserId, currentUser.getId());
 		return ResponseEntity.status(CREATED).body(toChatMessageDto(saved));
 	}
 
@@ -149,6 +150,17 @@ public class ChatController {
 		if (!inFavorites) {
 			throw new ResponseStatusException(BAD_REQUEST, "Dodaj uzytkownika do ulubionych, aby rozpoczac rozmowe.");
 		}
+	}
+
+	private void ensureFavoriteExists(Long userId, Long favoriteUserId) {
+		if (userFavoriteRepository.findByUserIdAndFavoriteUserId(userId, favoriteUserId).isPresent()) {
+			return;
+		}
+		UserFavorite favorite = new UserFavorite();
+		favorite.setUserId(userId);
+		favorite.setFavoriteUserId(favoriteUserId);
+		favorite.setCreatedAt(LocalDateTime.now());
+		userFavoriteRepository.save(favorite);
 	}
 
 	private FavoriteUserDto toFavoriteUserDto(User user) {
