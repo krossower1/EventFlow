@@ -5,10 +5,11 @@ import { apiClient, getAuthHeaders } from '../api/apiClient';
 const UsersPage = () => {
   const { currentUser, authCredentials } = useContext(AuthContext);
   const [data, setData] = useState([]);
-  const[hideAdmins, setHideAdmins] = useState(false);
+  const [hideAdmins, setHideAdmins] = useState(false);
   const [organizerRequests, setOrganizerRequests] = useState([]);
   const [showOrganizerRequests, setShowOrganizerRequests] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [favoriteIds, setFavoriteIds] = useState([]);
   const [status, setStatus] = useState({ type: '', message: '' });
 
   const getRequestConfig = useCallback(() => {
@@ -28,9 +29,19 @@ const UsersPage = () => {
     }
   }, [getRequestConfig]);
 
+  const fetchFavorites = useCallback(async () => {
+    try {
+      const response = await apiClient.get('/chat/favorites', getRequestConfig());
+      setFavoriteIds((Array.isArray(response.data) ? response.data : []).map((item) => item.id));
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udało się pobrać ulubionych.' });
+    }
+  }, [getRequestConfig]);
+
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers]);
+    fetchFavorites();
+  }, [fetchUsers, fetchFavorites]);
 
   const fetchOrganizerRequests = useCallback(async () => {
     try {
@@ -94,12 +105,36 @@ const UsersPage = () => {
     if (!window.confirm(`Czy na pewno chcesz usunąć użytkownika ${userLogin}?`)) return;
     try {
       await apiClient.delete(`/users/${userId}`, getRequestConfig());
-      setStatus({ type: 'success', message: `Użytkownik usunięty.` });
+      setStatus({ type: 'success', message: 'Użytkownik usunięty.' });
       fetchUsers();
       setSelectedUser(null);
     } catch (error) {
       setStatus({ type: 'error', message: 'Błąd usuwania.' });
     }
+  };
+
+  const onToggleFavorite = async (user) => {
+    try {
+      if (favoriteIds.includes(user.id)) {
+        await apiClient.delete(`/chat/favorites/${user.id}`, getRequestConfig());
+      } else {
+        await apiClient.post(`/chat/favorites/${user.id}`, {}, getRequestConfig());
+      }
+      fetchFavorites();
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udało się zmienić ulubionych.' });
+    }
+  };
+
+  const onOpenChat = (user) => {
+    window.dispatchEvent(new CustomEvent('eventflow-open-chat', {
+      detail: {
+        userId: user.id,
+        login: user.login,
+        imie: user.imie,
+        nazwisko: user.nazwisko
+      }
+    }));
   };
 
   const visibleParticipants = data.filter((user) => user.aktywnosc !== false && (!hideAdmins || user.rola !== 'ADMIN'));
@@ -113,9 +148,9 @@ const UsersPage = () => {
     <div>
       <h2>Uczestnicy</h2>
       {status.message && <p className={`status-message ${status.type}`}>{status.message}</p>}
-      
+
       <div className={`events-user-cta participants-admin-cta ${currentUser.rola !== 'ADMIN' ? 'disabled-area' : ''}`}>
-        <p>{currentUser.rola === 'ADMIN' ? 'Zarządzaj rolami i użytkownikami.' : 'Przeglądaj listę uczestników (zarządzanie tylko dla administratorów).'}</p>
+        <p>{currentUser.rola === 'ADMIN' ? 'Zarządzaj rolami i użytkownikami.' : 'Przeglądaj listę uczestników.'}</p>
         <span
           className={`permission-tooltip ${currentUser.rola !== 'ADMIN' ? 'has-tooltip' : ''}`}
           data-tooltip={currentUser.rola !== 'ADMIN' ? 'Dostępne tylko dla administratora' : ''}
@@ -188,7 +223,7 @@ const UsersPage = () => {
           </tr>
         </thead>
         <tbody>
-          {visibleParticipants.map(user => (
+          {visibleParticipants.map((user) => (
             <tr key={user.id} className="participants-row" onClick={() => setSelectedUser(user)}>
               <td>{user.id}</td>
               <td>{user.imie || '-'} {user.nazwisko || '-'}</td>
@@ -196,13 +231,28 @@ const UsersPage = () => {
               <td>{user.login}</td>
               <td>{user.rola}</td>
               <td>
-                {currentUser.rola === 'ADMIN' && user.login !== currentUser.login && user.rola !== 'ADMIN' ? (
+                {user.id !== currentUser.id ? (
                   <>
-                    <button type="button" className="btn-delete" onClick={(e) => { e.stopPropagation(); onDeactivateUser(user.id, user.login); }}>Dezaktywuj</button>
-                    <button type="button" className="btn-delete" onClick={(e) => { e.stopPropagation(); onDeleteUser(user.id, user.login); }} style={{ marginLeft: '8px' }}>Usuń</button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); onToggleFavorite(user); }}>
+                      {favoriteIds.includes(user.id) ? 'Usuń z ulub.' : 'Do ulub.'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onOpenChat(user); }}
+                      disabled={!favoriteIds.includes(user.id)}
+                      style={{ marginLeft: '8px' }}
+                    >
+                      Czat
+                    </button>
                   </>
                 ) : (
-                  <span style={{ color: '#666' }}>Tylko dla administratorów</span>
+                  <span style={{ color: '#666' }}>To Ty</span>
+                )}
+                {currentUser.rola === 'ADMIN' && user.login !== currentUser.login && user.rola !== 'ADMIN' && (
+                  <>
+                    <button type="button" className="btn-delete" onClick={(e) => { e.stopPropagation(); onDeactivateUser(user.id, user.login); }} style={{ marginLeft: '8px' }}>Dezaktywuj</button>
+                    <button type="button" className="btn-delete" onClick={(e) => { e.stopPropagation(); onDeleteUser(user.id, user.login); }} style={{ marginLeft: '8px' }}>Usuń</button>
+                  </>
                 )}
               </td>
             </tr>
@@ -212,7 +262,7 @@ const UsersPage = () => {
 
       {selectedUser && (
         <div className="modal-overlay" onClick={() => setSelectedUser(null)}>
-          <div className="modal-card" onClick={e => e.stopPropagation()}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">Szczegóły: {selectedUser.login}</div>
               <button className="modal-close" onClick={() => setSelectedUser(null)}>×</button>

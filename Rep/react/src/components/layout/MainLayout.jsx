@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import ChatWidget from '../chat/ChatWidget';
 
 const MainLayout = () => {
   return (
@@ -12,6 +13,7 @@ const MainLayout = () => {
         <div className="content-area">
           <Outlet /> {/* Tutaj renderują się dynamiczne podstrony */}
         </div>
+        <ChatWidget />
       </main>
     </div>
   );

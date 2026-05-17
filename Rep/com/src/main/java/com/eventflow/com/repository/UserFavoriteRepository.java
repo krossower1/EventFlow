@@ -1,0 +1,12 @@
+package com.eventflow.com.repository;
+
+import com.eventflow.com.model.UserFavorite;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface UserFavoriteRepository extends JpaRepository<UserFavorite, Long> {
+	List<UserFavorite> findByUserIdOrderByCreatedAtAsc(Long userId);
+	Optional<UserFavorite> findByUserIdAndFavoriteUserId(Long userId, Long favoriteUserId);
+}
