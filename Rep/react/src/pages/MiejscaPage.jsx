@@ -145,7 +145,6 @@ const MiejscaPage = () => {
               onClick={fetchMyMiejsca}
               disabled={currentUser?.rola !== 'ORG'}
               aria-label="Odśwież"
-              title="Odśwież"
             >
               <img src="/refresh.png" alt="" width={22} height={22} />
             </button>

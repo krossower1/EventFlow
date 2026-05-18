@@ -46,9 +46,6 @@ const WydarzeniaPage = () => {
   const [organizerForm, setOrganizerForm] = useState({ firma: '', kwalifikacje: '', strona: '' });
   const [personelForm, setPersonelForm] = useState({ userId: '', rola: 'ochrona' });
   const [personelUsers, setPersonelUsers] = useState([]);
-  const [systemCategoryFormOpen, setSystemCategoryFormOpen] = useState(false);
-  const [systemCategoryForm, setSystemCategoryForm] = useState({ nazwa: '', opis: '' });
-
   const PERSONEL_ROLE_OPTIONS = ['ochrona', 'konferansjer', 'manager', 'prelegent', 'partner finansowy', 'gastronomia', 'animator', 'inne'];
   const selectedSala = useMemo(
     () => wydarzenieOptions.sale.find((item) => String(item.id) === String(wydarzenieForm.salaId)) || null,
@@ -413,24 +410,6 @@ const WydarzeniaPage = () => {
     }
   };
 
-  const onSystemCategorySubmit = async (event) => {
-    event.preventDefault();
-    if (currentUser?.rola !== 'ADMIN') return;
-
-    try {
-      const response = await apiClient.post(
-        '/wydarzenia/kategorie/systemowe',
-        { nazwa: systemCategoryForm.nazwa, opis: systemCategoryForm.opis },
-        getRequestConfig()
-      );
-      setStatus({ type: 'success', message: response.data || 'Systemowa kategoria została dodana.' });
-      setSystemCategoryForm({ nazwa: '', opis: '' });
-      setSystemCategoryFormOpen(false);
-    } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udało się dodać systemowej kategorii.' });
-    }
-  };
-
   useEffect(() => {
     fetchMyWydarzenia();
     if (currentUser?.rola === 'ORG') {
@@ -490,42 +469,7 @@ const WydarzeniaPage = () => {
                 {showWydarzenieForm ? 'Zamknij formularz' : '+ Nowe wydarzenie'}
               </button>
             </span>
-            <span
-              className={`permission-tooltip ${currentUser?.rola !== 'ADMIN' ? 'has-tooltip' : ''}`}
-              data-tooltip={currentUser?.rola !== 'ADMIN' ? 'Dostępne tylko dla administratora' : ''}
-            >
-              <button
-                type="button"
-                className="btn-new-event"
-                disabled={currentUser?.rola !== 'ADMIN'}
-                onClick={() => setSystemCategoryFormOpen((prev) => !prev)}
-              >
-                {systemCategoryFormOpen ? 'Zamknij kategorie systemowe' : '+ Kategorie systemowe'}
-              </button>
-            </span>
           </div>
-
-          {systemCategoryFormOpen && (
-            <form onSubmit={onSystemCategorySubmit} className="auth-form organizer-form event-form" style={{ marginBottom: '12px' }}>
-              <h4 style={{ marginTop: 0 }}>Dodaj systemową kategorię (ADMIN)</h4>
-              <label htmlFor="sys-cat-name">Nazwa</label>
-              <input
-                id="sys-cat-name"
-                type="text"
-                value={systemCategoryForm.nazwa}
-                onChange={(event) => setSystemCategoryForm({ ...systemCategoryForm, nazwa: event.target.value })}
-                required
-              />
-              <label htmlFor="sys-cat-desc">Opis</label>
-              <input
-                id="sys-cat-desc"
-                type="text"
-                value={systemCategoryForm.opis}
-                onChange={(event) => setSystemCategoryForm({ ...systemCategoryForm, opis: event.target.value })}
-              />
-              <button type="submit">Zapisz kategorię systemową</button>
-            </form>
-          )}
 
           {showWydarzenieForm && (
             <form onSubmit={onWydarzenieSubmit} className="auth-form organizer-form event-form">

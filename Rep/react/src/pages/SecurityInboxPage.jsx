@@ -36,7 +36,7 @@ const buildAuthConfig = (authCredentials) => {
   return config;
 };
 
-const SecurityInboxPage = () => {
+const SecurityInboxPage = ({ embedded = false }) => {
   const { authCredentials, currentUser } = useContext(AuthContext);
   const getRequestConfig = useCallback(() => buildAuthConfig(authCredentials), [authCredentials]);
 
@@ -268,12 +268,14 @@ const SecurityInboxPage = () => {
 
   return (
     <div className={rootClass}>
-      <div className="security-inbox-header">
-        <h2>Skrzynka zgłoszeń bezpieczeństwa</h2>
-        <p className="security-inbox-lede">
-          Lista zgłoszeń użytkowników z historii logowań. Odświeżanie listy co minutę.
-        </p>
-      </div>
+      {!embedded && (
+        <div className="security-inbox-header">
+          <h2>Skrzynka zgłoszeń bezpieczeństwa</h2>
+          <p className="security-inbox-lede">
+            Lista zgłoszeń użytkowników z historii logowań. Odświeżanie listy co minutę.
+          </p>
+        </div>
+      )}
 
       <div className="security-inbox-filters">
         <label>
@@ -313,9 +315,9 @@ const SecurityInboxPage = () => {
             loadTickets();
           }}
           aria-label="Odśwież listę"
-          title="Odśwież teraz"
+          title="Odśwież listę"
         >
-          <img src="/refresh.png" alt="" width={22} height={22} />
+          <img src="/refresh.png" alt="" width={22} height={22} style={{ width: '22px', height: '22px' }} />
         </button>
       </div>
 
