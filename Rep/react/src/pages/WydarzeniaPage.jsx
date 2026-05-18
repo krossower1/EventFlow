@@ -452,23 +452,38 @@ const WydarzeniaPage = () => {
               <option value="SZKIC">szkic</option>
               <option value="ZAMKNIETE">zamkniete</option>
             </select>
-            <span
-              className={`permission-tooltip ${currentUser?.rola !== 'ORG' ? 'has-tooltip' : ''}`}
-              data-tooltip={currentUser?.rola !== 'ORG' ? 'Dostępne tylko dla organizatora' : ''}
-            >
-              <button
-                type="button"
-                className="btn-new-event"
-                disabled={currentUser?.rola !== 'ORG'}
-                onClick={() => {
-                  if (currentUser?.rola !== 'ORG') return;
-                  setShowWydarzenieForm((prev) => !prev);
-                  if (!showWydarzenieForm) fetchWydarzeniaOptions();
-                }}
+            <div className="events-toolbar-actions">
+              <span
+                className={`permission-tooltip ${currentUser?.rola !== 'ORG' ? 'has-tooltip' : ''}`}
+                data-tooltip={currentUser?.rola !== 'ORG' ? 'Dostępne tylko dla organizatora' : ''}
               >
-                {showWydarzenieForm ? 'Zamknij formularz' : '+ Nowe wydarzenie'}
-              </button>
-            </span>
+                <button
+                  type="button"
+                  className="btn-new-event"
+                  disabled={currentUser?.rola !== 'ORG'}
+                  onClick={() => {
+                    if (currentUser?.rola !== 'ORG') return;
+                    setShowWydarzenieForm((prev) => !prev);
+                    if (!showWydarzenieForm) fetchWydarzeniaOptions();
+                  }}
+                >
+                  {showWydarzenieForm ? 'Zamknij formularz' : '+ Nowe wydarzenie'}
+                </button>
+              </span>
+              <span
+                className={`permission-tooltip ${currentUser?.rola !== 'USER' ? 'has-tooltip' : ''}`}
+                data-tooltip={currentUser?.rola !== 'USER' ? 'Dostępne tylko dla użytkownika USER' : ''}
+              >
+                <button
+                  type="button"
+                  className="btn-new-event"
+                  disabled={currentUser?.rola !== 'USER'}
+                  onClick={() => setOrganizerRequestOpen(true)}
+                >
+                  Zostań organizatorem
+                </button>
+              </span>
+            </div>
           </div>
 
           {showWydarzenieForm && (
@@ -638,23 +653,6 @@ const WydarzeniaPage = () => {
 
           {wydarzenieLoading && <h3>Ladowanie...</h3>}
 
-          <div className="events-user-cta" style={{ maxWidth: '100%', marginBottom: '12px' }}>
-            <p>Wniosek o rolę organizatora jest dostępny dla wszystkich, ale wysłać może go tylko użytkownik z rolą USER.</p>
-            <span
-              className={`permission-tooltip ${currentUser?.rola !== 'USER' ? 'has-tooltip' : ''}`}
-              data-tooltip={currentUser?.rola !== 'USER' ? 'Dostępne tylko dla użytkownika USER' : ''}
-            >
-              <button
-                type="button"
-                className="btn-new-event"
-                disabled={currentUser?.rola !== 'USER'}
-                onClick={() => setOrganizerRequestOpen(true)}
-              >
-                Wyślij wniosek o rolę organizatora
-              </button>
-            </span>
-          </div>
-
           <div className="events-grid events-grid--wydarzenia">
             {filteredWydarzenia.length > 0 ? filteredWydarzenia.map((item) => (
               <div key={item.id} className="event-management-wrapper" style={{ border: '1px solid #ddd', borderRadius: '12px', padding: '15px', backgroundColor: '#1a1d24', minWidth: 0, overflow: 'visible' }}>
@@ -665,7 +663,9 @@ const WydarzeniaPage = () => {
                   onPersonel={openPersonelModal}
                   onPurchase={openZakupForm}
                 />
-                
+
+
+                {/* Dlaczego zakomentowane: należy dodać warunek że tylko autor wydarzenia może dodać nową pulę biletów dla swojego wydarzenia. Jak jest teraz: niezależnie od tego kto jest autorem, może dodać nową pulę biletów dla każdego wydarzenia co jest bardzo niebezpieczne.
                 <div style={{ marginTop: '20px' }}>
                   <span
                     className={`permission-tooltip ${currentUser?.rola !== 'ORG' ? 'has-tooltip' : ''}`}
@@ -681,6 +681,7 @@ const WydarzeniaPage = () => {
                     </button>
                   </span>
                 </div>
+                */}
               </div>
             )) : (
               <p>Brak wydarzen.</p>
@@ -817,7 +818,7 @@ const WydarzeniaPage = () => {
             if (e.target === e.currentTarget) setSelectedInfoEvent(null);
           }}
         >
-          <div className="modal-card info-modal-card">
+          <div className="modal-card modal-card--w600">
             <div className="modal-header">
               <div className="modal-title">Więcej informacji</div>
               <button
@@ -899,7 +900,7 @@ const WydarzeniaPage = () => {
             if (e.target === e.currentTarget) setSelectedPersonelEvent(null);
           }}
         >
-          <div className="modal-card info-modal-card">
+          <div className="modal-card modal-card--w600">
             <div className="modal-header">
               <div className="modal-title">Personel</div>
               <button

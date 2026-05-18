@@ -33,7 +33,7 @@ const PurchaseModal = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal-card">
+      <div className="modal-card modal-card--w600">
         <div className="modal-header">
           <div className="modal-title">
             Zakup biletów: <span className="header-accent">{selectedEvent.tytul}</span>

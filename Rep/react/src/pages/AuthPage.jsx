@@ -14,7 +14,7 @@ const AuthPage = () => {
   const[rememberMe, setRememberMe] = useState(false);
   
   const [registerForm, setRegisterForm] = useState({
-    imie: '', nazwisko: '', email: '', login: '', password: ''
+    imie: '', nazwisko: '', email: '', login: '', password: '', confirmPassword: ''
   });
   const [registerSubmitting, setRegisterSubmitting] = useState(false);
   const[pendingVerificationEmail, setPendingVerificationEmail] = useState('');
@@ -178,10 +178,25 @@ const AuthPage = () => {
   const onRegisterSubmit = async (event) => {
     event.preventDefault();
     setStatus({ type: '', message: '' });
+
+    const password = registerForm.password.trim();
+    const confirmPassword = registerForm.confirmPassword.trim();
+
+    if (password !== confirmPassword) {
+      setStatus({ type: 'error', message: 'Hasła muszą być identyczne.' });
+      return;
+    }
+
     setRegisterSubmitting(true);
 
     try {
-      const response = await authService.register(registerForm);
+      const response = await authService.register({
+        imie: registerForm.imie,
+        nazwisko: registerForm.nazwisko,
+        email: registerForm.email,
+        login: registerForm.login,
+        password
+      });
       if (response.success) {
         setStatus({ type: 'success', message: 'Konto utworzone poprawnie.' });
         setPendingVerificationEmail(registerForm.email);
@@ -370,6 +385,16 @@ const AuthPage = () => {
               type="password"
               value={registerForm.password}
               onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
+              minLength={6}
+              required
+            />
+
+            <label htmlFor="confirm-password">Powtórz hasło</label>
+            <input
+              id="confirm-password"
+              type="password"
+              value={registerForm.confirmPassword}
+              onChange={(event) => setRegisterForm({ ...registerForm, confirmPassword: event.target.value })}
               minLength={6}
               required
             />
