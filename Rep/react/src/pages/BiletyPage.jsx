@@ -7,7 +7,7 @@ const BiletyPage = () => {
   const { currentUser, authCredentials, isLoggedIn } = useContext(AuthContext);
   const [status, setStatus] = useState({ type: '', message: '' });
 
-  // Funkcja przekazywana do Twojego komponentu BiletyTab, aby mógł pobierać dane
+  // Funkcja przekazywana do komponentu BiletyTab, aby mógł pobierać dane
   const getRequestConfig = useCallback(() => {
     const config = { withCredentials: true };
     if (authCredentials.login && authCredentials.password) {

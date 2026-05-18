@@ -15,7 +15,7 @@ import MiejscaPage from './pages/MiejscaPage';
 import EventDetailPage from './pages/EventDetailPage';
 import UsersPage from './pages/UsersPage';
 import UstawieniaPage from './pages/UstawieniaPage';
-import SecurityInboxPage from './pages/SecurityInboxPage';
+import AdminPanelPage from './pages/AdminPanelPage.jsx';
 import AnalitykaPage from './pages/AnalitykaPage';
 
 // Moduł sterujący dostępem
@@ -57,7 +57,8 @@ const AppRoutes = () => {
         <Route path="analityka" element={<AnalitykaPage />} />
         <Route path="uczestnicy" element={<UsersPage />} />
         <Route path="ustawienia" element={<UstawieniaPage />} />
-        <Route path="admin/security-inbox" element={<SecurityInboxPage />} />
+        <Route path="admin" element={<AdminPanelPage />} />
+        <Route path="admin/security-inbox" element={<Navigate to="/admin" replace />} />
         <Route path="*" element={<div style={{padding: '20px'}}>W budowie. Przejdź do Panelu Głównego.</div>} />
       </Route>
     </Routes>

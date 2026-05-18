@@ -25,6 +25,26 @@ const Topbar = () => {
         </div>
       </div>
       <div className="topbar-right">
+        <div className="panel-admin">
+          <span
+            className={`permission-tooltip ${currentUser?.rola !== 'ADMIN' ? 'has-tooltip' : ''}`}
+            data-tooltip={currentUser?.rola !== 'ADMIN' ? 'Dostępne tylko dla administratora' : ''}
+          >
+            <button
+              type="button"
+              className="btn-icon"
+              aria-label="Panel admina"
+              onClick={() => {
+                if (currentUser?.rola !== 'ADMIN') return;
+                navigate('/admin');
+              }}
+              disabled={currentUser?.rola !== 'ADMIN'}
+            >
+              <img src="/panel_admin.png" alt="" />
+            </button>
+          </span>
+        </div>
+
         <div className="account-menu-wrapper">
           <button
             type="button"
@@ -33,6 +53,7 @@ const Topbar = () => {
           >
             <img src="/account.png" alt="Konto" />
           </button>
+
           <div className={`account-menu ${accountMenuOpen ? 'open' : ''}`}>
             <button type="button" className="account-menu-item" onClick={handleLogout}>
               Wyloguj

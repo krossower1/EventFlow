@@ -2,8 +2,6 @@ import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
 import { authService } from '../services/authService';
-/** Skrzynka zgłoszeń bezpieczeństwa (wklejana w podzakładce „Zgłoszenia” tylko dla ADMIN). */
-import SecurityInboxPage from './SecurityInboxPage';
 import QRCode from 'qrcode';
 const SESSION_SETTINGS_STORAGE_KEY = 'sessionSettingsCache';
 const SEAT_BASE_WIDTH = 36;
@@ -124,8 +122,7 @@ const UstawieniaPage = () => {
       { id: 'zmiana-hasla', label: 'Zmiana hasła' },
       { id: '2fa', label: '2FA' },
       { id: 'czas-sesji', label: 'Czas sesji' },
-      { id: 'historia-logowan', label: 'Historia logowań' },
-      { id: 'zgłoszenia', label: 'Zgłoszenia', adminOnly: true }
+      { id: 'historia-logowan', label: 'Historia logowań' }
     ];
   }, []);
 
@@ -575,13 +572,6 @@ const UstawieniaPage = () => {
       setIsSubmittingReport(false);
     }
   };
-
-  /** Nie-admin nie może zostawać na podzakładce „Zgłoszenia” (np. po zmianie roli) — bezpieczne przekierowanie. */
-  useEffect(() => {
-    if (activeTab === 'bezpieczenstwo' && activeSecurityTab === 'zgłoszenia' && !isAdminUser) {
-      setActiveSecurityTab('zmiana-hasla');
-    }
-  }, [activeTab, activeSecurityTab, isAdminUser]);
 
   useEffect(() => {
     // Front generuje obraz QR lokalnie z URI otpauth zwróconego przez backend.
@@ -1302,7 +1292,7 @@ const UstawieniaPage = () => {
                     >
                       <div className="settings-report-dialog" onClick={(e) => e.stopPropagation()}>
                         <h4 id="settings-report-title">Zgłoś wpis z historii logowań</h4>
-                        <p>Administratorzy zobaczą to zgłoszenie w zakładce Bezpieczeństwo → Zgłoszenia lub na stronie skrzynki.</p>
+                        <p>Administratorzy zobaczą to zgłoszenie w panelu administratora (ikona w górnym pasku) → Zgłoszenia.</p>
                         <label htmlFor="settings-report-note">Opcjonalna wiadomość</label>
                         <textarea
                           id="settings-report-note"
@@ -1323,14 +1313,6 @@ const UstawieniaPage = () => {
                       </div>
                     </div>
                   )}
-                </>
-              )}
-              {activeSecurityTab === 'zgłoszenia' && isAdminUser && (
-                <>
-                  <h4>Zgłoszenia</h4>
-                  <p>Wspólna skrzynka alertów bezpieczeństwa. Nowe pozycje są widoczne dla wszystkich administratorów.</p>
-                  {/* Ta sama logika co trasa /admin/security-inbox; prop embedded zarezerwowany na ewentualne różnice layoutu. */}
-                  <SecurityInboxPage embedded />
                 </>
               )}
             </div>

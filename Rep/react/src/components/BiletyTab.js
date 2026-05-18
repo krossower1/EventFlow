@@ -3,7 +3,6 @@ import axios from 'axios';
 
 const BiletyTab = ({ currentUserRole, getRequestConfig, setStatus, API_BASE_URL, authCredentials, isLoggedIn }) => {
   const [myBilety, setMyBilety] = useState([]);
-  const [zwroty, setZwroty] = useState([]);
   const [selectedZwrotBilet, setSelectedZwrotBilet] = useState(null);
   const [zwrotForm, setZwrotForm] = useState({ powod: '' });
 
@@ -16,23 +15,12 @@ const BiletyTab = ({ currentUserRole, getRequestConfig, setStatus, API_BASE_URL,
     }
   }, [API_BASE_URL, getRequestConfig, setStatus]);
 
-  const fetchZwroty = useCallback(async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/zwroty`, getRequestConfig());
-      setZwroty(response.data);
-    } catch (error) {
-      setStatus({ type: 'error', message: 'Nie udalo sie pobrac prosb o zwrot.' });
-    }
-  }, [API_BASE_URL, getRequestConfig, setStatus]);
-
   useEffect(() => {
     if (!isLoggedIn) return;
-    if (currentUserRole === 'ADMIN') {
-      fetchZwroty();
-    } else {
+    if (currentUserRole !== 'ADMIN') {
       fetchMyBilety();
     }
-  }, [isLoggedIn, currentUserRole, authCredentials, fetchMyBilety, fetchZwroty]);
+  }, [isLoggedIn, currentUserRole, authCredentials, fetchMyBilety]);
 
   const onZwrotSubmit = async (e) => {
     e.preventDefault();
@@ -47,37 +35,20 @@ const BiletyTab = ({ currentUserRole, getRequestConfig, setStatus, API_BASE_URL,
     }
   };
 
-  const handleApprove = async (id) => {
-    await axios.post(`${API_BASE_URL}/zwroty/${id}/approve`, {}, getRequestConfig());
-    fetchZwroty();
-  };
+  if (currentUserRole === 'ADMIN') {
+    return (
+      <div>
+        <h2>Panel Biletów</h2>
+        <p>Zarządzanie zwrotami zostało przeniesione do panelu administratora (ikona w górnym pasku).</p>
+      </div>
+    );
+  }
 
   return (
     <div>
       <h2>Panel Biletów</h2>
 
-      <div className={currentUserRole !== 'ADMIN' ? 'disabled-area' : ''} style={{ marginBottom: '40px' }}>
-        <h3>Zarządzanie zwrotami (ADMIN)</h3>
-        <table className="participants-table">
-          <thead>
-            <tr>
-              <th>ID</th><th>Uzytkownik</th><th>Wydarzenie</th><th>Klasa</th><th>Kwota</th><th>Powod</th><th>Stan</th><th>Akcje</th>
-            </tr>
-          </thead>
-          <tbody>
-            {zwroty.map(z => (
-              <tr key={z.id}>
-                <td>{z.id}</td><td>{z.userLogin}</td><td>{z.wydarzenieTytul}</td><td>{z.klasa}</td><td>{z.kwota} {z.waluta}</td><td>{z.powod}</td><td>{z.stan}</td>
-                <td>
-                  <button disabled={currentUserRole !== 'ADMIN'} onClick={() => handleApprove(z.id)}>Akceptuj</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className={currentUserRole === 'ADMIN' ? 'disabled-area' : ''}>
+      <div>
         <h3>Moje Bilety</h3>
         <div className="events-grid">
             {myBilety.map(b => (
@@ -96,7 +67,7 @@ const BiletyTab = ({ currentUserRole, getRequestConfig, setStatus, API_BASE_URL,
                 )}
                 <button 
                   className="btn-new-event" 
-                  disabled={currentUserRole === 'ADMIN' || b.maProsbeZwrotu} 
+                  disabled={b.maProsbeZwrotu} 
                   onClick={() => setSelectedZwrotBilet(b)}
                 >
                   {b.maProsbeZwrotu ? 'Wysłano prośbę' : 'Prośba o zwrot'}
