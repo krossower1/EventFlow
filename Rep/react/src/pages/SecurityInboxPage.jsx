@@ -317,7 +317,7 @@ const SecurityInboxPage = ({ embedded = false }) => {
           aria-label="Odśwież listę"
           title="Odśwież listę"
         >
-          <img src="/refresh.png" alt="" width={22} height={22} style={{ width: '22px', height: '22px' }} />
+          <img src="/icons/refresh.png" alt="" width={22} height={22} style={{ width: '22px', height: '22px' }} />
         </button>
       </div>
 

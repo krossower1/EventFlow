@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authService } from '../services/authService';
+import { ensureObservedLoaded, invalidateObservedCache } from '../utils/obserwowaneWydarzenia';
 
 export const AuthContext = createContext();
 const DEFAULT_SESSION_TIMEOUT_MINUTES = 10;
@@ -121,6 +122,9 @@ export const AuthProvider = ({ children }) => {
     setCurrentUser({
       ...normalizedUser
     });
+    if (String(normalizedUser.rola || '').toUpperCase() === 'USER' && normalizedUser.id != null) {
+      ensureObservedLoaded(credentials, normalizedUser.id).catch(() => {});
+    }
   },[]);
 
   // Sprawdzanie sesji przy starcie
@@ -142,6 +146,10 @@ export const AuthProvider = ({ children }) => {
           }
         }
         applyAuthenticatedUser(resolvedUser);
+        const userSource = resolvedUser?.user || resolvedUser;
+        if (String(userSource?.rola || '').toUpperCase() === 'USER' && userSource?.id != null) {
+          ensureObservedLoaded(null, Number(userSource.id)).catch(() => {});
+        }
       } else {
         setIsLoggedIn(false);
       }
@@ -197,6 +205,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('rememberMe');
       localStorage.setItem('explicitLogout', 'true');
       
+      // Inny użytkownik po ponownym logowaniu nie powinien widzieć poprzedniej listy obserwowanych z cache.
+      invalidateObservedCache();
       setIsLoggedIn(false);
       setCurrentUser({ id: null, login: '', rola: '', imie: '', nazwisko: '', email: '', telefon: '' });
       setAuthCredentials({ login: '', password: '' });

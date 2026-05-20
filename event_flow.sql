@@ -440,6 +440,23 @@ LOCK TABLES `security_tickets` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `user_observed_events`
+--
+
+DROP TABLE IF EXISTS `user_observed_events`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `user_observed_events` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `created_at` datetime(6) NOT NULL,
+  `user_id` bigint NOT NULL,
+  `wydarzenie_id` bigint NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_observed_events_user_wydarzenie` (`user_id`,`wydarzenie_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `user_favorites`
 --
 

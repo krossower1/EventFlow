@@ -105,6 +105,7 @@ const Dashboard = () => {
     }
   };
 
+  /*
   return (
     <div>
       <h2>Panel główny</h2>
@@ -143,6 +144,7 @@ const Dashboard = () => {
       />
     </div>
   );
+  */
 };
 
 export default Dashboard;

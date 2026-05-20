@@ -122,7 +122,7 @@ const ChatWidget = () => {
   return (
     <div className={`chat-widget ${collapsed ? 'is-collapsed' : ''}`}>
       <button type="button" className="chat-widget-toggle" onClick={() => setCollapsed((prev) => !prev)}>
-        <img src="communications.png" alt="" width={22} height={22} style={{ width: '22px', height: '22px' }} />
+        <img src="/icons/communications.png" alt="" width={22} height={22} style={{ width: '22px', height: '22px' }} />
       </button>
       {!collapsed && (
         <div className="chat-widget-panel">

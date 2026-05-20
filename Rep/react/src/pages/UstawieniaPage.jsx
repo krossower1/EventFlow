@@ -3,7 +3,24 @@ import { AuthContext } from '../context/AuthContext';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
 import { authService } from '../services/authService';
 import QRCode from 'qrcode';
+import {
+  OBSERVED_EVENTS_CHANGED,
+  refreshObservedEvents,
+  removeObservedEvent,
+} from '../utils/obserwowaneWydarzenia';
 const SESSION_SETTINGS_STORAGE_KEY = 'sessionSettingsCache';
+
+/** Format daty rozpoczęcia wydarzenia na liście obserwowanych w ustawieniach. */
+const formatObservedEventDate = (value) => {
+  if (!value) return '-';
+  return new Date(value).toLocaleString('pl-PL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
 const SEAT_BASE_WIDTH = 36;
 const SEAT_BASE_HEIGHT = 36;
 const LAYOUT_CANVAS_WIDTH = 720;
@@ -12,6 +29,7 @@ const LAYOUT_CANVAS_HEIGHT = 420;
 const tabs = [
   { id: 'profil', label: 'Profil' },
   { id: 'powiadomienia', label: 'Powiadomienia' },
+  { id: 'obserwowane', label: 'Obserwowane' },
   { id: 'bezpieczenstwo', label: 'Bezpieczeństwo' },
   { id: 'uklady-sal', label: 'Układy sal' },
   { id: 'wyglad', label: 'Wygląd' },
@@ -97,6 +115,9 @@ const UstawieniaPage = () => {
   const [isLoadingLayouts, setIsLoadingLayouts] = useState(false);
   const [layoutStatus, setLayoutStatus] = useState({ type: '', message: '' });
   const [selectedSalaId, setSelectedSalaId] = useState(null);
+  const [observedEvents, setObservedEvents] = useState([]);
+  const [isLoadingObserved, setIsLoadingObserved] = useState(false);
+  const [observedStatus, setObservedStatus] = useState({ type: '', message: '' });
   const [selectedSeatId, setSelectedSeatId] = useState(null);
   const [dragState, setDragState] = useState(null);
 
@@ -464,6 +485,42 @@ const UstawieniaPage = () => {
     };
     loadTwoFactorStatus();
   }, [activeTab, activeSecurityTab]);
+
+  // Zakładka Obserwowane: GET listy z API + ponowne ładowanie po OBSERVED_EVENTS_CHANGED (np. gwiazdka na karcie).
+  useEffect(() => {
+    if (!currentUser?.id || activeTab !== 'obserwowane') {
+      return undefined;
+    }
+    let cancelled = false;
+    const loadObserved = async () => {
+      setIsLoadingObserved(true);
+      setObservedStatus({ type: '', message: '' });
+      try {
+        const events = await refreshObservedEvents(authCredentials, currentUser.id);
+        if (!cancelled) setObservedEvents(events);
+      } catch (error) {
+        if (!cancelled) {
+          setObservedEvents([]);
+          setObservedStatus({
+            type: 'error',
+            message: error.response?.data?.message || 'Nie udało się pobrać obserwowanych wydarzeń.',
+          });
+        }
+      } finally {
+        if (!cancelled) setIsLoadingObserved(false);
+      }
+    };
+    loadObserved();
+    const onObservedChanged = (event) => {
+      if (event.detail?.userId != null && event.detail.userId !== currentUser.id) return;
+      loadObserved();
+    };
+    window.addEventListener(OBSERVED_EVENTS_CHANGED, onObservedChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(OBSERVED_EVENTS_CHANGED, onObservedChanged);
+    };
+  }, [currentUser?.id, activeTab, authCredentials]);
 
   useEffect(() => {
     if (activeTab === 'uklady-sal') {
@@ -859,7 +916,13 @@ const UstawieniaPage = () => {
       </div>
 
       <div className="settings-row">
-        <span>Zakończenie wydarzenia <small className="badge-beta">*</small></span>
+        <span>Zakończenie wydarzenia <small className="badge-beta">
+        <span 
+        className="permission-tooltip has-tooltip" 
+        data-tooltip="Tylko dla obserwowanego wydarzenia!"
+        >
+        *
+        </span></small></span>
         <label className="switch">
           <input type="checkbox" />
           <span className="slider"></span>
@@ -867,7 +930,14 @@ const UstawieniaPage = () => {
       </div>
 
       <div className="settings-row">
-        <span>Zbliżający się start wydarzenia <small className="badge-beta">*</small></span>
+        <span>Zbliżający się start wydarzenia <small className="badge-beta">
+        <span 
+        className="permission-tooltip has-tooltip" 
+        data-tooltip="Tylko dla obserwowanego wydarzenia!"
+        >
+        *
+        </span>
+          </small></span>
         <label className="switch">
           <input type="checkbox" defaultChecked />
           <span className="slider"></span>
@@ -875,7 +945,13 @@ const UstawieniaPage = () => {
       </div>
 
       <div className="settings-row">
-        <span>Zwolnienie się miejsca <small className="badge-beta">*</small></span>
+        <span>Zwolnienie się miejsca <small className="badge-beta">
+        <span 
+        className="permission-tooltip has-tooltip" 
+        data-tooltip="Tylko dla obserwowanego wydarzenia!"
+        >
+        *
+        </span></small></span>
         <label className="switch">
           <input type="checkbox" />
           <span className="slider"></span>
@@ -884,7 +960,54 @@ const UstawieniaPage = () => {
     </div>
   </div>
 
-  
+        ) : activeTab === 'obserwowane' ? (
+          <div className="settings-panel">
+            <h3>Obserwowane</h3>
+            <p className="settings-subtitle">
+              Wydarzenia, które obserwujesz — otrzymasz powiadomienia oznaczone gwiazdką w zakładce Powiadomienia.
+            </p>
+            {isLoadingObserved && <p className="settings-subtitle">Ładowanie obserwowanych wydarzeń...</p>}
+            {!isLoadingObserved && observedEvents.length === 0 ? (
+              <p className="settings-subtitle">Nie obserwujesz jeszcze żadnych wydarzeń.</p>
+            ) : null}
+            {!isLoadingObserved && observedEvents.length > 0 ? (
+              <ul className="settings-observed-list">
+                {observedEvents.map((event) => (
+                  <li key={event.id} className="settings-observed-item">
+                    <div className="settings-observed-item__main">
+                      <strong>{event.tytul || `Wydarzenie #${event.id}`}</strong>
+                      <span>{event.salaNazwa || 'Sala nieznana'}</span>
+                      <span>{formatObservedEventDate(event.dataRozp)}</span>
+                      {event.kategoriaNazwa ? <span>{event.kategoriaNazwa}</span> : null}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={async () => {
+                        if (!currentUser?.id) return;
+                        try {
+                          await removeObservedEvent(authCredentials, currentUser.id, event.id);
+                          setObservedEvents(await refreshObservedEvents(authCredentials, currentUser.id));
+                        } catch (error) {
+                          setObservedStatus({
+                            type: 'error',
+                            message: error.response?.data?.message || 'Nie udało się usunąć z obserwowanych.',
+                          });
+                        }
+                      }}
+                    >
+                      Przestań obserwować
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {observedStatus.message && (
+              <p className={`status-message ${observedStatus.type === 'error' ? 'status-error' : 'status-success'}`}>
+                {observedStatus.message}
+              </p>
+            )}
+          </div>
         ) : activeTab === 'bezpieczenstwo' ? (
           <div className="settings-panel">
             <h3>Bezpieczeństwo</h3>
@@ -934,7 +1057,7 @@ const UstawieniaPage = () => {
                           aria-label={passwordVisibility.oldPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
                         >
                           <img
-                            src={passwordVisibility.oldPassword ? '/eye_open.png' : '/eye_closed.png'}
+                            src={passwordVisibility.oldPassword ? '/icons/eye_open.png' : '/icons/eye_closed.png'}
                             alt={passwordVisibility.oldPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
                             className="password-visibility-icon"
                           />
@@ -960,7 +1083,7 @@ const UstawieniaPage = () => {
                           aria-label={passwordVisibility.newPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
                         >
                           <img
-                            src={passwordVisibility.newPassword ? '/eye_open.png' : '/eye_closed.png'}
+                            src={passwordVisibility.newPassword ? '/icons/eye_open.png' : '/icons/eye_closed.png'}
                             alt={passwordVisibility.newPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
                             className="password-visibility-icon"
                           />
@@ -986,7 +1109,7 @@ const UstawieniaPage = () => {
                           aria-label={passwordVisibility.confirmNewPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
                         >
                           <img
-                            src={passwordVisibility.confirmNewPassword ? '/eye_open.png' : '/eye_closed.png'}
+                            src={passwordVisibility.confirmNewPassword ? '/icons/eye_open.png' : '/icons/eye_closed.png'}
                             alt={passwordVisibility.confirmNewPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
                             className="password-visibility-icon"
                           />
