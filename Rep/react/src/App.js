@@ -27,7 +27,7 @@ const AppRoutes = () => {
       <div className="auth-page">
         <div className="auth-card">
           <h1>
-            <img src="/image(1).ico" alt="EventFlow Icon" className="logo-icon" />
+            <img src="/icons/image(1).ico" alt="EventFlow Icon" className="logo-icon" />
             EventFlow
           </h1>
           <p>Sprawdzanie aktywnej sesji...</p>

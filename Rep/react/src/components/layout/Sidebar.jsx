@@ -27,7 +27,7 @@ const Sidebar = () => {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <img src="/image(1).ico" alt="EventFlow" />
+        <img src="/icons/image(1).ico" alt="EventFlow" />
         <div className="logo-text">
           <span>EventFlow</span>
         </div>

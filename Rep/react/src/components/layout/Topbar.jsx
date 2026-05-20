@@ -40,7 +40,7 @@ const Topbar = () => {
               }}
               disabled={currentUser?.rola !== 'ADMIN'}
             >
-              <img src="/panel_admin.png" alt="" />
+              <img src="/icons/panel_admin.png" alt="" />
             </button>
           </span>
         </div>
@@ -51,7 +51,7 @@ const Topbar = () => {
             className="btn-icon"
             onClick={() => setAccountMenuOpen((open) => !open)}
           >
-            <img src="/account.png" alt="Konto" />
+            <img src="/icons/account.png" alt="Konto" />
           </button>
 
           <div className={`account-menu ${accountMenuOpen ? 'open' : ''}`}>

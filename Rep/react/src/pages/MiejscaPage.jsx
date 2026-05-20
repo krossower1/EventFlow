@@ -143,10 +143,9 @@ const MiejscaPage = () => {
               type="button"
               className="btn-refresh-icon"
               onClick={fetchMyMiejsca}
-              disabled={currentUser?.rola !== 'ORG'}
               aria-label="Odśwież"
             >
-              <img src="/refresh.png" alt="" width={22} height={22} />
+              <img src="/icons/refresh.png" alt="" width={22} height={22} />
             </button>
           </span>
           <span

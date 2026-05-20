@@ -1585,6 +1585,44 @@ background:
   pointer-events: none;
 }
 
+.event-card-observe-wrap {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+}
+
+.event-card-observe-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  background: rgba(10, 14, 28, 0.72);
+  color: #f5d565;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.event-card-observe-btn:hover:not(:disabled) {
+  background: rgba(10, 14, 28, 0.9);
+  border-color: #f5d565;
+  color: #ffe08a;
+}
+
+.event-card-observe-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.event-card-observe-btn.is-observed {
+  color: #34d399;
+  border-color: rgba(0, 242, 254, 0.55);
+}
+
 .event-card-hero .event-badge {
   position: absolute;
   top: 12px;
@@ -1703,10 +1741,11 @@ background:
   display: inline-block;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(6, 182, 212, 0.18);
+  background-color: black;
   color: #34d399;
   font-size: 0.75rem;
   font-weight: 700;
+  opacity: 0.7;
 }
 
 .events-user-cta {
@@ -2554,8 +2593,10 @@ option {
 }
 
 /* --- Analityka --- */
+/* Pełna szerokość content-area jak na pozostałych zakładkach (bez max-width na całej stronie). */
 .analityka-page {
-  max-width: 1200px;
+  width: 100%;
+  max-width: none;
 }
 
 .analityka-page h2 {
@@ -2598,7 +2639,6 @@ option {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 14px;
   margin-bottom: 28px;
-  justify-items: center;
 }
 
 .analityka-kpi-card {
@@ -2606,7 +2646,6 @@ option {
   flex-direction: column;
   gap: 6px;
   width: 100%;
-  max-width: 300px;
   padding: 16px 18px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -2708,8 +2747,6 @@ option {
 .analityka-donut-wrap {
   position: relative;
   width: 100%;
-  max-width: 420px;
-  margin: 0 auto;
 }
 
 .analityka-donut-center {
@@ -2880,6 +2917,10 @@ h3 {
   width: fit-content;
 }
 
+span {
+  width: fit-content;
+}
+
 /* Style dla: Powiadomienia */
 /* Styl dla całej listy */
 .settings-list {
@@ -2904,6 +2945,43 @@ h3 {
 .settings-subtitle {
   color: #9fa2a9;
   font-size: 14px;
+}
+
+.settings-observed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings-observed-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background-color: #151a23;
+  border: 1px solid #232a36;
+  border-radius: 8px;
+}
+
+.settings-observed-item__main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.settings-observed-item__main strong {
+  color: #fff;
+  font-size: 15px;
+}
+
+.settings-observed-item__main span {
+  color: #9fa2a9;
+  font-size: 13px;
 }
 
 .badge-beta {
