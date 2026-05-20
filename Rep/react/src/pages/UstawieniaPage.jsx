@@ -829,16 +829,62 @@ const UstawieniaPage = () => {
 
           </div>
         ) : activeTab === 'powiadomienia' ? (
-          <div className="settings-panel">
-            <h3>Powiadomienia</h3>
-            <p>Propozycje dla powiadomień:</p>
-            <ul>
-              <li>Powiadomienie o nowym wydarzeniu</li>
-              <li>Powiadomienie o zmianie statusu wydarzenia (obserwowanego! funkcja obserwacji nie wprowadzona jeszcze)</li>
-              <li>Powiadomienie o zmianie statusu biletu (to samo)</li>
-              <li>Powiadomienie o kończącej się sesji (na przykład przy minucie do końca)</li>
-            </ul>
-          </div>
+<div className="settings-panel">
+    <h3>Powiadomienia</h3>
+    <p className="settings-subtitle">Wybierz, które komunikaty chcesz otrzymywać:</p>
+    
+    <div className="settings-list">
+      <div className="settings-row">
+        <span>Logowanie administratora do systemu</span>
+        <label className="switch">
+          <input type="checkbox" defaultChecked />
+          <span className="slider"></span>
+        </label>
+      </div>
+
+      <div className="settings-row">
+        <span>Nowe wydarzenie</span>
+        <label className="switch">
+          <input type="checkbox" defaultChecked />
+          <span className="slider"></span>
+        </label>
+      </div>
+
+      <div className="settings-row">
+        <span>Logowanie do systemu osoby z listy ulubionych</span>
+        <label className="switch">
+          <input type="checkbox" />
+          <span className="slider"></span>
+        </label>
+      </div>
+
+      <div className="settings-row">
+        <span>Zakończenie wydarzenia <small className="badge-beta">*</small></span>
+        <label className="switch">
+          <input type="checkbox" />
+          <span className="slider"></span>
+        </label>
+      </div>
+
+      <div className="settings-row">
+        <span>Zbliżający się start wydarzenia <small className="badge-beta">*</small></span>
+        <label className="switch">
+          <input type="checkbox" defaultChecked />
+          <span className="slider"></span>
+        </label>
+      </div>
+
+      <div className="settings-row">
+        <span>Zwolnienie się miejsca <small className="badge-beta">*</small></span>
+        <label className="switch">
+          <input type="checkbox" />
+          <span className="slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  
         ) : activeTab === 'bezpieczenstwo' ? (
           <div className="settings-panel">
             <h3>Bezpieczeństwo</h3>
