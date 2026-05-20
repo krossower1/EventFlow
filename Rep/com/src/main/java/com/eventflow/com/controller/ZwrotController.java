@@ -14,6 +14,7 @@ import com.eventflow.com.repository.WydarzenieRepository;
 import com.eventflow.com.repository.WystBiletRepository;
 import com.eventflow.com.repository.ZamowienieRepository;
 import com.eventflow.com.repository.ZwrotRepository;
+import com.eventflow.com.service.NotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +44,7 @@ public class ZwrotController {
 	private final BiletRepository biletRepository;
 	private final WydarzenieRepository wydarzenieRepository;
 	private final ZwrotRepository zwrotRepository;
+	private final NotificationService notificationService;
 
 	public ZwrotController(
 		UserRepository userRepository,
@@ -50,7 +52,8 @@ public class ZwrotController {
 		ZamowienieRepository zamowienieRepository,
 		BiletRepository biletRepository,
 		WydarzenieRepository wydarzenieRepository,
-		ZwrotRepository zwrotRepository
+		ZwrotRepository zwrotRepository,
+		NotificationService notificationService
 	) {
 		this.userRepository = userRepository;
 		this.wystBiletRepository = wystBiletRepository;
@@ -58,6 +61,7 @@ public class ZwrotController {
 		this.biletRepository = biletRepository;
 		this.wydarzenieRepository = wydarzenieRepository;
 		this.zwrotRepository = zwrotRepository;
+		this.notificationService = notificationService;
 	}
 
 	@PostMapping("/wyst-bilety/{wystBiletId}")
@@ -118,6 +122,7 @@ public class ZwrotController {
 	}
 
 	@PostMapping("/{zwrotId}/approve")
+	@Transactional
 	public ResponseEntity<String> approveZwrot(@PathVariable Long zwrotId, Authentication authentication) {
 		User user = requireAuthenticatedUser(authentication);
 		if (!"ADMIN".equalsIgnoreCase(user.getRola())) {
@@ -131,7 +136,40 @@ public class ZwrotController {
 		zwrot.setOtrzymany(true);
 		zwrotRepository.save(zwrot);
 
+		releaseSeatsAfterApprovedRefund(zwrot);
+
 		return ResponseEntity.ok("Prosba o zwrot zostala zaakceptowana.");
+	}
+
+	private void releaseSeatsAfterApprovedRefund(Zwrot zwrot) {
+		Zamowienie zamowienie = zamowienieRepository.findFirstByPlatnId(zwrot.getPlatnId());
+		if (zamowienie == null) {
+			return;
+		}
+		List<WystBilet> wystBilety = wystBiletRepository.findByZamIdIn(List.of(zamowienie.getId()));
+		for (WystBilet wystBilet : wystBilety) {
+			String seatId = wystBilet.getSeatId();
+			if (seatId == null || seatId.isBlank()) {
+				continue;
+			}
+			Bilet bilet = biletRepository.findById(wystBilet.getBiletId()).orElse(null);
+			if (bilet == null || bilet.getWydarzenieId() == null) {
+				continue;
+			}
+			Wydarzenie wydarzenie = wydarzenieRepository.findById(bilet.getWydarzenieId()).orElse(null);
+			String eventTitle = wydarzenie != null ? wydarzenie.getTytul() : null;
+
+			wystBilet.setSeatId(null);
+			wystBilet.setStan("zwrocony");
+			wystBiletRepository.save(wystBilet);
+
+			notificationService.notifyObservedSeatFreed(
+				bilet.getWydarzenieId(),
+				seatId,
+				eventTitle,
+				bilet.getKlasa()
+			);
+		}
 	}
 
 	@PostMapping("/{zwrotId}/reject")

@@ -6,17 +6,23 @@ import com.eventflow.com.controller.dto.ChangeOwnPasswordRequest;
 import com.eventflow.com.controller.dto.LoginLogResponse;
 import com.eventflow.com.controller.dto.ReportSuspiciousLoginRequest;
 import com.eventflow.com.controller.dto.SecurityTicketAdminResponse;
+import com.eventflow.com.controller.dto.NotificationSettingsResponse;
 import com.eventflow.com.controller.dto.SessionSettingsResponse;
+import com.eventflow.com.controller.dto.UnreadNotificationsCountResponse;
+import com.eventflow.com.controller.dto.UpdateNotificationSettingsRequest;
 import com.eventflow.com.controller.dto.UpdateSessionSettingsRequest;
+import com.eventflow.com.controller.dto.UserNotificationResponse;
 import com.eventflow.com.auth.AuthService;
 import com.eventflow.com.model.LoginLog;
 import com.eventflow.com.model.User;
 import com.eventflow.com.repository.LoginLogRepository;
 import com.eventflow.com.repository.UserRepository;
+import com.eventflow.com.service.NotificationService;
 import com.eventflow.com.service.SecurityTicketService;
 import com.eventflow.com.service.UserCascadeDeleteService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,19 +46,22 @@ public class UserController {
     private final AuthService authService;
     /** Tworzenie zgłoszeń bezpieczeństwa z poziomu profilu (historia logowań). */
     private final SecurityTicketService securityTicketService;
+    private final NotificationService notificationService;
 
     public UserController(
         UserRepository userRepository,
         LoginLogRepository loginLogRepository,
         UserCascadeDeleteService userCascadeDeleteService,
         AuthService authService,
-        SecurityTicketService securityTicketService
+        SecurityTicketService securityTicketService,
+        NotificationService notificationService
     ) {
         this.userRepository = userRepository;
         this.loginLogRepository = loginLogRepository;
         this.userCascadeDeleteService = userCascadeDeleteService;
         this.authService = authService;
         this.securityTicketService = securityTicketService;
+        this.notificationService = notificationService;
     }
 
     @GetMapping
@@ -190,6 +199,97 @@ public class UserController {
             resolveSessionExpiryAction(saved.getSessionExpiryAction()),
             resolveSessionCountMode(saved.getSessionCountMode())
         );
+    }
+
+    @GetMapping("/me/notification-settings")
+    public NotificationSettingsResponse getOwnNotificationSettings(Authentication authentication) {
+        User currentUser = requireCurrentUser(authentication);
+        return toNotificationSettingsResponse(currentUser);
+    }
+
+    @PutMapping("/me/notification-settings")
+    public NotificationSettingsResponse updateOwnNotificationSettings(
+        @RequestBody UpdateNotificationSettingsRequest request,
+        Authentication authentication
+    ) {
+        User currentUser = requireCurrentUser(authentication);
+        if (request == null || (
+            request.adminLogin() == null
+            && request.newEvent() == null
+            && request.favoriteLogin() == null
+            && request.observedEventEnd() == null
+            && request.observedEventStart() == null
+            && request.observedSeatFreed() == null
+        )) {
+            throw new RuntimeException("Brak danych ustawień powiadomień");
+        }
+        if (request.adminLogin() != null) {
+            currentUser.setNotifyAdminLogin(request.adminLogin());
+        }
+        if (request.newEvent() != null) {
+            currentUser.setNotifyNewEvent(request.newEvent());
+        }
+        if (request.favoriteLogin() != null) {
+            currentUser.setNotifyFavoriteLogin(request.favoriteLogin());
+        }
+        if (request.observedEventEnd() != null) {
+            currentUser.setNotifyObservedEventEnd(request.observedEventEnd());
+        }
+        if (request.observedEventStart() != null) {
+            currentUser.setNotifyObservedEventStart(request.observedEventStart());
+        }
+        if (request.observedSeatFreed() != null) {
+            currentUser.setNotifyObservedSeatFreed(request.observedSeatFreed());
+        }
+        User saved = userRepository.save(currentUser);
+        return toNotificationSettingsResponse(saved);
+    }
+
+    @GetMapping("/me/notifications")
+    public List<UserNotificationResponse> getOwnNotifications(
+        Authentication authentication,
+        @RequestParam(name = "limit", defaultValue = "30") int limit
+    ) {
+        User currentUser = requireCurrentUser(authentication);
+        return notificationService.getNotificationsForUser(currentUser.getId(), limit);
+    }
+
+    @GetMapping("/me/notifications/unread-count")
+    public UnreadNotificationsCountResponse getOwnUnreadNotificationsCount(Authentication authentication) {
+        User currentUser = requireCurrentUser(authentication);
+        return notificationService.getUnreadCountForUser(currentUser.getId());
+    }
+
+    @PutMapping("/me/notifications/{notificationId}/read")
+    public UserNotificationResponse markOwnNotificationAsRead(
+        @PathVariable Long notificationId,
+        Authentication authentication
+    ) {
+        User currentUser = requireCurrentUser(authentication);
+        return notificationService.markAsRead(currentUser.getId(), notificationId);
+    }
+
+    @PutMapping("/me/notifications/read-all")
+    public void markAllOwnNotificationsAsRead(Authentication authentication) {
+        User currentUser = requireCurrentUser(authentication);
+        notificationService.markAllAsRead(currentUser.getId());
+    }
+
+    @DeleteMapping("/me/notifications/{notificationId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteOwnNotification(
+        @PathVariable Long notificationId,
+        Authentication authentication
+    ) {
+        User currentUser = requireCurrentUser(authentication);
+        notificationService.deleteNotification(currentUser.getId(), notificationId);
+    }
+
+    @DeleteMapping("/me/notifications")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAllOwnNotifications(Authentication authentication) {
+        User currentUser = requireCurrentUser(authentication);
+        notificationService.deleteAllForUser(currentUser.getId());
     }
 
     @GetMapping("/me/login-history")
@@ -375,5 +475,40 @@ public class UserController {
             return SESSION_COUNT_MODE_ABSOLUTE;
         }
         return SESSION_COUNT_MODE_RELATIVE;
+    }
+
+    private boolean resolveNotifyAdminLogin(Boolean value) {
+        return value == null || Boolean.TRUE.equals(value);
+    }
+
+    private boolean resolveNotifyNewEvent(Boolean value) {
+        return value == null || Boolean.TRUE.equals(value);
+    }
+
+    private boolean resolveNotifyFavoriteLogin(Boolean value) {
+        return Boolean.TRUE.equals(value);
+    }
+
+    private boolean resolveNotifyObservedEventEnd(Boolean value) {
+        return value == null || Boolean.TRUE.equals(value);
+    }
+
+    private boolean resolveNotifyObservedEventStart(Boolean value) {
+        return value == null || Boolean.TRUE.equals(value);
+    }
+
+    private boolean resolveNotifyObservedSeatFreed(Boolean value) {
+        return value == null || Boolean.TRUE.equals(value);
+    }
+
+    private NotificationSettingsResponse toNotificationSettingsResponse(User user) {
+        return new NotificationSettingsResponse(
+            resolveNotifyAdminLogin(user.getNotifyAdminLogin()),
+            resolveNotifyNewEvent(user.getNotifyNewEvent()),
+            resolveNotifyFavoriteLogin(user.getNotifyFavoriteLogin()),
+            resolveNotifyObservedEventEnd(user.getNotifyObservedEventEnd()),
+            resolveNotifyObservedEventStart(user.getNotifyObservedEventStart()),
+            resolveNotifyObservedSeatFreed(user.getNotifyObservedSeatFreed())
+        );
     }
 }

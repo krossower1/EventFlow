@@ -29,21 +29,14 @@ const formatEventTime = (value) => {
 
 /** Ikona gwiazdki na karcie wydarzenia (pusta = można dodać, wypełniona = już obserwowane). */
 const ObserveStarIcon = ({ filled }) => (
-  <svg
-    className="event-card-observe-icon"
-    viewBox="0 0 24 24"
+  <img
+    src={filled ? '/icons/favorite (1).png' : '/icons/favorite.png'}
+    alt=""
     width={22}
     height={22}
-    aria-hidden="true"
-  >
-    <path
-      d="M12 2.5l2.55 5.17 5.7.83-4.12 4.02.97 5.68L12 15.9l-5.1 2.68.97-5.68-4.12-4.02 5.7-.83L12 2.5z"
-      fill={filled ? 'currentColor' : 'none'}
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinejoin="round"
-    />
-  </svg>
+    className="event-card-observe-icon"
+    aria-hidden
+  />
 );
 
 const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurchase }) => {
@@ -87,7 +80,7 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
 
   const observeDisabled = !isUser || !isActive || isObserved || isObserving;
   const observeTooltip = !isUser
-    ? 'Dostępne tylko dla użytkownika USER'
+    ? 'Dostępne tylko dla użytkownika'
     : !isActive
       ? 'Dostępne tylko dla wydarzeń o statusie aktywnym'
       : isObserved
@@ -110,7 +103,7 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
 
   const zakupDisabled = !isUser || !item.maDostepneBilety;
   const zakupTooltip = !isUser
-    ? 'Dostępne tylko dla użytkownika USER'
+    ? 'Dostępne tylko dla użytkownika'
     : !item.maDostepneBilety
       ? 'Brak dostępnych biletów'
       : '';

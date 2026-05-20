@@ -22,6 +22,7 @@ import com.eventflow.com.repository.PersonelRepository;
 import com.eventflow.com.repository.PlatnoscRepository;
 import com.eventflow.com.repository.PozZamRepository;
 import com.eventflow.com.repository.SalaRepository;
+import com.eventflow.com.repository.UserNotificationRepository;
 import com.eventflow.com.repository.UserRepository;
 import com.eventflow.com.repository.WydarzenieRepository;
 import com.eventflow.com.repository.WystBiletRepository;
@@ -53,6 +54,7 @@ public class UserCascadeDeleteService {
 	private final MiejsceRepository miejsceRepository;
 	private final SalaRepository salaRepository;
 	private final KategoriaRepository kategoriaRepository;
+	private final UserNotificationRepository userNotificationRepository;
 
 	public UserCascadeDeleteService(
 		UserRepository userRepository,
@@ -69,7 +71,8 @@ public class UserCascadeDeleteService {
 		ZgloszenieRepository zgloszenieRepository,
 		MiejsceRepository miejsceRepository,
 		SalaRepository salaRepository,
-		KategoriaRepository kategoriaRepository
+		KategoriaRepository kategoriaRepository,
+		UserNotificationRepository userNotificationRepository
 	) {
 		this.userRepository = userRepository;
 		this.organizatorRepository = organizatorRepository;
@@ -86,6 +89,7 @@ public class UserCascadeDeleteService {
 		this.miejsceRepository = miejsceRepository;
 		this.salaRepository = salaRepository;
 		this.kategoriaRepository = kategoriaRepository;
+		this.userNotificationRepository = userNotificationRepository;
 	}
 
 	@Transactional
@@ -143,6 +147,8 @@ public class UserCascadeDeleteService {
 	}
 
 	private void deleteSimpleUserLinks(Long userId) {
+		userNotificationRepository.deleteByUserId(userId);
+
 		List<Long> personelIds = personelRepository.findByUserId(userId).stream()
 			.map(Personel::getId)
 			.toList();

@@ -86,6 +86,22 @@ const WydarzeniaPage = () => {
     }
   }, [getRequestConfig]);
 
+  const handleEndEventAsAdmin = async (eventId) => {
+    if (!window.confirm('Ustawić status wydarzenia na NIEAKTYWNY? Obserwujący otrzymają powiadomienie.')) {
+      return;
+    }
+    try {
+      await apiClient.put(`/wydarzenia/${eventId}/status`, { status: 'NIEAKTYWNY' }, getRequestConfig());
+      await fetchMyWydarzenia();
+      setStatus({ type: 'success', message: 'Wydarzenie zostało zakończone (NIEAKTYWNY).' });
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error.response?.data?.message || 'Nie udało się zmienić statusu wydarzenia.',
+      });
+    }
+  };
+
   const addBiletForm = () => {
     setWydarzenieForm(prev => ({
       ...prev,
@@ -472,7 +488,7 @@ const WydarzeniaPage = () => {
               </span>
               <span
                 className={`permission-tooltip ${currentUser?.rola !== 'USER' ? 'has-tooltip' : ''}`}
-                data-tooltip={currentUser?.rola !== 'USER' ? 'Dostępne tylko dla użytkownika USER' : ''}
+                data-tooltip={currentUser?.rola !== 'USER' ? 'Dostępne tylko dla użytkownika' : ''}
               >
                 <button
                   type="button"
@@ -664,6 +680,17 @@ const WydarzeniaPage = () => {
                   onPurchase={openZakupForm}
                 />
 
+                {currentUser?.rola === 'ADMIN' && String(item.status || '').toUpperCase() === 'AKTYWNY' ? (
+                  <div style={{ marginTop: '12px' }}>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => handleEndEventAsAdmin(item.id)}
+                    >
+                      Zakończ wydarzenie
+                    </button>
+                  </div>
+                ) : null}
 
                 {/* Dlaczego zakomentowane: należy dodać warunek że tylko autor wydarzenia może dodać nową pulę biletów dla swojego wydarzenia. Jak jest teraz: niezależnie od tego kto jest autorem, może dodać nową pulę biletów dla każdego wydarzenia co jest bardzo niebezpieczne.
                 <div style={{ marginTop: '20px' }}>

@@ -78,5 +78,24 @@ public class User {
 	@Column(name = "data_utw")
 	private LocalDateTime dataUtw;
 
+	/** Powiadomienie: logowanie administratora do systemu (zakładka Ustawienia → Powiadomienia). */
+	@Column(name = "notify_admin_login", nullable = false)
+	private Boolean notifyAdminLogin = true;
+
+	@Column(name = "notify_new_event", nullable = false)
+	private Boolean notifyNewEvent = true;
+
+	@Column(name = "notify_favorite_login", nullable = false)
+	private Boolean notifyFavoriteLogin = false;
+
+	@Column(name = "notify_observed_event_end", nullable = false)
+	private Boolean notifyObservedEventEnd = true;
+
+	@Column(name = "notify_observed_event_start", nullable = false)
+	private Boolean notifyObservedEventStart = true;
+
+	@Column(name = "notify_observed_seat_freed", nullable = false)
+	private Boolean notifyObservedSeatFreed = true;
+
 	private Boolean aktywnosc;
 }
