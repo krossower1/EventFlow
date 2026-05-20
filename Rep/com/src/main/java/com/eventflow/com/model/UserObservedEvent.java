@@ -35,4 +35,8 @@ public class UserObservedEvent {
 	/** Moment dodania do obserwowanych (używany przy sortowaniu listy w ustawieniach). */
 	@Column(name = "created_at", nullable = false)
 	private LocalDateTime createdAt;
+
+	/** Wysłano przypomnienie o zbliżającym się starcie (scheduler). */
+	@Column(name = "start_reminder_sent_at")
+	private LocalDateTime startReminderSentAt;
 }

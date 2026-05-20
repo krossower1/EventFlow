@@ -1,10 +1,17 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
 import { authService } from '../services/authService';
+import {
+  getNotificationSettings,
+  updateNotificationSettings,
+} from '../services/powiadomieniaService';
 import QRCode from 'qrcode';
 import {
   OBSERVED_EVENTS_CHANGED,
+  ensureObservedLoaded,
+  getObservedEvents,
   refreshObservedEvents,
   removeObservedEvent,
 } from '../utils/obserwowaneWydarzenia';
@@ -38,6 +45,8 @@ const tabs = [
 ];
 
 const UstawieniaPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser, authCredentials, applyAuthenticatedUser, applySessionSettings } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('profil');
   const [activeSecurityTab, setActiveSecurityTab] = useState('zmiana-hasla');
@@ -118,6 +127,19 @@ const UstawieniaPage = () => {
   const [observedEvents, setObservedEvents] = useState([]);
   const [isLoadingObserved, setIsLoadingObserved] = useState(false);
   const [observedStatus, setObservedStatus] = useState({ type: '', message: '' });
+  /** null = jeszcze nie sprawdzono; używane tylko do wyszarzenia opcji * w Powiadomieniach. */
+  const [hasObservedEvents, setHasObservedEvents] = useState(null);
+  const [notificationSettings, setNotificationSettings] = useState({
+    adminLogin: true,
+    newEvent: true,
+    favoriteLogin: false,
+    observedEventEnd: true,
+    observedEventStart: true,
+    observedSeatFreed: true,
+  });
+  const [isLoadingNotificationSettings, setIsLoadingNotificationSettings] = useState(false);
+  const [isSavingNotificationSettings, setIsSavingNotificationSettings] = useState(false);
+  const [notificationSettingsStatus, setNotificationSettingsStatus] = useState({ type: '', message: '' });
   const [selectedSeatId, setSelectedSeatId] = useState(null);
   const [dragState, setDragState] = useState(null);
 
@@ -486,6 +508,8 @@ const UstawieniaPage = () => {
     loadTwoFactorStatus();
   }, [activeTab, activeSecurityTab]);
 
+  const observedOnlyNotificationsDisabled = hasObservedEvents === false;
+
   // Zakładka Obserwowane: GET listy z API + ponowne ładowanie po OBSERVED_EVENTS_CHANGED (np. gwiazdka na karcie).
   useEffect(() => {
     if (!currentUser?.id || activeTab !== 'obserwowane') {
@@ -497,10 +521,14 @@ const UstawieniaPage = () => {
       setObservedStatus({ type: '', message: '' });
       try {
         const events = await refreshObservedEvents(authCredentials, currentUser.id);
-        if (!cancelled) setObservedEvents(events);
+        if (!cancelled) {
+          setObservedEvents(events);
+          setHasObservedEvents(events.length > 0);
+        }
       } catch (error) {
         if (!cancelled) {
           setObservedEvents([]);
+          setHasObservedEvents(false);
           setObservedStatus({
             type: 'error',
             message: error.response?.data?.message || 'Nie udało się pobrać obserwowanych wydarzeń.',
@@ -521,6 +549,99 @@ const UstawieniaPage = () => {
       window.removeEventListener(OBSERVED_EVENTS_CHANGED, onObservedChanged);
     };
   }, [currentUser?.id, activeTab, authCredentials]);
+
+  // Zakładka Powiadomienia: tylko sprawdzenie, czy lista obserwowanych jest pusta (bez wyświetlania listy).
+  useEffect(() => {
+    if (!currentUser?.id || activeTab !== 'powiadomienia') {
+      return undefined;
+    }
+    let cancelled = false;
+    const syncHasObservedEvents = async () => {
+      try {
+        await ensureObservedLoaded(authCredentials, currentUser.id);
+        if (!cancelled) setHasObservedEvents(getObservedEvents().length > 0);
+      } catch {
+        if (!cancelled) setHasObservedEvents(false);
+      }
+    };
+    syncHasObservedEvents();
+    const onObservedChanged = (event) => {
+      if (event.detail?.userId != null && event.detail.userId !== currentUser.id) return;
+      setHasObservedEvents(getObservedEvents().length > 0);
+    };
+    window.addEventListener(OBSERVED_EVENTS_CHANGED, onObservedChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(OBSERVED_EVENTS_CHANGED, onObservedChanged);
+    };
+  }, [currentUser?.id, activeTab, authCredentials]);
+
+  useEffect(() => {
+    if (!currentUser?.id || activeTab !== 'powiadomienia') {
+      return undefined;
+    }
+    let cancelled = false;
+    const loadNotificationSettings = async () => {
+      setIsLoadingNotificationSettings(true);
+      setNotificationSettingsStatus({ type: '', message: '' });
+      try {
+        const data = await getNotificationSettings(authCredentials);
+        if (!cancelled) {
+          setNotificationSettings(applySavedNotificationSettings(data));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setNotificationSettingsStatus({
+            type: 'error',
+            message: error.response?.data?.message || 'Nie udało się pobrać ustawień powiadomień.',
+          });
+        }
+      } finally {
+        if (!cancelled) setIsLoadingNotificationSettings(false);
+      }
+    };
+    loadNotificationSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id, activeTab, authCredentials]);
+
+  const applySavedNotificationSettings = (saved) => ({
+    adminLogin: saved?.adminLogin !== false,
+    newEvent: saved?.newEvent !== false,
+    favoriteLogin: saved?.favoriteLogin === true,
+    observedEventEnd: saved?.observedEventEnd !== false,
+    observedEventStart: saved?.observedEventStart !== false,
+    observedSeatFreed: saved?.observedSeatFreed !== false,
+  });
+
+  const handleNotificationSettingChange = async (key, checked) => {
+    const previous = notificationSettings[key];
+    setNotificationSettings((prev) => ({ ...prev, [key]: checked }));
+    setNotificationSettingsStatus({ type: '', message: '' });
+    setIsSavingNotificationSettings(true);
+    try {
+      const saved = await updateNotificationSettings(authCredentials, { [key]: checked });
+      setNotificationSettings(applySavedNotificationSettings(saved));
+      setNotificationSettingsStatus({ type: 'success', message: 'Zapisano ustawienie powiadomień.' });
+    } catch (error) {
+      setNotificationSettings((prev) => ({ ...prev, [key]: previous }));
+      setNotificationSettingsStatus({
+        type: 'error',
+        message: error.response?.data?.message || 'Nie udało się zapisać ustawienia powiadomień.',
+      });
+    } finally {
+      setIsSavingNotificationSettings(false);
+    }
+  };
+
+  useEffect(() => {
+    const tabFromNav = location.state?.settingsTab;
+    if (tabFromNav) {
+      setActiveTab(tabFromNav);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   useEffect(() => {
     if (activeTab === 'uklady-sal') {
@@ -889,12 +1010,19 @@ const UstawieniaPage = () => {
 <div className="settings-panel">
     <h3>Powiadomienia</h3>
     <p className="settings-subtitle">Wybierz, które komunikaty chcesz otrzymywać:</p>
-    
+    {isLoadingNotificationSettings && (
+      <p className="settings-subtitle">Ładowanie ustawień powiadomień...</p>
+    )}
     <div className="settings-list">
       <div className="settings-row">
         <span>Logowanie administratora do systemu</span>
         <label className="switch">
-          <input type="checkbox" defaultChecked />
+          <input
+            type="checkbox"
+            checked={notificationSettings.adminLogin}
+            disabled={isLoadingNotificationSettings || isSavingNotificationSettings}
+            onChange={(event) => handleNotificationSettingChange('adminLogin', event.target.checked)}
+          />
           <span className="slider"></span>
         </label>
       </div>
@@ -902,7 +1030,12 @@ const UstawieniaPage = () => {
       <div className="settings-row">
         <span>Nowe wydarzenie</span>
         <label className="switch">
-          <input type="checkbox" defaultChecked />
+          <input
+            type="checkbox"
+            checked={notificationSettings.newEvent}
+            disabled={isLoadingNotificationSettings || isSavingNotificationSettings}
+            onChange={(event) => handleNotificationSettingChange('newEvent', event.target.checked)}
+          />
           <span className="slider"></span>
         </label>
       </div>
@@ -910,12 +1043,17 @@ const UstawieniaPage = () => {
       <div className="settings-row">
         <span>Logowanie do systemu osoby z listy ulubionych</span>
         <label className="switch">
-          <input type="checkbox" />
+          <input
+            type="checkbox"
+            checked={notificationSettings.favoriteLogin}
+            disabled={isLoadingNotificationSettings || isSavingNotificationSettings}
+            onChange={(event) => handleNotificationSettingChange('favoriteLogin', event.target.checked)}
+          />
           <span className="slider"></span>
         </label>
       </div>
 
-      <div className="settings-row">
+      <div className={`settings-row${observedOnlyNotificationsDisabled ? ' is-disabled' : ''}`}>
         <span>Zakończenie wydarzenia <small className="badge-beta">
         <span 
         className="permission-tooltip has-tooltip" 
@@ -924,12 +1062,17 @@ const UstawieniaPage = () => {
         *
         </span></small></span>
         <label className="switch">
-          <input type="checkbox" />
+          <input
+            type="checkbox"
+            checked={notificationSettings.observedEventEnd}
+            disabled={observedOnlyNotificationsDisabled || isLoadingNotificationSettings || isSavingNotificationSettings}
+            onChange={(event) => handleNotificationSettingChange('observedEventEnd', event.target.checked)}
+          />
           <span className="slider"></span>
         </label>
       </div>
 
-      <div className="settings-row">
+      <div className={`settings-row${observedOnlyNotificationsDisabled ? ' is-disabled' : ''}`}>
         <span>Zbliżający się start wydarzenia <small className="badge-beta">
         <span 
         className="permission-tooltip has-tooltip" 
@@ -939,12 +1082,17 @@ const UstawieniaPage = () => {
         </span>
           </small></span>
         <label className="switch">
-          <input type="checkbox" defaultChecked />
+          <input
+            type="checkbox"
+            checked={notificationSettings.observedEventStart}
+            disabled={observedOnlyNotificationsDisabled || isLoadingNotificationSettings || isSavingNotificationSettings}
+            onChange={(event) => handleNotificationSettingChange('observedEventStart', event.target.checked)}
+          />
           <span className="slider"></span>
         </label>
       </div>
 
-      <div className="settings-row">
+      <div className={`settings-row${observedOnlyNotificationsDisabled ? ' is-disabled' : ''}`}>
         <span>Zwolnienie się miejsca <small className="badge-beta">
         <span 
         className="permission-tooltip has-tooltip" 
@@ -953,22 +1101,44 @@ const UstawieniaPage = () => {
         *
         </span></small></span>
         <label className="switch">
-          <input type="checkbox" />
+          <input
+            type="checkbox"
+            checked={notificationSettings.observedSeatFreed}
+            disabled={observedOnlyNotificationsDisabled || isLoadingNotificationSettings || isSavingNotificationSettings}
+            onChange={(event) => handleNotificationSettingChange('observedSeatFreed', event.target.checked)}
+          />
           <span className="slider"></span>
         </label>
       </div>
     </div>
+    {notificationSettingsStatus.message && (
+      <p className={`status-message ${notificationSettingsStatus.type === 'error' ? 'status-error' : 'status-success'}`}>
+        {notificationSettingsStatus.message}
+      </p>
+    )}
   </div>
 
         ) : activeTab === 'obserwowane' ? (
           <div className="settings-panel">
             <h3>Obserwowane</h3>
             <p className="settings-subtitle">
-              Wydarzenia, które obserwujesz — otrzymasz powiadomienia oznaczone gwiazdką w zakładce Powiadomienia.
+              Wydarzenia, które obserwujesz — aby dostosować powiadomienia do własnych preferencji, przejdź do zakładki <span className="settings-subtitle-no-events-link" onClick={() => setActiveTab('powiadomienia')}>Powiadomienia</span> i zaznacz opcje oznaczone gwiazdką.
             </p>
             {isLoadingObserved && <p className="settings-subtitle">Ładowanie obserwowanych wydarzeń...</p>}
             {!isLoadingObserved && observedEvents.length === 0 ? (
-              <p className="settings-subtitle">Nie obserwujesz jeszcze żadnych wydarzeń.</p>
+              <div className="settings-subtitle-no-events-centered">
+              <p className="settings-subtitle-no-events">Nie obserwujesz jeszcze żadnych wydarzeń.</p>
+              <p className="settings-subtitle-no-events-description">
+                Aby to zrobić, przejdź do karty {' '}
+                <span
+                  className="settings-subtitle-no-events-link"
+                  onClick={() => navigate('/wydarzenia')}
+                >
+                  Wydarzenia
+                </span>
+                .
+              </p>
+              </div>
             ) : null}
             {!isLoadingObserved && observedEvents.length > 0 ? (
               <ul className="settings-observed-list">

@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 const Topbar = () => {
   const { currentUser, handleLogout, handleDeleteOwnAccount } = useContext(AuthContext);
@@ -11,6 +12,28 @@ const Topbar = () => {
     <header className="topbar">
       <div className="topbar-left">
         <div className="topbar-left-row">
+          <div className="panel-admin">
+            <span
+              className={`permission-tooltip ${currentUser?.rola !== 'ADMIN' ? 'has-tooltip' : ''}`}
+              data-tooltip={currentUser?.rola !== 'ADMIN' ? 'Dostępne tylko dla administratora' : ''}
+            >
+              <button
+                type="button"
+                className="btn-icon"
+                aria-label="Panel admina"
+                onClick={() => {
+                  if (currentUser?.rola !== 'ADMIN') return;
+                  navigate('/admin');
+                }}
+                disabled={currentUser?.rola !== 'ADMIN'}
+              >
+                <img src="/icons/panel_admin.png" alt="" />
+              </button>
+            </span>
+              <button type="button" className="btn-icon" aria-label="Odśwież" onClick={() => window.location.reload()} style={{ cursor: 'var(--cursor-pointer)', marginLeft: '10px' }}>
+                <img src="/icons/refresh.png" alt="" width={22} height={22} />
+              </button>
+          </div>
           <button type="button" className="btn-back-tab" onClick={() => navigate(-1)}>
             Wstecz
           </button>
@@ -25,26 +48,7 @@ const Topbar = () => {
         </div>
       </div>
       <div className="topbar-right">
-        <div className="panel-admin">
-          <span
-            className={`permission-tooltip ${currentUser?.rola !== 'ADMIN' ? 'has-tooltip' : ''}`}
-            data-tooltip={currentUser?.rola !== 'ADMIN' ? 'Dostępne tylko dla administratora' : ''}
-          >
-            <button
-              type="button"
-              className="btn-icon"
-              aria-label="Panel admina"
-              onClick={() => {
-                if (currentUser?.rola !== 'ADMIN') return;
-                navigate('/admin');
-              }}
-              disabled={currentUser?.rola !== 'ADMIN'}
-            >
-              <img src="/icons/panel_admin.png" alt="" />
-            </button>
-          </span>
-        </div>
-
+        <NotificationBell />
         <div className="account-menu-wrapper">
           <button
             type="button"

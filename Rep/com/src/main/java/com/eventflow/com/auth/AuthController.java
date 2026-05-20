@@ -12,6 +12,7 @@ import com.eventflow.com.auth.dto.TwoFactorStatusResponse;
 import com.eventflow.com.auth.dto.VerifyEmailRequest;
 import com.eventflow.com.auth.dto.VerifyEmailResponse;
 import com.eventflow.com.model.User;
+import com.eventflow.com.service.NotificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -37,15 +38,18 @@ public class AuthController {
 	private final AuthService authService;
 	private final TotpService totpService;
 	private final AuthenticationManager authenticationManager;
+	private final NotificationService notificationService;
 
 	public AuthController(
 		AuthService authService,
 		TotpService totpService,
-		AuthenticationManager authenticationManager
+		AuthenticationManager authenticationManager,
+		NotificationService notificationService
 	) {
 		this.authService = authService;
 		this.totpService = totpService;
 		this.authenticationManager = authenticationManager;
+		this.notificationService = notificationService;
 	}
 
 	@PostMapping("/login")
@@ -215,6 +219,12 @@ public class AuthController {
 		String email = loggedUser != null ? loggedUser.getEmail() : null;
 		String telefon = loggedUser != null ? loggedUser.getTelefon() : null;
 		authService.saveLoginLog(login, userAgent, "SUKCES", clientIp);
+		if (loggedUser != null) {
+			notificationService.notifyFavoriteLogin(loggedUser);
+			if ("ADMIN".equalsIgnoreCase(rola)) {
+				notificationService.notifyAdminLogin(loggedUser);
+			}
+		}
 		return new LoginResponse(true, "Login successful", rola, imie, nazwisko, email, telefon, false);
 	}
 

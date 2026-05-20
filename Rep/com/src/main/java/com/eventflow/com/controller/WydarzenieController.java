@@ -10,6 +10,7 @@ import com.eventflow.com.controller.dto.PersonelDto;
 import com.eventflow.com.controller.dto.PersonelRequestDto;
 import com.eventflow.com.controller.dto.SalaOptionDto;
 import com.eventflow.com.controller.dto.WydarzenieCreateRequestDto;
+import com.eventflow.com.controller.dto.WydarzenieStatusUpdateRequestDto;
 import com.eventflow.com.controller.dto.WydarzenieDetailDto;
 import com.eventflow.com.controller.dto.WydarzenieListItemDto;
 import com.eventflow.com.controller.dto.WydarzenieOptionsDto;
@@ -38,6 +39,7 @@ import com.eventflow.com.repository.SalaRepository;
 import com.eventflow.com.repository.UserRepository;
 import com.eventflow.com.repository.WydarzenieRepository;
 import com.eventflow.com.repository.ZgloszenieRepository;
+import com.eventflow.com.service.NotificationService;
 import com.eventflow.com.service.UserCascadeDeleteService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -46,6 +48,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -84,6 +87,7 @@ public class WydarzenieController {
 	private final ZgloszenieRepository zgloszenieRepository;
 	private final PersonelRepository personelRepository;
 	private final UserCascadeDeleteService userCascadeDeleteService;
+	private final NotificationService notificationService;
 
 	public WydarzenieController(
 		UserRepository userRepository,
@@ -97,7 +101,8 @@ public class WydarzenieController {
 		OpiniaRepository opiniaRepository,
 		ZgloszenieRepository zgloszenieRepository,
 		PersonelRepository personelRepository,
-		UserCascadeDeleteService userCascadeDeleteService
+		UserCascadeDeleteService userCascadeDeleteService,
+		NotificationService notificationService
 	) {
 		this.userRepository = userRepository;
 		this.organizatorRepository = organizatorRepository;
@@ -111,6 +116,7 @@ public class WydarzenieController {
 		this.zgloszenieRepository = zgloszenieRepository;
 		this.personelRepository = personelRepository;
 		this.userCascadeDeleteService = userCascadeDeleteService;
+		this.notificationService = notificationService;
 	}
 
 	@GetMapping("/options")
@@ -452,7 +458,45 @@ public class WydarzenieController {
 
 		Wydarzenie savedWydarzenie = wydarzenieRepository.save(wydarzenie);
 		saveBilety(savedWydarzenie.getId(), request.bilety(), sala);
+		notificationService.notifyNewEvent(savedWydarzenie, user.getId());
 		return ResponseEntity.status(CREATED).body("Wydarzenie zostalo dodane.");
+	}
+
+	@PutMapping("/{id}/status")
+	@Transactional
+	public ResponseEntity<String> updateWydarzenieStatus(
+		@PathVariable Long id,
+		@RequestBody WydarzenieStatusUpdateRequestDto request,
+		Authentication authentication
+	) {
+		User user = requireAuthenticatedUser(authentication);
+		if (request == null || request.status() == null || request.status().isBlank()) {
+			throw new ResponseStatusException(BAD_REQUEST, "Podaj nowy status wydarzenia.");
+		}
+
+		Wydarzenie wydarzenie = wydarzenieRepository.findById(id)
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono wydarzenia."));
+
+		if (!isAdmin(user) && !canManagePersonel(user, wydarzenie)) {
+			throw new ResponseStatusException(FORBIDDEN, "Brak uprawnien do zmiany statusu wydarzenia.");
+		}
+
+		String newStatus = normalizeStatus(request.status());
+		String previousStatus = wydarzenie.getStatus() != null ? normalizeStatus(wydarzenie.getStatus()) : "";
+
+		if (STATUS_NIEAKTYWNY.equals(newStatus) && !isAdmin(user)) {
+			throw new ResponseStatusException(FORBIDDEN, "Status NIEAKTYWNY moze nadac tylko administrator.");
+		}
+		validateCreateStatus(user, newStatus);
+
+		wydarzenie.setStatus(newStatus);
+		wydarzenieRepository.save(wydarzenie);
+
+		if (STATUS_NIEAKTYWNY.equals(newStatus) && !STATUS_NIEAKTYWNY.equals(previousStatus)) {
+			notificationService.notifyObservedEventEnd(wydarzenie);
+		}
+
+		return ResponseEntity.ok("Status wydarzenia zostal zaktualizowany.");
 	}
 
 	private Long resolveKategoriaId(WydarzenieCreateRequestDto request, User user) {
