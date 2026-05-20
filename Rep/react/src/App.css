@@ -2868,6 +2868,100 @@ option {
   font-size: 0.88rem;
 }
 
+p {
+  width: fit-content;
+}
+
+h2 {
+  width: fit-content;
+}
+
+h3 {
+  width: fit-content;
+}
+
+/* Style dla: Powiadomienia */
+/* Styl dla całej listy */
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+/* Pojedynczy wiersz ustawień - tekst po lewej, suwak po prawej */
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #151a23; /* Ciemne tło wiersza */
+  border: 1px solid #232a36;
+  border-radius: 8px;
+  color: #ffffff;
+}
+
+.settings-subtitle {
+  color: #9fa2a9;
+  font-size: 14px;
+}
+
+.badge-beta {
+  color: #00f2fe; /* akcent dla funkcji oznaczonych gwiazdką */
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+/* Ukrycie domyślnego checkboxa */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Tło suwaka */
+.slider {
+  position: absolute;
+  cursor: var(--cursor-pointer);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #232a36;
+  transition: .3s;
+  border-radius: 24px;
+}
+
+/* Biała kropka wewnątrz suwaka */
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+/* Kolor tła, gdy suwak jest WŁĄCZONY (np. turkusowy/zielony) */
+input:checked + .slider {
+  background-color: #00f2fe; 
+}
+
+/* Przesunięcie kropki w prawo po włączeniu */
+input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+
+
+
 /* Custom cursors – Bootstrap i dzieci wewnątrz przycisków/linków */
 body a,
 body a *,
