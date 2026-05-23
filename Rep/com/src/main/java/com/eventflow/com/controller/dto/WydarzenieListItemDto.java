@@ -12,6 +12,11 @@ public record WydarzenieListItemDto(
 	LocalDateTime dataRozp,
 	LocalDateTime dataZamk,
 	Boolean maDostepneBilety,
-	List<BiletPostepDto> postepyBiletow
+	List<BiletPostepDto> postepyBiletow,
+	String miejsceNazwa,
+	String miasto,
+	String kodPocztowy,
+	String ulica,
+	String creatorLogin
 ) {
 }

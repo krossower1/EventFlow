@@ -27,6 +27,7 @@ public class Wydarzenie {
 	@Column(name = "kategoria_id", nullable = false)
 	private Long kategoriaId;
 
+	@Transient
 	private String rola;
 
 	@Column(name = "data_utw")

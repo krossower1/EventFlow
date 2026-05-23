@@ -17,6 +17,11 @@ public record WydarzenieDetailDto(
 	List<BiletPostepDto> postepyBiletow,
 	List<PersonelDto> personel,
 	List<OpiniaDto> opinie,
-	List<ZgloszenieDto> zgloszenia
+	List<ZgloszenieDto> zgloszenia,
+	String miejsceNazwa,
+	String miasto,
+	String kodPocztowy,
+	String ulica,
+	String creatorLogin
 ) {
 }

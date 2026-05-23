@@ -423,11 +423,29 @@ public class WydarzenieController {
 		Organizator organizator = organizatorRepository.findByUserIdAndZweryfikowTrue(user.getId())
 			.orElseThrow(() -> new ResponseStatusException(FORBIDDEN, "Brak aktywnego profilu organizatora."));
 
-		if (request.salaId() == null || request.tytul() == null || request.tytul().isBlank()
-			|| request.rola() == null || request.rola().isBlank()
-			|| request.status() == null || request.status().isBlank()
-			|| request.dataRozp() == null || request.dataZamk() == null) {
-			throw new ResponseStatusException(BAD_REQUEST, "Wypelnij wymagane pola wydarzenia.");
+		if (request.salaId() == null) {
+			throw new ResponseStatusException(BAD_REQUEST, "Sala jest wymagana.");
+		}
+		if (request.tytul() == null || request.tytul().isBlank()) {
+			throw new ResponseStatusException(BAD_REQUEST, "Tytul jest wymagany.");
+		}
+		if (request.status() == null || request.status().isBlank()) {
+			throw new ResponseStatusException(BAD_REQUEST, "Status jest wymagany.");
+		}
+		if (request.dataRozp() == null || request.dataRozp().isBlank()) {
+			throw new ResponseStatusException(BAD_REQUEST, "Data rozpoczecia jest wymagana.");
+		}
+		if (request.dataZamk() == null || request.dataZamk().isBlank()) {
+			throw new ResponseStatusException(BAD_REQUEST, "Data zakonczenia jest wymagana.");
+		}
+
+		LocalDateTime dataRozp;
+		LocalDateTime dataZamk;
+		try {
+			dataRozp = LocalDateTime.parse(request.dataRozp());
+			dataZamk = LocalDateTime.parse(request.dataZamk());
+		} catch (Exception e) {
+			throw new ResponseStatusException(BAD_REQUEST, "Nieprawidlowy format daty.");
 		}
 
 		String normalizedStatus = normalizeStatus(request.status());
@@ -450,11 +468,10 @@ public class WydarzenieController {
 		wydarzenie.setTytul(request.tytul());
 		wydarzenie.setOpis(request.opis());
 		wydarzenie.setKategoriaId(kategoriaId);
-		wydarzenie.setRola(request.rola());
 		wydarzenie.setDataUtw(LocalDateTime.now());
 		wydarzenie.setStatus(normalizedStatus);
-		wydarzenie.setDataRozp(request.dataRozp());
-		wydarzenie.setDataZamk(request.dataZamk());
+		wydarzenie.setDataRozp(dataRozp);
+		wydarzenie.setDataZamk(dataZamk);
 
 		Wydarzenie savedWydarzenie = wydarzenieRepository.save(wydarzenie);
 		saveBilety(savedWydarzenie.getId(), request.bilety(), sala);
@@ -529,17 +546,35 @@ public class WydarzenieController {
 	private WydarzenieListItemDto toListItem(Wydarzenie wydarzenie) {
 		List<BiletPostepDto> postepyBiletow = getBiletPostepy(wydarzenie.getId());
 		boolean maDostepneBilety = postepyBiletow.stream().anyMatch(item -> item.wszystkie() > item.sprzedane());
+		
+		// Fetch place details
+		Sala sala = salaRepository.findById(wydarzenie.getSalaId()).orElse(null);
+		Miejsce miejsce = sala != null ? miejsceRepository.findById(sala.getMiejsceId()).orElse(null) : null;
+		String miejsceNazwa = miejsce != null ? miejsce.getNazwa() : "-";
+		String miasto = miejsce != null ? miejsce.getMiasto() : "-";
+		String kodPocztowy = miejsce != null ? miejsce.getKodPoczt() : "-";
+		String ulica = miejsce != null ? miejsce.getUlica() : "-";
+		
+		// Fetch creator info
+		Organizator organizator = organizatorRepository.findById(wydarzenie.getOrgId()).orElse(null);
+		User creator = organizator != null ? userRepository.findById(organizator.getUserId()).orElse(null) : null;
+		String creatorLogin = creator != null ? creator.getLogin() : "-";
 
 		return new WydarzenieListItemDto(
 			wydarzenie.getId(),
 			wydarzenie.getTytul(),
 			normalizeStatus(wydarzenie.getStatus()),
-			salaRepository.findById(wydarzenie.getSalaId()).map(Sala::getNazwa).orElse("-"),
+			sala != null ? sala.getNazwa() : "-",
 			kategoriaRepository.findById(wydarzenie.getKategoriaId()).map(Kategoria::getNazwa).orElse("-"),
 			wydarzenie.getDataRozp(),
 			wydarzenie.getDataZamk(),
 			maDostepneBilety,
-			postepyBiletow
+			postepyBiletow,
+			miejsceNazwa,
+			miasto,
+			kodPocztowy,
+			ulica,
+			creatorLogin
 		);
 	}
 
@@ -548,13 +583,26 @@ public class WydarzenieController {
 		boolean maDostepneBilety = postepyBiletow.stream().anyMatch(item -> item.wszystkie() > item.sprzedane());
 		List<ZgloszenieDto> zgloszenia = canManageZgloszenia(user, wydarzenie) ? getZgloszenia(wydarzenie.getId()) : List.of();
 		boolean canManagePersonel = canManagePersonel(user, wydarzenie);
+		
+		// Fetch place details
+		Sala sala = salaRepository.findById(wydarzenie.getSalaId()).orElse(null);
+		Miejsce miejsce = sala != null ? miejsceRepository.findById(sala.getMiejsceId()).orElse(null) : null;
+		String miejsceNazwa = miejsce != null ? miejsce.getNazwa() : "-";
+		String miasto = miejsce != null ? miejsce.getMiasto() : "-";
+		String kodPocztowy = miejsce != null ? miejsce.getKodPoczt() : "-";
+		String ulica = miejsce != null ? miejsce.getUlica() : "-";
+		
+		// Fetch creator info
+		Organizator organizator = organizatorRepository.findById(wydarzenie.getOrgId()).orElse(null);
+		User creator = organizator != null ? userRepository.findById(organizator.getUserId()).orElse(null) : null;
+		String creatorLogin = creator != null ? creator.getLogin() : "-";
 
 		return new WydarzenieDetailDto(
 			wydarzenie.getId(),
 			wydarzenie.getTytul(),
 			wydarzenie.getOpis(),
 			normalizeStatus(wydarzenie.getStatus()),
-			salaRepository.findById(wydarzenie.getSalaId()).map(Sala::getNazwa).orElse("-"),
+			sala != null ? sala.getNazwa() : "-",
 			kategoriaRepository.findById(wydarzenie.getKategoriaId()).map(Kategoria::getNazwa).orElse("-"),
 			wydarzenie.getDataRozp(),
 			wydarzenie.getDataZamk(),
@@ -563,7 +611,12 @@ public class WydarzenieController {
 			postepyBiletow,
 			getPersonel(wydarzenie.getId()),
 			getOpinie(wydarzenie.getId()),
-			zgloszenia
+			zgloszenia,
+			miejsceNazwa,
+			miasto,
+			kodPocztowy,
+			ulica,
+			creatorLogin
 		);
 	}
 
@@ -640,9 +693,7 @@ public class WydarzenieController {
 			if (bilet == null
 				|| bilet.klasa() == null || bilet.klasa().isBlank()
 				|| bilet.cena() == null
-				|| bilet.ilosc() == null
-				|| bilet.startSprzedazy() == null
-				|| bilet.koniecSprzedazy() == null) {
+				|| bilet.ilosc() == null) {
 				throw new ResponseStatusException(BAD_REQUEST, "Wypelnij wszystkie wymagane pola biletu.");
 			}
 			if (bilet.cena().signum() < 0) {
@@ -651,8 +702,17 @@ public class WydarzenieController {
 			if (bilet.ilosc() <= 0) {
 				throw new ResponseStatusException(BAD_REQUEST, "Ilosc biletow musi byc wieksza od zera.");
 			}
-			if (bilet.koniecSprzedazy().isBefore(bilet.startSprzedazy())) {
-				throw new ResponseStatusException(BAD_REQUEST, "Data konca sprzedazy biletu nie moze byc wczesniejsza niz data startu.");
+			if (bilet.startSprzedazy() != null && !bilet.startSprzedazy().isBlank()
+				&& bilet.koniecSprzedazy() != null && !bilet.koniecSprzedazy().isBlank()) {
+				try {
+					LocalDateTime start = LocalDateTime.parse(bilet.startSprzedazy());
+					LocalDateTime koniec = LocalDateTime.parse(bilet.koniecSprzedazy());
+					if (koniec.isBefore(start)) {
+						throw new ResponseStatusException(BAD_REQUEST, "Data konca sprzedazy biletu nie moze byc wczesniejsza niz data startu.");
+					}
+				} catch (Exception e) {
+					throw new ResponseStatusException(BAD_REQUEST, "Nieprawidlowy format daty biletu.");
+				}
 			}
 			if (bilet.waluta() != null && !bilet.waluta().isBlank() && !"PLN".equalsIgnoreCase(bilet.waluta())) {
 				throw new ResponseStatusException(BAD_REQUEST, "Waluta biletu musi byc ustawiona na PLN.");
@@ -693,8 +753,27 @@ public class WydarzenieController {
 			bilet.setCena(requestBilet.cena());
 			bilet.setWaluta("PLN");
 			bilet.setIlosc(hasSalaPlan && isMiejscowka ? seatIds.size() : requestBilet.ilosc());
-			bilet.setStartSprzedazy(requestBilet.startSprzedazy());
-			bilet.setKoniecSprzedazy(requestBilet.koniecSprzedazy());
+			
+			// Parse String dates to LocalDateTime
+			LocalDateTime startSprzedazy = null;
+			LocalDateTime koniecSprzedazy = null;
+			if (requestBilet.startSprzedazy() != null && !requestBilet.startSprzedazy().isBlank()) {
+				try {
+					startSprzedazy = LocalDateTime.parse(requestBilet.startSprzedazy());
+				} catch (Exception e) {
+					// If parsing fails, leave as null
+				}
+			}
+			if (requestBilet.koniecSprzedazy() != null && !requestBilet.koniecSprzedazy().isBlank()) {
+				try {
+					koniecSprzedazy = LocalDateTime.parse(requestBilet.koniecSprzedazy());
+				} catch (Exception e) {
+					// If parsing fails, leave as null
+				}
+			}
+			bilet.setStartSprzedazy(startSprzedazy);
+			bilet.setKoniecSprzedazy(koniecSprzedazy);
+			
 			bilet.setSeatIds(seatIds.isEmpty() ? null : String.join(",", seatIds));
 			bilet.setKategoriaBiletu(kategoriaBiletu);
 			Bilet savedBilet = biletRepository.save(bilet);
