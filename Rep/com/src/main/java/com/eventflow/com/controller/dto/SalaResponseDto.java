@@ -9,6 +9,8 @@ public record SalaResponseDto(
 	Integer pojemnosc,
 	Integer pietro,
 	Boolean maPlan,
+	Integer layoutWidth,
+	Integer layoutHeight,
 	List<SalaMiejsceDto> seats
 ) {
 }

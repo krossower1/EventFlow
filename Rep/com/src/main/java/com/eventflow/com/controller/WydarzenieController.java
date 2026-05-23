@@ -714,8 +714,13 @@ public class WydarzenieController {
 	private com.eventflow.com.controller.dto.SalaMiejsceDto toSalaMiejsceDto(SalaMiejsce seat) {
 		return new com.eventflow.com.controller.dto.SalaMiejsceDto(
 			seat.getSeatKey(),
+			seat.getItemType(),
+			seat.getBaseLabel(),
+			seat.getRowLabel(),
 			seat.getX(),
 			seat.getY(),
+			seat.getWidth(),
+			seat.getHeight(),
 			seat.getRotation()
 		);
 	}

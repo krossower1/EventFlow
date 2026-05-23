@@ -125,6 +125,8 @@ public class MiejsceController {
 			throw new ResponseStatusException(BAD_REQUEST, "Ta sala nie obsluguje ukladu planu.");
 		}
 
+		sala.setLayoutWidth(request.layoutWidth() == null || request.layoutWidth() < 240 ? 720 : request.layoutWidth());
+		sala.setLayoutHeight(request.layoutHeight() == null || request.layoutHeight() < 180 ? 420 : request.layoutHeight());
 		sala.getSeats().clear();
 		salaMiejsceRepository.deleteBySalaId(sala.getId());
 		List<SalaMiejsce> seats = request.seats() == null ? List.of() : request.seats().stream()
@@ -133,8 +135,13 @@ public class MiejsceController {
 				SalaMiejsce seat = new SalaMiejsce();
 				seat.setSala(sala);
 				seat.setSeatKey(item.id().trim());
+				seat.setItemType(normalizeItemType(item.type()));
+				seat.setBaseLabel(item.baseLabel() == null || item.baseLabel().isBlank() ? item.id().trim() : item.baseLabel().trim());
+				seat.setRowLabel(item.rowLabel() == null || item.rowLabel().isBlank() ? null : item.rowLabel().trim().toUpperCase());
 				seat.setX(item.x() == null ? 0 : item.x());
 				seat.setY(item.y() == null ? 0 : item.y());
+				seat.setWidth(item.width());
+				seat.setHeight(item.height());
 				seat.setRotation(item.rotation() == null ? 0 : item.rotation());
 				return seat;
 			})
@@ -202,6 +209,8 @@ public class MiejsceController {
 			sala.getPojemnosc(),
 			sala.getPietro(),
 			sala.getMaPlan(),
+			sala.getLayoutWidth() == null ? 720 : sala.getLayoutWidth(),
+			sala.getLayoutHeight() == null ? 420 : sala.getLayoutHeight(),
 			salaMiejsceRepository.findBySalaId(sala.getId()).stream()
 				.map(this::toSalaMiejsceDto)
 				.toList()
@@ -211,10 +220,19 @@ public class MiejsceController {
 	private SalaMiejsceDto toSalaMiejsceDto(SalaMiejsce seat) {
 		return new SalaMiejsceDto(
 			seat.getSeatKey(),
+			seat.getItemType(),
+			seat.getBaseLabel(),
+			seat.getRowLabel(),
 			seat.getX(),
 			seat.getY(),
+			seat.getWidth(),
+			seat.getHeight(),
 			seat.getRotation()
 		);
+	}
+
+	private String normalizeItemType(String itemType) {
+		return "ROW".equalsIgnoreCase(itemType) ? "ROW" : "SEAT";
 	}
 
 	private User requireOrg(Authentication authentication) {
