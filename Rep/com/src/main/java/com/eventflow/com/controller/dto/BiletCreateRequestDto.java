@@ -11,6 +11,7 @@ public record BiletCreateRequestDto(
 	Integer ilosc,
 	LocalDateTime startSprzedazy,
 	LocalDateTime koniecSprzedazy,
-	List<String> seatIds
+	List<String> seatIds,
+	String kategoriaBiletu
 ) {
 }

@@ -24,6 +24,12 @@ public class Sala {
 	@Column(name = "ma_plan")
 	private Boolean maPlan;
 
+	@Column(name = "layout_width")
+	private Integer layoutWidth;
+
+	@Column(name = "layout_height")
+	private Integer layoutHeight;
+
 	@OneToMany(mappedBy = "sala", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
 	private List<SalaMiejsce> seats = new ArrayList<>();
 }

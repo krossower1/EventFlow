@@ -15,6 +15,7 @@ public record DostepnyBiletDto(
 	Boolean requiresSeatSelection,
 	List<String> assignedSeatIds,
 	List<SalaMiejsceDto> salaSeats,
-	List<String> occupiedSeatIds
+	List<String> occupiedSeatIds,
+	String kategoriaBiletu
 ) {
 }

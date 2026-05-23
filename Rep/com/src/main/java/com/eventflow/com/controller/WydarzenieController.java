@@ -658,19 +658,22 @@ public class WydarzenieController {
 				throw new ResponseStatusException(BAD_REQUEST, "Waluta biletu musi byc ustawiona na PLN.");
 			}
 			if (hasSalaPlan) {
-				List<String> seatIds = normalizeSeatIds(bilet.seatIds());
-				if (seatIds.isEmpty()) {
-					throw new ResponseStatusException(BAD_REQUEST, "Dla sal z planem przypisz co najmniej jedno miejsce do kazdej klasy biletu.");
-				}
-				if (bilet.ilosc() != seatIds.size()) {
-					throw new ResponseStatusException(BAD_REQUEST, "Liczba biletow musi byc rowna liczbie przypisanych miejsc.");
-				}
-				for (String seatId : seatIds) {
-					if (!salaSeatIds.contains(seatId)) {
-						throw new ResponseStatusException(BAD_REQUEST, "Wybrane miejsce nie nalezy do planu sali.");
+				String kategoriaBiletu = bilet.kategoriaBiletu() != null ? bilet.kategoriaBiletu() : "miejscówka";
+				if ("miejscówka".equals(kategoriaBiletu)) {
+					List<String> seatIds = normalizeSeatIds(bilet.seatIds());
+					if (seatIds.isEmpty()) {
+						throw new ResponseStatusException(BAD_REQUEST, "Dla miejscówek przypisz co najmniej jedno miejsce do kazdej klasy biletu.");
 					}
-					if (!assignedSeatIds.add(seatId)) {
-						throw new ResponseStatusException(BAD_REQUEST, "Nie mozna przypisac tego samego miejsca do dwoch klas biletow.");
+					if (bilet.ilosc() != seatIds.size()) {
+						throw new ResponseStatusException(BAD_REQUEST, "Liczba biletow musi byc rowna liczbie przypisanych miejsc.");
+					}
+					for (String seatId : seatIds) {
+						if (!salaSeatIds.contains(seatId)) {
+							throw new ResponseStatusException(BAD_REQUEST, "Wybrane miejsce nie nalezy do planu sali.");
+						}
+						if (!assignedSeatIds.add(seatId)) {
+							throw new ResponseStatusException(BAD_REQUEST, "Nie mozna przypisac tego samego miejsca do dwoch klas biletow.");
+						}
 					}
 				}
 			}
@@ -681,20 +684,24 @@ public class WydarzenieController {
 		boolean hasSalaPlan = Boolean.TRUE.equals(sala.getMaPlan()) && sala.getSeats() != null && !sala.getSeats().isEmpty();
 		for (BiletCreateRequestDto requestBilet : bilety) {
 			List<String> seatIds = normalizeSeatIds(requestBilet.seatIds());
+			String kategoriaBiletu = requestBilet.kategoriaBiletu() != null ? requestBilet.kategoriaBiletu() : "miejscówka";
+			boolean isMiejscowka = "miejscówka".equals(kategoriaBiletu);
+			
 			Bilet bilet = new Bilet();
 			bilet.setWydarzenieId(wydarzenieId);
 			bilet.setKlasa(requestBilet.klasa().trim());
 			bilet.setCena(requestBilet.cena());
 			bilet.setWaluta("PLN");
-			bilet.setIlosc(hasSalaPlan ? seatIds.size() : requestBilet.ilosc());
+			bilet.setIlosc(hasSalaPlan && isMiejscowka ? seatIds.size() : requestBilet.ilosc());
 			bilet.setStartSprzedazy(requestBilet.startSprzedazy());
 			bilet.setKoniecSprzedazy(requestBilet.koniecSprzedazy());
 			bilet.setSeatIds(seatIds.isEmpty() ? null : String.join(",", seatIds));
+			bilet.setKategoriaBiletu(kategoriaBiletu);
 			Bilet savedBilet = biletRepository.save(bilet);
 
 			PozZam pozZam = new PozZam();
 			pozZam.setBiletId(savedBilet.getId());
-			pozZam.setIlosc(hasSalaPlan ? seatIds.size() : requestBilet.ilosc());
+			pozZam.setIlosc(hasSalaPlan && isMiejscowka ? seatIds.size() : requestBilet.ilosc());
 			pozZam.setCena(requestBilet.cena());
 			pozZamRepository.save(pozZam);
 		}
@@ -714,8 +721,13 @@ public class WydarzenieController {
 	private com.eventflow.com.controller.dto.SalaMiejsceDto toSalaMiejsceDto(SalaMiejsce seat) {
 		return new com.eventflow.com.controller.dto.SalaMiejsceDto(
 			seat.getSeatKey(),
+			seat.getItemType(),
+			seat.getBaseLabel(),
+			seat.getRowLabel(),
 			seat.getX(),
 			seat.getY(),
+			seat.getWidth(),
+			seat.getHeight(),
 			seat.getRotation()
 		);
 	}

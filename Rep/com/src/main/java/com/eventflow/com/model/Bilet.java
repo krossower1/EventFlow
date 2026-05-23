@@ -38,4 +38,7 @@ public class Bilet {
 
 	@Column(name = "seat_ids", columnDefinition = "TEXT")
 	private String seatIds;
+
+	@Column(name = "kategoria_biletu")
+	private String kategoriaBiletu;
 }

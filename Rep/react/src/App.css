@@ -1139,6 +1139,23 @@ background:
   gap: 10px;
 }
 
+.settings-layout-editor-dimensions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.settings-layout-editor-dimensions label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-muted);
+}
+
+.settings-layout-editor-dimensions input,
+.settings-layout-row-input {
+  min-width: 90px;
+}
+
 .settings-layout-canvas {
   position: relative;
   width: 720px;
@@ -1152,6 +1169,24 @@ background:
     rgba(15, 23, 42, 0.42);
   background-size: 24px 24px;
   overflow: hidden;
+}
+
+.settings-layout-row {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(251, 191, 36, 0.75);
+  border-radius: 14px;
+  background: rgba(250, 204, 21, 0.12);
+  color: #fde68a;
+  font-weight: 700;
+  cursor: grab;
+  user-select: none;
+}
+
+.settings-layout-row.is-selected {
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.25);
 }
 
 .settings-layout-seat {

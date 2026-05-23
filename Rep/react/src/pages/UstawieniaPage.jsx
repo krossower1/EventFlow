@@ -30,6 +30,8 @@ const formatObservedEventDate = (value) => {
 };
 const SEAT_BASE_WIDTH = 36;
 const SEAT_BASE_HEIGHT = 36;
+const ROW_BASE_WIDTH = 220;
+const ROW_BASE_HEIGHT = 72;
 const LAYOUT_CANVAS_WIDTH = 720;
 const LAYOUT_CANVAS_HEIGHT = 420;
 
@@ -140,7 +142,8 @@ const UstawieniaPage = () => {
   const [isLoadingNotificationSettings, setIsLoadingNotificationSettings] = useState(false);
   const [isSavingNotificationSettings, setIsSavingNotificationSettings] = useState(false);
   const [notificationSettingsStatus, setNotificationSettingsStatus] = useState({ type: '', message: '' });
-  const [selectedSeatId, setSelectedSeatId] = useState(null);
+  const [selectedElementId, setSelectedElementId] = useState(null);
+  const [rowLabelDraft, setRowLabelDraft] = useState('A');
   const [dragState, setDragState] = useState(null);
 
   const [profileForm, setProfileForm] = useState({
@@ -179,16 +182,29 @@ const UstawieniaPage = () => {
     return null;
   }, [miejscaLayoutData, selectedSalaId]);
 
-  const selectedSalaSeats = useMemo(() => (
+  const selectedSalaElements = useMemo(() => (
     Array.isArray(selectedSala?.seats) ? selectedSala.seats : []
   ), [selectedSala]);
+  const selectedSalaSeats = useMemo(
+    () => selectedSalaElements.filter((item) => (item.type || 'SEAT') === 'SEAT'),
+    [selectedSalaElements]
+  );
+  const selectedSalaRows = useMemo(
+    () => selectedSalaElements.filter((item) => item.type === 'ROW'),
+    [selectedSalaElements]
+  );
+  const selectedLayoutWidth = Number(selectedSala?.layoutWidth) || LAYOUT_CANVAS_WIDTH;
+  const selectedLayoutHeight = Number(selectedSala?.layoutHeight) || LAYOUT_CANVAS_HEIGHT;
 
-  const getSeatDimensions = (seat) => {
+  const getElementDimensions = (seat) => {
+    if (seat?.type === 'ROW') {
+      return {
+        width: Number(seat?.width) || ROW_BASE_WIDTH,
+        height: Number(seat?.height) || ROW_BASE_HEIGHT
+      };
+    }
     const rotation = seat?.rotation || 0;
     if (rotation === 45 || rotation === 135 || rotation === 225 || rotation === 315) {
-      // For 45-degree rotations, scale down so the rotated seat appears the same size
-      // The diagonal of a square with side s is s * sqrt(2)
-      // To make the diagonal equal to SEAT_BASE_WIDTH, we use SEAT_BASE_WIDTH / sqrt(2)
       const scaledSize = SEAT_BASE_WIDTH / Math.sqrt(2);
       const diagonal = Math.sqrt(scaledSize * scaledSize + scaledSize * scaledSize);
       return { width: diagonal, height: diagonal };
@@ -198,10 +214,10 @@ const UstawieniaPage = () => {
   };
 
   const hasSeatCollision = (seats, candidateSeat) => {
-    const candidateSize = getSeatDimensions(candidateSeat);
+    const candidateSize = getElementDimensions(candidateSeat);
     return seats.some((seat) => {
-      if (seat.id === candidateSeat.id) return false;
-      const seatSize = getSeatDimensions(seat);
+      if (seat.id === candidateSeat.id || seat.type === 'ROW' || candidateSeat.type === 'ROW') return false;
+      const seatSize = getElementDimensions(seat);
       return !(
         candidateSeat.x + candidateSize.width <= seat.x
         || seat.x + seatSize.width <= candidateSeat.x
@@ -211,15 +227,55 @@ const UstawieniaPage = () => {
     });
   };
 
-  const updateSelectedSalaPlan = (nextSeats) => {
+  const updateSelectedSalaPlan = (nextSeats, nextLayoutWidth = selectedLayoutWidth, nextLayoutHeight = selectedLayoutHeight) => {
     setMiejscaLayoutData((prev) => prev.map((miejsce) => ({
       ...miejsce,
       sale: (miejsce.sale || []).map((sala) => (
         sala.id === selectedSalaId
-          ? { ...sala, seats: nextSeats }
+          ? { ...sala, seats: nextSeats, layoutWidth: nextLayoutWidth, layoutHeight: nextLayoutHeight }
           : sala
       ))
     })));
+  };
+
+  const getSeatDisplayLabel = (seat) => {
+    const fallbackLabel = (() => {
+      if (seat.baseLabel && !String(seat.baseLabel).startsWith('seat-')) {
+        return seat.baseLabel;
+      }
+      return String(selectedSalaSeats.findIndex((item) => item.id === seat.id) + 1);
+    })();
+
+    const row = selectedSalaRows.find((item) => {
+      const rowWidth = Number(item.width) || ROW_BASE_WIDTH;
+      const rowHeight = Number(item.height) || ROW_BASE_HEIGHT;
+      const centerX = seat.x + (getElementDimensions(seat).width / 2);
+      const centerY = seat.y + (getElementDimensions(seat).height / 2);
+      return centerX >= item.x
+        && centerX <= item.x + rowWidth
+        && centerY >= item.y
+        && centerY <= item.y + rowHeight;
+    });
+
+    if (!row || !row.rowLabel) {
+      return fallbackLabel;
+    }
+
+    const seatsInRow = selectedSalaSeats
+      .filter((item) => {
+        const centerX = item.x + (getElementDimensions(item).width / 2);
+        const centerY = item.y + (getElementDimensions(item).height / 2);
+        const rowWidth = Number(row.width) || ROW_BASE_WIDTH;
+        const rowHeight = Number(row.height) || ROW_BASE_HEIGHT;
+        return centerX >= row.x
+          && centerX <= row.x + rowWidth
+          && centerY >= row.y
+          && centerY <= row.y + rowHeight;
+      })
+      .sort((a, b) => a.x - b.x || a.y - b.y);
+
+    const index = seatsInRow.findIndex((item) => item.id === seat.id);
+    return index >= 0 ? `${row.rowLabel}${index + 1}` : fallbackLabel;
   };
 
   // Przywraca formularz profilu do danych aktualnie zalogowanego użytkownika.
@@ -286,31 +342,63 @@ const UstawieniaPage = () => {
       setLayoutStatus({ type: 'error', message: 'Osiągnięto pojemność sali.' });
       return;
     }
+    const maxBaseLabel = selectedSalaSeats.reduce((max, item) => {
+      const value = Number(item.baseLabel);
+      return Number.isFinite(value) ? Math.max(max, value) : max;
+    }, 0);
     const newSeat = {
       id: `seat-${Date.now()}`,
+      type: 'SEAT',
+      baseLabel: String(maxBaseLabel + 1),
+      rowLabel: '',
       x: 16,
       y: 16,
+      width: null,
+      height: null,
       rotation: 0
     };
-    updateSelectedSalaPlan([...selectedSalaSeats, newSeat]);
-    setSelectedSeatId(newSeat.id);
+    updateSelectedSalaPlan([...selectedSalaElements, newSeat]);
+    setSelectedElementId(newSeat.id);
+    setLayoutStatus({ type: '', message: '' });
+  };
+
+  const addRowToSelectedSala = () => {
+    if (!selectedSala) return;
+    const nextLabel = rowLabelDraft.trim().toUpperCase();
+    if (!/^[A-Z]{1,2}$/.test(nextLabel)) {
+      setLayoutStatus({ type: 'error', message: 'Nazwa rzędu musi mieć 1 lub 2 litery.' });
+      return;
+    }
+    const newRow = {
+      id: `row-${Date.now()}`,
+      type: 'ROW',
+      baseLabel: '',
+      rowLabel: nextLabel,
+      x: 24,
+      y: 24,
+      width: ROW_BASE_WIDTH,
+      height: ROW_BASE_HEIGHT,
+      rotation: 0
+    };
+    updateSelectedSalaPlan([...selectedSalaElements, newRow]);
+    setSelectedElementId(newRow.id);
     setLayoutStatus({ type: '', message: '' });
   };
 
   const rotateSelectedSeat = () => {
-    if (!selectedSeatId) return;
-    const nextSeats = selectedSalaSeats.map((seat) => (
-      seat.id === selectedSeatId
+    if (!selectedElementId) return;
+    const nextSeats = selectedSalaElements.map((seat) => (
+      seat.id === selectedElementId
         ? { ...seat, rotation: ((seat.rotation || 0) + 45) % 360 }
         : seat
     ));
-    const rotatedSeat = nextSeats.find((seat) => seat.id === selectedSeatId);
-    const seatSize = getSeatDimensions(rotatedSeat);
+    const rotatedSeat = nextSeats.find((seat) => seat.id === selectedElementId);
+    const seatSize = getElementDimensions(rotatedSeat);
     if (
       rotatedSeat.x < 0
       || rotatedSeat.y < 0
-      || rotatedSeat.x + seatSize.width > LAYOUT_CANVAS_WIDTH
-      || rotatedSeat.y + seatSize.height > LAYOUT_CANVAS_HEIGHT
+      || rotatedSeat.x + seatSize.width > selectedLayoutWidth
+      || rotatedSeat.y + seatSize.height > selectedLayoutHeight
     ) {
       setLayoutStatus({ type: 'error', message: 'Nie można obrócić miejsca w tej pozycji - wykracza poza obszar.' });
       return;
@@ -324,10 +412,10 @@ const UstawieniaPage = () => {
     
     // Check for overlapping seats
     const hasOverlaps = selectedSalaSeats.some((seat) => {
-      const candidateSize = getSeatDimensions(seat);
+      const candidateSize = getElementDimensions(seat);
       return selectedSalaSeats.some((otherSeat) => {
         if (seat.id === otherSeat.id) return false;
-        const otherSize = getSeatDimensions(otherSeat);
+        const otherSize = getElementDimensions(otherSeat);
         return !(
           seat.x + candidateSize.width <= otherSeat.x
           || otherSeat.x + otherSize.width <= seat.x
@@ -345,7 +433,7 @@ const UstawieniaPage = () => {
     try {
       await apiClient.put(
         `/miejsca/sale/${selectedSala.id}/plan`,
-        { seats: selectedSalaSeats },
+        { layoutWidth: selectedLayoutWidth, layoutHeight: selectedLayoutHeight, seats: selectedSalaElements },
         getRequestConfig()
       );
       setLayoutStatus({ type: 'success', message: 'Układ sali został zapisany.' });
@@ -656,14 +744,17 @@ const UstawieniaPage = () => {
 
     const handleMouseMove = (event) => {
       const canvasRect = dragState.canvasRect;
-      const seat = selectedSalaSeats.find((item) => item.id === dragState.seatId);
+      const seat = selectedSalaElements.find((item) => item.id === dragState.seatId);
       if (!seat) return;
 
-      const seatSize = getSeatDimensions(seat);
-      const nextX = Math.max(0, Math.min(LAYOUT_CANVAS_WIDTH - seatSize.width, Math.round(event.clientX - canvasRect.left - dragState.offsetX)));
-      const nextY = Math.max(0, Math.min(LAYOUT_CANVAS_HEIGHT - seatSize.height, Math.round(event.clientY - canvasRect.top - dragState.offsetY)));
+      const seatSize = getElementDimensions(seat);
+      const nextX = Math.max(0, Math.min(selectedLayoutWidth - seatSize.width, Math.round(event.clientX - canvasRect.left - dragState.offsetX)));
+      const nextY = Math.max(0, Math.min(selectedLayoutHeight - seatSize.height, Math.round(event.clientY - canvasRect.top - dragState.offsetY)));
       const candidateSeat = { ...seat, x: nextX, y: nextY };
-      updateSelectedSalaPlan(selectedSalaSeats.map((item) => item.id === seat.id ? candidateSeat : item));
+      if (seat.type === 'SEAT' && hasSeatCollision(selectedSalaSeats, candidateSeat)) {
+        return;
+      }
+      updateSelectedSalaPlan(selectedSalaElements.map((item) => item.id === seat.id ? candidateSeat : item));
     };
 
     const handleMouseUp = () => setDragState(null);
@@ -674,7 +765,7 @@ const UstawieniaPage = () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragState, selectedSala, selectedSalaSeats]);
+  }, [dragState, selectedSala, selectedSalaElements, selectedSalaSeats, selectedLayoutHeight, selectedLayoutWidth]);
 
   useEffect(() => {
     // Pobiera dane sekcji "Historia logowań" dopiero po wejściu w odpowiednią podzakładkę.
@@ -1684,7 +1775,7 @@ const UstawieniaPage = () => {
                                 className={`settings-layouts-sala ${selectedSalaId === sala.id ? 'is-active' : ''}`}
                                 onClick={() => {
                                   setSelectedSalaId(sala.id);
-                                  setSelectedSeatId(null);
+                                  setSelectedElementId(null);
                                 }}
                                 disabled={!sala.maPlan}
                               >
@@ -1707,12 +1798,43 @@ const UstawieniaPage = () => {
                         <div>
                           <h4>{selectedSala.nazwa}</h4>
                           <p>{selectedSala.miejsceNazwa} • pojemność: {selectedSala.pojemnosc || 0}</p>
+                          <div className="settings-layout-editor-dimensions">
+                            <label>
+                              Szerokość obszaru
+                              <input
+                                type="number"
+                                min="240"
+                                value={selectedLayoutWidth}
+                                onChange={(event) => updateSelectedSalaPlan(selectedSalaElements, Number(event.target.value) || 240, selectedLayoutHeight)}
+                              />
+                            </label>
+                            <label>
+                              Wysokość obszaru
+                              <input
+                                type="number"
+                                min="180"
+                                value={selectedLayoutHeight}
+                                onChange={(event) => updateSelectedSalaPlan(selectedSalaElements, selectedLayoutWidth, Number(event.target.value) || 180)}
+                              />
+                            </label>
+                          </div>
                         </div>
                         <div className="settings-layout-editor-actions">
                           <button type="button" className="btn-secondary" onClick={addSeatToSelectedSala}>
                             Dodaj miejsce
                           </button>
-                          <button type="button" className="btn-secondary" onClick={rotateSelectedSeat} disabled={!selectedSeatId}>
+                          <input
+                            type="text"
+                            maxLength="2"
+                            value={rowLabelDraft}
+                            onChange={(event) => setRowLabelDraft(event.target.value.replace(/[^a-z]/gi, '').toUpperCase())}
+                            placeholder="Rząd"
+                            className="settings-layout-row-input"
+                          />
+                          <button type="button" className="btn-secondary" onClick={addRowToSelectedSala}>
+                            Dodaj rząd
+                          </button>
+                          <button type="button" className="btn-secondary" onClick={rotateSelectedSeat} disabled={!selectedElementId}>
                             Obróć
                           </button>
                           <button type="button" className="btn-new-event" onClick={saveSelectedSalaPlan}>
@@ -1721,14 +1843,65 @@ const UstawieniaPage = () => {
                         </div>
                       </div>
 
-                      <div className="settings-layout-canvas">
+                      {selectedElementId && selectedSalaRows.some((item) => item.id === selectedElementId) && (
+                        <div className="settings-layout-editor-dimensions">
+                          {selectedSalaRows.filter((item) => item.id === selectedElementId).map((row) => (
+                            <React.Fragment key={row.id}>
+                              <label>
+                                Szerokość rzędu
+                                <input
+                                  type="number"
+                                  min="80"
+                                  value={Number(row.width) || ROW_BASE_WIDTH}
+                                  onChange={(event) => updateSelectedSalaPlan(selectedSalaElements.map((item) => item.id === row.id ? { ...item, width: Number(event.target.value) || ROW_BASE_WIDTH } : item))}
+                                />
+                              </label>
+                              <label>
+                                Wysokość rzędu
+                                <input
+                                  type="number"
+                                  min="40"
+                                  value={Number(row.height) || ROW_BASE_HEIGHT}
+                                  onChange={(event) => updateSelectedSalaPlan(selectedSalaElements.map((item) => item.id === row.id ? { ...item, height: Number(event.target.value) || ROW_BASE_HEIGHT } : item))}
+                                />
+                              </label>
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="settings-layout-canvas" style={{ width: selectedLayoutWidth, height: selectedLayoutHeight }}>
+                        {selectedSalaRows.map((row) => (
+                          <div
+                            key={row.id}
+                            className={`settings-layout-row ${selectedElementId === row.id ? 'is-selected' : ''}`}
+                            style={{
+                              left: row.x,
+                              top: row.y,
+                              width: Number(row.width) || ROW_BASE_WIDTH,
+                              height: Number(row.height) || ROW_BASE_HEIGHT
+                            }}
+                            onMouseDown={(event) => {
+                              const rect = event.currentTarget.parentElement.getBoundingClientRect();
+                              setSelectedElementId(row.id);
+                              setDragState({
+                                seatId: row.id,
+                                offsetX: event.clientX - rect.left - row.x,
+                                offsetY: event.clientY - rect.top - row.y,
+                                canvasRect: rect
+                              });
+                            }}
+                          >
+                            <span>{row.rowLabel || 'RZ'}</span>
+                          </div>
+                        ))}
                         {selectedSalaSeats.map((seat) => {
-                          const seatSize = getSeatDimensions(seat);
+                          const seatSize = getElementDimensions(seat);
                           return (
                             <button
                               key={seat.id}
                               type="button"
-                              className={`settings-layout-seat ${selectedSeatId === seat.id ? 'is-selected' : ''}`}
+                              className={`settings-layout-seat ${selectedElementId === seat.id ? 'is-selected' : ''}`}
                               style={{
                                 left: seat.x,
                                 top: seat.y,
@@ -1739,7 +1912,7 @@ const UstawieniaPage = () => {
                               }}
                               onMouseDown={(event) => {
                                 const rect = event.currentTarget.parentElement.getBoundingClientRect();
-                                setSelectedSeatId(seat.id);
+                                setSelectedElementId(seat.id);
                                 setDragState({
                                   seatId: seat.id,
                                   offsetX: event.clientX - rect.left - seat.x,
@@ -1748,7 +1921,7 @@ const UstawieniaPage = () => {
                                 });
                               }}
                             >
-                              {selectedSalaSeats.findIndex((item) => item.id === seat.id) + 1}
+                              {getSeatDisplayLabel(seat)}
                             </button>
                           );
                         })}

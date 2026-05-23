@@ -15,6 +15,7 @@ const PurchaseModal = ({
 
   const selectedBilet = dostepneBilety.find((bilet) => String(bilet.biletId) === String(zakupForm.biletId));
   const seats = Array.isArray(selectedBilet?.salaSeats) ? selectedBilet.salaSeats : [];
+  const rows = Array.isArray(selectedBilet?.salaSeats) ? selectedBilet.salaSeats.filter((item) => (item.type || 'SEAT') === 'ROW') : [];
   const occupiedSeatIds = selectedBilet?.occupiedSeatIds || [];
   const seatClassById = dostepneBilety.reduce((acc, bilet) => {
     (bilet.assignedSeatIds || []).forEach((seatId) => {
@@ -71,15 +72,16 @@ const PurchaseModal = ({
             min="1"
             value={zakupForm.ilosc}
             onChange={(event) => setZakupForm((prev) => ({ ...prev, ilosc: event.target.value }))}
-            disabled={Boolean(selectedBilet?.requiresSeatSelection)}
+            disabled={Boolean(selectedBilet?.requiresSeatSelection) && (selectedBilet.kategoriaBiletu || 'miejscówka') === 'miejscówka'}
             required
           />
 
-          {selectedBilet?.requiresSeatSelection && (
+          {selectedBilet?.requiresSeatSelection && (selectedBilet.kategoriaBiletu || 'miejscówka') === 'miejscówka' && (
             <>
               <p>Wybierz wolne miejsce przypisane do tej klasy biletu.</p>
               <SeatPlanMap
                 seats={seats}
+                rows={rows}
                 seatClassById={seatClassById}
                 occupiedSeatIds={occupiedSeatIds}
                 activeSeatId={zakupForm.seatId}
@@ -101,7 +103,7 @@ const PurchaseModal = ({
             Potwierdzam płatność testową
           </label>
 
-          <button type="submit" disabled={loading || dostepneBilety.length === 0 || (selectedBilet?.requiresSeatSelection && !zakupForm.seatId)}>
+          <button type="submit" disabled={loading || dostepneBilety.length === 0 || (selectedBilet?.requiresSeatSelection && (selectedBilet.kategoriaBiletu || 'miejscówka') === 'miejscówka' && !zakupForm.seatId)}>
             Finalizuj zakup
           </button>
         </form>

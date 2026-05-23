@@ -31,7 +31,10 @@ const normalizeSeats = (seats) => {
     return [];
   }
 
-  const bounds = seats.reduce((acc, seat) => {
+  // Filter out rows (groups) - only show seats
+  const seatsOnly = seats.filter((seat) => (seat.type || 'SEAT') === 'SEAT');
+
+  const bounds = seatsOnly.reduce((acc, seat) => {
     const size = getSeatSize(seat);
     return {
       minX: Math.min(acc.minX, Number(seat.x) || 0),
@@ -56,7 +59,7 @@ const normalizeSeats = (seats) => {
   const offsetX = (CANVAS_WIDTH - contentWidth * scale) / 2;
   const offsetY = (CANVAS_HEIGHT - contentHeight * scale) / 2;
 
-  return seats.map((seat) => {
+  return seatsOnly.map((seat) => {
     const size = getSeatSize(seat);
     return {
       ...seat,
@@ -70,6 +73,7 @@ const normalizeSeats = (seats) => {
 
 const SeatPlanMap = ({
   seats,
+  rows = [],
   seatClassById,
   occupiedSeatIds = [],
   selectedSeatIds = [],
@@ -79,6 +83,50 @@ const SeatPlanMap = ({
   showLegend = false
 }) => {
   const normalizedSeats = normalizeSeats(seats);
+
+  const getSeatDisplayLabel = (seat) => {
+    const fallbackLabel = (() => {
+      if (seat.baseLabel && !String(seat.baseLabel).startsWith('seat-')) {
+        return seat.baseLabel;
+      }
+      const index = seats.findIndex((item) => item.id === seat.id);
+      return index >= 0 ? String(index + 1) : '?';
+    })();
+
+    // Find the row that contains this seat
+    const row = rows.find((item) => {
+      const rowWidth = Number(item.width) || 200;
+      const rowHeight = Number(item.height) || 50;
+      const centerX = seat.x + 18;
+      const centerY = seat.y + 18;
+      return centerX >= item.x
+        && centerX <= item.x + rowWidth
+        && centerY >= item.y
+        && centerY <= item.y + rowHeight;
+    });
+
+    if (!row || !row.rowLabel) {
+      return fallbackLabel;
+    }
+
+    // Find all seats in this row
+    const seatsInRow = seats
+      .filter((item) => {
+        if ((item.type || 'SEAT') !== 'SEAT') return false;
+        const centerX = item.x + 18;
+        const centerY = item.y + 18;
+        const rowWidth = Number(row.width) || 200;
+        const rowHeight = Number(row.height) || 50;
+        return centerX >= row.x
+          && centerX <= row.x + rowWidth
+          && centerY >= row.y
+          && centerY <= row.y + rowHeight;
+      })
+      .sort((a, b) => a.x - b.x || a.y - b.y);
+
+    const index = seatsInRow.findIndex((item) => item.id === seat.id);
+    return index >= 0 ? `${row.rowLabel}${index + 1}` : fallbackLabel;
+  };
 
   return (
     <div className="seat-plan-layout">
@@ -103,7 +151,7 @@ const SeatPlanMap = ({
               disabled={Boolean(onSeatClick) ? !clickable : false}
               onClick={() => onSeatClick?.(seat.id)}
             >
-              {index + 1}
+              {getSeatDisplayLabel(seat)}
             </button>
           );
         })}

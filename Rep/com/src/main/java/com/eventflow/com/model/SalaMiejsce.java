@@ -25,11 +25,26 @@ public class SalaMiejsce {
 	@Column(name = "seat_key", nullable = false)
 	private String seatKey;
 
+	@Column(name = "item_type", nullable = false)
+	private String itemType;
+
+	@Column(name = "base_label")
+	private String baseLabel;
+
+	@Column(name = "row_label")
+	private String rowLabel;
+
 	@Column(name = "pos_x", nullable = false)
 	private Integer x;
 
 	@Column(name = "pos_y", nullable = false)
 	private Integer y;
+
+	@Column(name = "item_width")
+	private Integer width;
+
+	@Column(name = "item_height")
+	private Integer height;
 
 	@Column(name = "rotation_deg", nullable = false)
 	private Integer rotation;
