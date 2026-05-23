@@ -629,7 +629,11 @@ const WydarzeniaPage = () => {
                           </select>
 
                           <label htmlFor={`bilet-klasa-${index}`}>Klasa biletu</label>
-                          <input id={`bilet-klasa-${index}`} placeholder="Klasa biletu" value={bilet.klasa} onChange={(e) => updateBiletInForm(index, 'klasa', e.target.value)} required />
+                          <select id={`bilet-klasa-${index}`} value={bilet.klasa} onChange={(e) => updateBiletInForm(index, 'klasa', e.target.value)} required>
+                            <option value="">Wybierz klasę</option>
+                            <option value="Standard">Standard</option>
+                            <option value="VIP">VIP</option>
+                          </select>
 
                           <label htmlFor={`bilet-cena-${index}`}>Cena</label>
                           <input id={`bilet-cena-${index}`} type="number" step="0.01" placeholder="Cena" value={bilet.cena} onChange={(e) => updateBiletInForm(index, 'cena', e.target.value)} required />
