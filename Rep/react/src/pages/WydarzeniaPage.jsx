@@ -105,7 +105,7 @@ const WydarzeniaPage = () => {
   const addBiletForm = () => {
     setWydarzenieForm(prev => ({
       ...prev,
-      bilety: [...prev.bilety, { klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [] }]
+      bilety: [...prev.bilety, { klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [], kategoriaBiletu: 'miejscówka' }]
     }));
   };
 
@@ -179,7 +179,8 @@ const WydarzeniaPage = () => {
           waluta: b.waluta,
           startSprzedazy: b.start_sprzedazy || null,
           koniecSprzedazy: b.koniec_sprzedazy || null,
-          seatIds: b.seatIds || []
+          seatIds: b.seatIds || [],
+          kategoriaBiletu: b.kategoriaBiletu || 'miejscówka'
         }))
       });
 
@@ -621,6 +622,12 @@ const WydarzeniaPage = () => {
                     <div className="event-ticket-grid">
                       {wydarzenieForm.bilety.map((bilet, index) => (
                         <div key={index} className="event-ticket-card">
+                          <label htmlFor={`bilet-kategoria-${index}`}>Kategoria biletu</label>
+                          <select id={`bilet-kategoria-${index}`} value={bilet.kategoriaBiletu || 'miejscówka'} onChange={(e) => updateBiletInForm(index, 'kategoriaBiletu', e.target.value)} required>
+                            <option value="miejscówka">Miejscówka</option>
+                            <option value="wejściówka">Wejściówka</option>
+                          </select>
+
                           <label htmlFor={`bilet-klasa-${index}`}>Klasa biletu</label>
                           <input id={`bilet-klasa-${index}`} placeholder="Klasa biletu" value={bilet.klasa} onChange={(e) => updateBiletInForm(index, 'klasa', e.target.value)} required />
 
@@ -628,7 +635,7 @@ const WydarzeniaPage = () => {
                           <input id={`bilet-cena-${index}`} type="number" step="0.01" placeholder="Cena" value={bilet.cena} onChange={(e) => updateBiletInForm(index, 'cena', e.target.value)} required />
 
                           <label htmlFor={`bilet-ilosc-${index}`}>Ilość</label>
-                          <input id={`bilet-ilosc-${index}`} type="number" placeholder="Ilość" value={bilet.ilosc} onChange={(e) => updateBiletInForm(index, 'ilosc', e.target.value)} disabled={hasSelectedSalaPlan} required />
+                          <input id={`bilet-ilosc-${index}`} type="number" placeholder="Ilość" value={bilet.ilosc} onChange={(e) => updateBiletInForm(index, 'ilosc', e.target.value)} disabled={hasSelectedSalaPlan && (bilet.kategoriaBiletu || 'miejscówka') === 'miejscówka'} required />
 
                           <label htmlFor={`bilet-waluta-${index}`}>Waluta</label>
                           <select id={`bilet-waluta-${index}`} value={bilet.waluta} onChange={(e) => updateBiletInForm(index, 'waluta', e.target.value)} required>
@@ -643,7 +650,7 @@ const WydarzeniaPage = () => {
                           <label htmlFor={`bilet-koniec-${index}`}>Koniec sprzedaży</label>
                           <input id={`bilet-koniec-${index}`} type="datetime-local" value={bilet.koniec_sprzedazy} onChange={(e) => updateBiletInForm(index, 'koniec_sprzedazy', e.target.value)} />
 
-                          {hasSelectedSalaPlan && (
+                          {hasSelectedSalaPlan && (bilet.kategoriaBiletu || 'miejscówka') === 'miejscówka' && (
                             <>
                               <p style={{ margin: '8px 0 0', color: '#cbd5e1' }}>Wybierz miejsca tej klasy. Ilość ustala się automatycznie.</p>
                               <SeatPlanMap

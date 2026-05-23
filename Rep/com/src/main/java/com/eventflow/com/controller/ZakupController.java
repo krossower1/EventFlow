@@ -120,6 +120,9 @@ public class ZakupController {
 		Sala sala = salaRepository.findById(wydarzenie.getSalaId())
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono sali dla wydarzenia."));
 		boolean requiresSeatSelection = Boolean.TRUE.equals(sala.getMaPlan()) && sala.getSeats() != null && !sala.getSeats().isEmpty();
+		String kategoriaBiletu = bilet.getKategoriaBiletu() != null ? bilet.getKategoriaBiletu() : "miejscówka";
+		boolean isMiejscowka = "miejscówka".equals(kategoriaBiletu);
+		boolean actuallyRequiresSeatSelection = requiresSeatSelection && isMiejscowka;
 
 		LocalDateTime now = LocalDateTime.now();
 		if (bilet.getStartSprzedazy() != null && bilet.getStartSprzedazy().isAfter(now)) {
@@ -134,7 +137,7 @@ public class ZakupController {
 		if (pozZam.getIlosc() == null || pozZam.getIlosc() < request.ilosc()) {
 			throw new ResponseStatusException(BAD_REQUEST, "Brak wymaganej liczby biletow w dostepnej puli.");
 		}
-		if (requiresSeatSelection) {
+		if (actuallyRequiresSeatSelection) {
 			List<String> assignedSeatIds = parseSeatIds(bilet.getSeatIds());
 			if (request.ilosc() != 1) {
 				throw new ResponseStatusException(BAD_REQUEST, "Dla sal z planem mozesz kupic tylko jedno miejsce na raz.");
@@ -195,8 +198,11 @@ public class ZakupController {
 		Wydarzenie wydarzenie = wydarzenieRepository.findById(bilet.getWydarzenieId()).orElse(null);
 		Sala sala = wydarzenie == null ? null : salaRepository.findById(wydarzenie.getSalaId()).orElse(null);
 		boolean requiresSeatSelection = sala != null && Boolean.TRUE.equals(sala.getMaPlan()) && sala.getSeats() != null && !sala.getSeats().isEmpty();
+		String kategoriaBiletu = bilet.getKategoriaBiletu() != null ? bilet.getKategoriaBiletu() : "miejscówka";
+		boolean isMiejscowka = "miejscówka".equals(kategoriaBiletu);
+		boolean actuallyRequiresSeatSelection = requiresSeatSelection && isMiejscowka;
 		List<String> assignedSeatIds = parseSeatIds(bilet.getSeatIds());
-		List<String> occupiedSeatIds = requiresSeatSelection
+		List<String> occupiedSeatIds = actuallyRequiresSeatSelection
 			? wystBiletRepository.findByBiletIdIn(biletRepository.findByWydarzenieId(bilet.getWydarzenieId()).stream().map(Bilet::getId).toList())
 				.stream()
 				.map(WystBilet::getSeatId)
@@ -215,7 +221,7 @@ public class ZakupController {
 		if (bilet.getKoniecSprzedazy() != null && bilet.getKoniecSprzedazy().isBefore(now)) {
 			return null;
 		}
-		if (requiresSeatSelection && assignedSeatIds.isEmpty()) {
+		if (actuallyRequiresSeatSelection && assignedSeatIds.isEmpty()) {
 			return null;
 		}
 
@@ -227,12 +233,13 @@ public class ZakupController {
 			pozZam.getIlosc(),
 			bilet.getStartSprzedazy(),
 			bilet.getKoniecSprzedazy(),
-			requiresSeatSelection,
+			actuallyRequiresSeatSelection,
 			assignedSeatIds,
-			requiresSeatSelection
+			actuallyRequiresSeatSelection
 				? sala.getSeats().stream().map(this::toSalaMiejsceDto).toList()
 				: List.of(),
-			occupiedSeatIds
+			occupiedSeatIds,
+			kategoriaBiletu
 		);
 	}
 
