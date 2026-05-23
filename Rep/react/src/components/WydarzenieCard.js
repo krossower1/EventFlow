@@ -138,6 +138,14 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
             <strong>Sala:</strong>
           </div>
           <div className="event-card-row">
+            <img src="/icons/building.png" alt="" width={22} height={22} />
+            <strong>Miejsce:</strong>
+          </div>
+          <div className="event-card-row">
+            <img src="/icons/map.png" alt="" width={22} height={22} />
+            <strong>Adres:</strong>
+          </div>
+          <div className="event-card-row">
             <img src="/icons/calendar (1).png" alt="" width={22} height={22} />
             <strong>Data:</strong>
           </div>
@@ -146,14 +154,21 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
             <strong>Czas:</strong>
           </div>
           <div className="event-card-row">
+            <img src="/icons/user.png" alt="" width={22} height={22} />
+            <strong>Twórca:</strong>
+          </div>
+          <div className="event-card-row">
             <img src="/icons/menu.png" alt="" width={22} height={22} />
             <strong>Kategoria:</strong>
           </div>
         </div>
         <div className="event-card-column event-card-column--values">
           <div className="event-card-row">{item.salaNazwa || '-'}</div>
+          <div className="event-card-row">{item.miejsceNazwa || '-'}</div>
+          <div className="event-card-row">{item.ulica ? `${item.ulica}, ${item.kodPocztowy} ${item.miasto}` : '-'}</div>
           <div className="event-card-row">{formatEventDate(item.dataRozp)}</div>
           <div className="event-card-row">{formatEventTime(item.dataRozp)}</div>
+          <div className="event-card-row">{item.creatorLogin || '-'}</div>
           <div className="event-card-row">{item.kategoriaNazwa || '-'}</div>
         </div>
       </div>

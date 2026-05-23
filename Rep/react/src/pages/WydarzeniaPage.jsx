@@ -21,7 +21,6 @@ const WydarzeniaPage = () => {
     tytul: '',
     opis: '',
     kategoriaId: '',
-    rola: '',
     status: '',
     dataRozp: '',
     dataZamk: '',
@@ -191,7 +190,6 @@ const WydarzeniaPage = () => {
           tytul: wydarzenieForm.tytul,
           opis: wydarzenieForm.opis,
           kategoriaId: wydarzenieForm.createNowaKategoria ? null : Number(wydarzenieForm.kategoriaId),
-          rola: wydarzenieForm.rola,
           status: wydarzenieForm.status,
           dataRozp: wydarzenieForm.dataRozp,
           dataZamk: wydarzenieForm.dataZamk,
@@ -214,7 +212,7 @@ const WydarzeniaPage = () => {
       setStatus({ type: 'success', message: 'Wydarzenie zostalo dodane.' });
       setShowWydarzenieForm(false);
       setWydarzenieForm({
-        salaId: '', tytul: '', opis: '', kategoriaId: '', rola: '', status: '',
+        salaId: '', tytul: '', opis: '', kategoriaId: '', status: '',
         dataRozp: '', dataZamk: '', createNowaKategoria: false,
         nowaKategoriaNazwa: '', nowaKategoriaOpis: '',
         bilety: [{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [] }]
@@ -597,11 +595,13 @@ const WydarzeniaPage = () => {
                     </>
                   )}
 
-                  <label htmlFor="wyd-rola">Rola</label>
-                  <input id="wyd-rola" type="text" value={wydarzenieForm.rola} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, rola: e.target.value })} required />
-
                   <label htmlFor="wyd-status">Status</label>
-                  <input id="wyd-status" type="text" value={wydarzenieForm.status} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, status: e.target.value })} required />
+                  <select id="wyd-status" value={wydarzenieForm.status} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, status: e.target.value })} required>
+                    <option value="">Wybierz status</option>
+                    <option value="AKTYWNY">AKTYWNY</option>
+                    <option value="DRAFT">DRAFT</option>
+                    <option value="NIEAKTYWNY">NIEAKTYWNY</option>
+                  </select>
 
                   <label htmlFor="wyd-start">Data rozpoczecia</label>
                   <input id="wyd-start" type="datetime-local" value={wydarzenieForm.dataRozp} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, dataRozp: e.target.value })} required />
@@ -629,7 +629,11 @@ const WydarzeniaPage = () => {
                           </select>
 
                           <label htmlFor={`bilet-klasa-${index}`}>Klasa biletu</label>
-                          <input id={`bilet-klasa-${index}`} placeholder="Klasa biletu" value={bilet.klasa} onChange={(e) => updateBiletInForm(index, 'klasa', e.target.value)} required />
+                          <select id={`bilet-klasa-${index}`} value={bilet.klasa} onChange={(e) => updateBiletInForm(index, 'klasa', e.target.value)} required>
+                            <option value="">Wybierz klasę</option>
+                            <option value="Standard">Standard</option>
+                            <option value="VIP">VIP</option>
+                          </select>
 
                           <label htmlFor={`bilet-cena-${index}`}>Cena</label>
                           <input id={`bilet-cena-${index}`} type="number" step="0.01" placeholder="Cena" value={bilet.cena} onChange={(e) => updateBiletInForm(index, 'cena', e.target.value)} required />

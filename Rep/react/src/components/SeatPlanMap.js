@@ -36,11 +36,14 @@ const normalizeSeats = (seats) => {
 
   const bounds = seatsOnly.reduce((acc, seat) => {
     const size = getSeatSize(seat);
+    const x = Number(seat.x) || 0;
+    const y = Number(seat.y) || 0;
+    
     return {
-      minX: Math.min(acc.minX, Number(seat.x) || 0),
-      minY: Math.min(acc.minY, Number(seat.y) || 0),
-      maxX: Math.max(acc.maxX, (Number(seat.x) || 0) + size.width),
-      maxY: Math.max(acc.maxY, (Number(seat.y) || 0) + size.height)
+      minX: Math.min(acc.minX, x),
+      minY: Math.min(acc.minY, y),
+      maxX: Math.max(acc.maxX, x + size.width),
+      maxY: Math.max(acc.maxY, y + size.height)
     };
   }, {
     minX: Number.POSITIVE_INFINITY,
@@ -49,22 +52,29 @@ const normalizeSeats = (seats) => {
     maxY: Number.NEGATIVE_INFINITY
   });
 
-  const contentWidth = Math.max(bounds.maxX - bounds.minX, 1);
-  const contentHeight = Math.max(bounds.maxY - bounds.minY, 1);
+  const contentWidth = bounds.maxX - bounds.minX;
+  const contentHeight = bounds.maxY - bounds.minY;
+  
+  // Calculate scale to fit within canvas with padding
   const scale = Math.min(
-    1,
     (CANVAS_WIDTH - PADDING * 2) / contentWidth,
     (CANVAS_HEIGHT - PADDING * 2) / contentHeight
   );
-  const offsetX = (CANVAS_WIDTH - contentWidth * scale) / 2;
-  const offsetY = (CANVAS_HEIGHT - contentHeight * scale) / 2;
+  
+  // Center the content in the canvas
+  const scaledWidth = contentWidth * scale;
+  const scaledHeight = contentHeight * scale;
+  const offsetX = (CANVAS_WIDTH - scaledWidth) / 2 - bounds.minX * scale;
+  const offsetY = (CANVAS_HEIGHT - scaledHeight) / 2 - bounds.minY * scale;
 
   return seatsOnly.map((seat) => {
     const size = getSeatSize(seat);
+    const x = Number(seat.x) || 0;
+    const y = Number(seat.y) || 0;
     return {
       ...seat,
-      renderX: (Number(seat.x) - bounds.minX) * scale + offsetX,
-      renderY: (Number(seat.y) - bounds.minY) * scale + offsetY,
+      renderX: x * scale + offsetX,
+      renderY: y * scale + offsetY,
       renderWidth: size.width * scale,
       renderHeight: size.height * scale
     };

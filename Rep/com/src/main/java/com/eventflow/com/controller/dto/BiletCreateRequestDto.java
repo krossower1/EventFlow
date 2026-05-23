@@ -1,7 +1,6 @@
 package com.eventflow.com.controller.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 public record BiletCreateRequestDto(
@@ -9,8 +8,8 @@ public record BiletCreateRequestDto(
 	BigDecimal cena,
 	String waluta,
 	Integer ilosc,
-	LocalDateTime startSprzedazy,
-	LocalDateTime koniecSprzedazy,
+	String startSprzedazy,
+	String koniecSprzedazy,
 	List<String> seatIds,
 	String kategoriaBiletu
 ) {
