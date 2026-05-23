@@ -648,6 +648,7 @@ const WydarzeniaPage = () => {
                               <p style={{ margin: '8px 0 0', color: '#cbd5e1' }}>Wybierz miejsca tej klasy. Ilość ustala się automatycznie.</p>
                               <SeatPlanMap
                                 seats={selectedSalaSeats}
+                                rows={selectedSalaSeats.filter((item) => (item.type || 'SEAT') === 'ROW')}
                                 seatClassById={getSeatClassById()}
                                 selectedSeatIds={bilet.seatIds || []}
                                 selectableSeatIds={getSelectableSeatIds(index)}

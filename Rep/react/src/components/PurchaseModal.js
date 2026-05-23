@@ -15,6 +15,7 @@ const PurchaseModal = ({
 
   const selectedBilet = dostepneBilety.find((bilet) => String(bilet.biletId) === String(zakupForm.biletId));
   const seats = Array.isArray(selectedBilet?.salaSeats) ? selectedBilet.salaSeats : [];
+  const rows = Array.isArray(selectedBilet?.salaSeats) ? selectedBilet.salaSeats.filter((item) => (item.type || 'SEAT') === 'ROW') : [];
   const occupiedSeatIds = selectedBilet?.occupiedSeatIds || [];
   const seatClassById = dostepneBilety.reduce((acc, bilet) => {
     (bilet.assignedSeatIds || []).forEach((seatId) => {
@@ -80,6 +81,7 @@ const PurchaseModal = ({
               <p>Wybierz wolne miejsce przypisane do tej klasy biletu.</p>
               <SeatPlanMap
                 seats={seats}
+                rows={rows}
                 seatClassById={seatClassById}
                 occupiedSeatIds={occupiedSeatIds}
                 activeSeatId={zakupForm.seatId}
