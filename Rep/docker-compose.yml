@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: eventflow-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: haslo
+      MYSQL_DATABASE: event_flow
+      MYSQL_USER: eventflow
+      MYSQL_PASSWORD: eventflow
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - eventflow-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-phaslo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./com
+      dockerfile: Dockerfile
+    container_name: eventflow-backend
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/event_flow?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: haslo
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+      SERVER_PORT: 8081
+      SPRING_MAIL_HOST: smtp.gmail.com
+      SPRING_MAIL_PORT: 587
+      SPRING_MAIL_USERNAME: eventflow939@gmail.com
+      SPRING_MAIL_PASSWORD: "rfqe dujp valt fuac"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "true"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "true"
+      APP_MAIL_FROM: eventflow939@gmail.com
+      APP_SECURITY_ALERTS_EMAIL: ""
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - eventflow-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./react
+      dockerfile: Dockerfile
+    container_name: eventflow-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - eventflow-network
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+
+networks:
+  eventflow-network:
+    driver: bridge
