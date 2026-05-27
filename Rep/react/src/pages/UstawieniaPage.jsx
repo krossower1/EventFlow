@@ -137,6 +137,9 @@ const UstawieniaPage = () => {
     observedEventEnd: true,
     observedEventStart: true,
     observedSeatFreed: true,
+    newRefundRequest: true,
+    newOrganizerRequest: true,
+    newSecurityReport: true,
   });
   const [isLoadingNotificationSettings, setIsLoadingNotificationSettings] = useState(false);
   const [isSavingNotificationSettings, setIsSavingNotificationSettings] = useState(false);
@@ -700,6 +703,9 @@ const UstawieniaPage = () => {
     observedEventEnd: saved?.observedEventEnd !== false,
     observedEventStart: saved?.observedEventStart !== false,
     observedSeatFreed: saved?.observedSeatFreed !== false,
+    newRefundRequest: saved?.newRefundRequest !== false,
+    newOrganizerRequest: saved?.newOrganizerRequest !== false,
+    newSecurityReport: saved?.newSecurityReport !== false,
   });
 
   const handleNotificationSettingChange = async (key, checked) => {
@@ -1103,6 +1109,9 @@ const UstawieniaPage = () => {
     {isLoadingNotificationSettings && (
       <p className="settings-subtitle">Ładowanie ustawień powiadomień...</p>
     )}
+    {/*Sekcja powiadomień tylko dla użytkownika*/}
+    {currentUser?.rola === 'USER' && (
+      <>
     <div className="settings-list">
       <div className="settings-row">
         <span>Logowanie administratora do systemu</span>
@@ -1201,6 +1210,53 @@ const UstawieniaPage = () => {
         </label>
       </div>
     </div>
+    </>
+    )}
+    {/*Sekcja powiadomień tylko dla administratora*/}
+    {currentUser?.rola === 'ADMIN' && (
+      <>
+      <div className="settings-list">
+        <div className="settings-row">
+        <span>Nowy wniosek o zwrot pieniędzy za bilet</span>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={notificationSettings.newRefundRequest}
+            disabled={isLoadingNotificationSettings || isSavingNotificationSettings}
+            onChange={(event) => handleNotificationSettingChange('newRefundRequest', event.target.checked)}
+          />
+          <span className="slider"></span>
+        </label>
+        </div>
+
+        <div className="settings-row">
+        <span>Nowy wniosek o rolę organizatora</span>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={notificationSettings.newOrganizerRequest}
+            disabled={isLoadingNotificationSettings || isSavingNotificationSettings}
+            onChange={(event) => handleNotificationSettingChange('newOrganizerRequest', event.target.checked)}
+          />
+          <span className="slider"></span>
+        </label>
+        </div>
+
+        <div className="settings-row">
+        <span>Nowe zgłoszenie bezpieczeństwa</span>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={notificationSettings.newSecurityReport}
+            disabled={isLoadingNotificationSettings || isSavingNotificationSettings}
+            onChange={(event) => handleNotificationSettingChange('newSecurityReport', event.target.checked)}
+          />
+          <span className="slider"></span>
+        </label>
+        </div>
+      </div>
+    </>
+    )}
     {notificationSettingsStatus.message && (
       <p className={`status-message ${notificationSettingsStatus.type === 'error' ? 'status-error' : 'status-success'}`}>
         {notificationSettingsStatus.message}

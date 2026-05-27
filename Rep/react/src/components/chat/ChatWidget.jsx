@@ -166,11 +166,12 @@ const ChatWidget = () => {
               <input
                 type="text"
                 value={draft}
+                className="buttonv2"
                 onChange={(event) => setDraft(event.target.value)}
                 placeholder="Napisz wiadomość..."
                 disabled={!activeChat}
               />
-              <button type="submit" disabled={!activeChat || !draft.trim()}>
+              <button type="submit" className="buttonv2" disabled={!activeChat || !draft.trim()}>
                 Wyślij
               </button>
             </form>

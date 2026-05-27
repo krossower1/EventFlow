@@ -18,6 +18,9 @@ const NOTIFICATION_TYPE_LABELS = {
   OBSERVED_EVENT_END: 'Zakończenie wydarzenia',
   OBSERVED_EVENT_START: 'Zbliżający się start',
   OBSERVED_SEAT_FREED: 'Zwolnienie miejsca',
+  NEW_REFUND_REQUEST: 'Nowy wniosek o zwrot',
+  NEW_ORGANIZER_REQUEST: 'Nowy wniosek o rolę organizatora',
+  NEW_SECURITY_REPORT: 'Nowe zgłoszenie bezpieczeństwa',
 };
 
 const formatNotificationTime = (value) => {

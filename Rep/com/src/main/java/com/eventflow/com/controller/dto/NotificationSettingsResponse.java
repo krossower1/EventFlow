@@ -6,6 +6,8 @@ public record NotificationSettingsResponse(
 	boolean favoriteLogin,
 	boolean observedEventEnd,
 	boolean observedEventStart,
-	boolean observedSeatFreed
-) {
-}
+	boolean observedSeatFreed,
+	boolean newRefundRequest,
+	boolean newOrganizerRequest,
+	boolean newSecurityReport
+) {}

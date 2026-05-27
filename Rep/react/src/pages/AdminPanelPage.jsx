@@ -1,6 +1,7 @@
-import React, { useContext, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { apiClient, getAuthHeaders } from '../api/apiClient';
 import SecurityInboxPage from './SecurityInboxPage';
 import SystemCategoriesPanel from '../components/panel_admin/SystemCategoriesPanel';
 import AdminRefundsPanel from '../components/panel_admin/AdminRefundsPanel';
@@ -14,10 +15,62 @@ const ADMIN_TABS = [
 ];
 
 const AdminPanelPage = () => {
-  const { currentUser } = useContext(AuthContext);
+  const { currentUser, authCredentials } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('kategorie');
+  const [tabCounts, setTabCounts] = useState({
+    zwroty: 0,
+    wnioski: 0,
+    zgłoszenia: 0,
+  });
 
   const isAdmin = String(currentUser?.rola || '').toUpperCase() === 'ADMIN';
+
+  const getRequestConfig = useCallback(() => {
+    const config = { withCredentials: true };
+    if (authCredentials?.login && authCredentials?.password) {
+      config.headers = getAuthHeaders(authCredentials.login, authCredentials.password);
+    }
+    return config;
+  }, [authCredentials]);
+
+  const loadTabCounts = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const requestConfig = getRequestConfig();
+      const [refundsRes, organizerRes, securityRes] = await Promise.all([
+        apiClient.get('/zwroty', requestConfig),
+        apiClient.get('/organizator', requestConfig),
+        apiClient.get('/admin/security-tickets?status=NEW', requestConfig),
+      ]);
+
+      const refunds = Array.isArray(refundsRes?.data) ? refundsRes.data : [];
+      const requests = Array.isArray(organizerRes?.data) ? organizerRes.data : [];
+      const tickets = Array.isArray(securityRes?.data) ? securityRes.data : [];
+
+      setTabCounts({
+        zwroty: refunds.filter((item) => String(item?.stan || '').toLowerCase() === 'oczekuje').length,
+        wnioski: requests.filter((item) => item?.zweryfikow !== true).length,
+        zgłoszenia: tickets.length,
+      });
+    } catch {
+    }
+  }, [getRequestConfig, isAdmin]);
+
+  const tabsWithCounts = useMemo(() => ADMIN_TABS.map((tab) => {
+    const count = tabCounts[tab.id];
+    const shouldShowCount = Number.isFinite(count);
+    return {
+      ...tab,
+      displayLabel: shouldShowCount ? `${tab.label} (${count})` : tab.label,
+    };
+  }), [tabCounts]);
+
+  useEffect(() => {
+    if (!isAdmin) return undefined;
+    loadTabCounts();
+    const intervalId = window.setInterval(loadTabCounts, 30000);
+    return () => window.clearInterval(intervalId);
+  }, [isAdmin, loadTabCounts]);
 
   if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
@@ -28,14 +81,14 @@ const AdminPanelPage = () => {
       <aside className="settings-sidebar">
         <h2>Panel administratora</h2>
         <nav className="settings-nav" aria-label="Zakładki panelu administratora">
-          {ADMIN_TABS.map((tab) => (
+          {tabsWithCounts.map((tab) => (
             <button
               key={tab.id}
               type="button"
               className={`settings-nav-item ${activeTab === tab.id ? 'active' : ''}`}
               onClick={() => setActiveTab(tab.id)}
             >
-              {tab.label}
+              {tab.displayLabel}
             </button>
           ))}
         </nav>

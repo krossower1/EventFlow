@@ -220,6 +220,9 @@ public class UserController {
             && request.observedEventEnd() == null
             && request.observedEventStart() == null
             && request.observedSeatFreed() == null
+            && request.newRefundRequest() == null
+            && request.newOrganizerRequest() == null
+            && request.newSecurityReport() == null
         )) {
             throw new RuntimeException("Brak danych ustawień powiadomień");
         }
@@ -240,6 +243,15 @@ public class UserController {
         }
         if (request.observedSeatFreed() != null) {
             currentUser.setNotifyObservedSeatFreed(request.observedSeatFreed());
+        }
+        if (request.newRefundRequest() != null) {
+            currentUser.setNotifyNewRefundRequest(request.newRefundRequest());
+        }
+        if (request.newOrganizerRequest() != null) {
+            currentUser.setNotifyNewOrganizerRequest(request.newOrganizerRequest());
+        }
+        if (request.newSecurityReport() != null) {
+            currentUser.setNotifyNewSecurityReport(request.newSecurityReport());
         }
         User saved = userRepository.save(currentUser);
         return toNotificationSettingsResponse(saved);
@@ -501,6 +513,18 @@ public class UserController {
         return value == null || Boolean.TRUE.equals(value);
     }
 
+    private boolean resolveNotifyNewRefundRequest(Boolean value) {
+        return value == null || Boolean.TRUE.equals(value);
+    }
+
+    private boolean resolveNotifyNewOrganizerRequest(Boolean value) {
+        return value == null || Boolean.TRUE.equals(value);
+    }
+
+    private boolean resolveNotifyNewSecurityReport(Boolean value) {
+        return value == null || Boolean.TRUE.equals(value);
+    }
+
     private NotificationSettingsResponse toNotificationSettingsResponse(User user) {
         return new NotificationSettingsResponse(
             resolveNotifyAdminLogin(user.getNotifyAdminLogin()),
@@ -508,7 +532,10 @@ public class UserController {
             resolveNotifyFavoriteLogin(user.getNotifyFavoriteLogin()),
             resolveNotifyObservedEventEnd(user.getNotifyObservedEventEnd()),
             resolveNotifyObservedEventStart(user.getNotifyObservedEventStart()),
-            resolveNotifyObservedSeatFreed(user.getNotifyObservedSeatFreed())
+            resolveNotifyObservedSeatFreed(user.getNotifyObservedSeatFreed()),
+            resolveNotifyNewRefundRequest(user.getNotifyNewRefundRequest()),
+            resolveNotifyNewOrganizerRequest(user.getNotifyNewOrganizerRequest()),
+            resolveNotifyNewSecurityReport(user.getNotifyNewSecurityReport())
         );
     }
 }

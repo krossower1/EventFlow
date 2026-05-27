@@ -6,6 +6,9 @@ public record UpdateNotificationSettingsRequest(
 	Boolean favoriteLogin,
 	Boolean observedEventEnd,
 	Boolean observedEventStart,
-	Boolean observedSeatFreed
+	Boolean observedSeatFreed,
+	Boolean newRefundRequest,
+	Boolean newOrganizerRequest,
+	Boolean newSecurityReport
 ) {
 }

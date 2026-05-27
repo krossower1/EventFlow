@@ -2,10 +2,13 @@ package com.eventflow.com.service;
 
 import com.eventflow.com.controller.dto.UnreadNotificationsCountResponse;
 import com.eventflow.com.controller.dto.UserNotificationResponse;
+import com.eventflow.com.model.Organizator;
+import com.eventflow.com.model.SecurityTicket;
 import com.eventflow.com.model.User;
 import com.eventflow.com.model.UserNotification;
 import com.eventflow.com.model.UserObservedEvent;
 import com.eventflow.com.model.Wydarzenie;
+import com.eventflow.com.model.Zwrot;
 import com.eventflow.com.repository.UserFavoriteRepository;
 import com.eventflow.com.repository.UserNotificationRepository;
 import com.eventflow.com.repository.UserObservedEventRepository;
@@ -29,6 +32,12 @@ public class NotificationService {
 	public static final String TYPE_OBSERVED_EVENT_END = "OBSERVED_EVENT_END";
 	public static final String TYPE_OBSERVED_EVENT_START = "OBSERVED_EVENT_START";
 	public static final String TYPE_OBSERVED_SEAT_FREED = "OBSERVED_SEAT_FREED";
+	/** Typ powiadomienia ADMIN: nowy wniosek o zwrot. */
+	public static final String TYPE_NEW_REFUND_REQUEST = "NEW_REFUND_REQUEST";
+	/** Typ powiadomienia ADMIN: nowy wniosek o rolę organizatora. */
+	public static final String TYPE_NEW_ORGANIZER_REQUEST = "NEW_ORGANIZER_REQUEST";
+	/** Typ powiadomienia ADMIN: nowe zgłoszenie bezpieczeństwa. */
+	public static final String TYPE_NEW_SECURITY_REPORT = "NEW_SECURITY_REPORT";
 
 	private static final String STATUS_AKTYWNY = "AKTYWNY";
 	public static final int START_REMINDER_HOURS_BEFORE = 24;
@@ -111,6 +120,43 @@ public class NotificationService {
 		String classLabel = ticketClass != null && !ticketClass.isBlank() ? ticketClass.trim() : "bilet";
 		String message = "Zwolniono miejsce " + seatId.trim() + " (" + classLabel + ") na wydarzeniu: " + title + ".";
 		notifyObservedUsers(wydarzenieId, TYPE_OBSERVED_SEAT_FREED, message, this::isObservedSeatFreedEnabled);
+	}
+
+	@Transactional
+	public void notifyNewRefundRequest(Zwrot zwrot) {
+		if (zwrot == null || zwrot.getId() == null) {
+			return;
+		}
+		String amount = zwrot.getKwota() != null ? zwrot.getKwota().toPlainString() : "?";
+		String currency = zwrot.getWaluta() != null && !zwrot.getWaluta().isBlank() ? zwrot.getWaluta().trim() : "";
+		String reason = zwrot.getPowod() != null && !zwrot.getPowod().isBlank() ? " Powód: " + zwrot.getPowod().trim() + "." : "";
+		String message = "Nowy wniosek o zwrot #" + zwrot.getId() + ": " + amount + " " + currency + "." + reason;
+		notifyAdmins(TYPE_NEW_REFUND_REQUEST, message, this::isNewRefundRequestEnabled);
+	}
+
+	/** Tworzy powiadomienie dla administratorów o nowym wniosku organizatora. */
+	@Transactional
+	public void notifyNewOrganizerRequest(Organizator organizator, User requester) {
+		if (organizator == null || organizator.getId() == null) {
+			return;
+		}
+		String requesterLabel = requester != null ? buildUserLabel(requester) : ("użytkownik #" + organizator.getUserId());
+		String company = organizator.getFirma() != null && !organizator.getFirma().isBlank()
+			? " Firma: " + organizator.getFirma().trim() + "."
+			: "";
+		String message = "Nowy wniosek o rolę organizatora od " + requesterLabel + "." + company;
+		notifyAdmins(TYPE_NEW_ORGANIZER_REQUEST, message, this::isNewOrganizerRequestEnabled);
+	}
+
+	/** Tworzy powiadomienie dla administratorów o nowym ticketcie bezpieczeństwa. */
+	@Transactional
+	public void notifyNewSecurityReport(SecurityTicket ticket) {
+		if (ticket == null || ticket.getId() == null) {
+			return;
+		}
+		String category = ticket.getCategory() != null ? ticket.getCategory().name() : "UNKNOWN";
+		String message = "Nowe zgłoszenie bezpieczeństwa #" + ticket.getId() + " (" + category + ").";
+		notifyAdmins(TYPE_NEW_SECURITY_REPORT, message, this::isNewSecurityReportEnabled);
 	}
 
 	/**
@@ -197,6 +243,16 @@ public class NotificationService {
 			.forEach(recipient -> saveNotification(recipient.getId(), type, message, now));
 	}
 
+	/** Wysyła komunikat do wszystkich ADMIN z włączoną odpowiednią preferencją. */
+	private void notifyAdmins(String type, String message, Predicate<User> preferenceFilter) {
+		LocalDateTime now = LocalDateTime.now();
+		userRepository.findAll().stream()
+			.filter(user -> user.getId() != null)
+			.filter(user -> "ADMIN".equalsIgnoreCase(user.getRola()))
+			.filter(preferenceFilter)
+			.forEach(recipient -> saveNotification(recipient.getId(), type, message, now));
+	}
+
 	private void saveNotification(Long userId, String type, String message, LocalDateTime createdAt) {
 		UserNotification notification = new UserNotification();
 		notification.setUserId(userId);
@@ -229,6 +285,20 @@ public class NotificationService {
 
 	private boolean isObservedSeatFreedEnabled(User user) {
 		return user.getNotifyObservedSeatFreed() == null || Boolean.TRUE.equals(user.getNotifyObservedSeatFreed());
+	}
+
+	private boolean isNewRefundRequestEnabled(User user) {
+		return user.getNotifyNewRefundRequest() == null || Boolean.TRUE.equals(user.getNotifyNewRefundRequest());
+	}
+
+	/** Preferencja ADMIN: powiadom o nowym wniosku o rolę organizatora. */
+	private boolean isNewOrganizerRequestEnabled(User user) {
+		return user.getNotifyNewOrganizerRequest() == null || Boolean.TRUE.equals(user.getNotifyNewOrganizerRequest());
+	}
+
+	/** Preferencja ADMIN: powiadom o nowym zgłoszeniu bezpieczeństwa. */
+	private boolean isNewSecurityReportEnabled(User user) {
+		return user.getNotifyNewSecurityReport() == null || Boolean.TRUE.equals(user.getNotifyNewSecurityReport());
 	}
 
 	private UserNotificationResponse toResponse(UserNotification notification) {

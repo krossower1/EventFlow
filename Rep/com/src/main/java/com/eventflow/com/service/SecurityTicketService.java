@@ -59,6 +59,7 @@ public class SecurityTicketService {
 	private final OrganizatorRepository organizatorRepository;
 	private final EmailService emailService;
 	private final AuthService authService;
+	private final NotificationService notificationService;
 
 	public SecurityTicketService(
 		SecurityTicketRepository ticketRepository,
@@ -67,7 +68,8 @@ public class SecurityTicketService {
 		LoginLogRepository loginLogRepository,
 		OrganizatorRepository organizatorRepository,
 		EmailService emailService,
-		AuthService authService
+		AuthService authService,
+		NotificationService notificationService
 	) {
 		this.ticketRepository = ticketRepository;
 		this.auditRepository = auditRepository;
@@ -76,6 +78,7 @@ public class SecurityTicketService {
 		this.organizatorRepository = organizatorRepository;
 		this.emailService = emailService;
 		this.authService = authService;
+		this.notificationService = notificationService;
 	}
 
 	/**
@@ -234,6 +237,7 @@ public class SecurityTicketService {
 		ticket = ticketRepository.save(ticket);
 		String actorLabel = formatUserLabel(reporter);
 		appendAudit(ticket, reporter, "%s utworzył(a) zgłoszenie #%d (zgłoszenie z historii logowań).".formatted(actorLabel, ticket.getId()));
+		notificationService.notifyNewSecurityReport(ticket);
 		maybeSendCriticalEmail(ticket);
 		return ticket;
 	}

@@ -101,7 +101,8 @@ public class ZwrotController {
 		zwrot.setStan("oczekuje");
 		zwrot.setOtrzymany(true);
 		zwrot.setPrzyznany(false);
-		zwrotRepository.save(zwrot);
+		Zwrot saved = zwrotRepository.save(zwrot);
+		notificationService.notifyNewRefundRequest(saved);
 
 		return ResponseEntity.ok("Prosba o zwrot zostala wyslana.");
 	}
