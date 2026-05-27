@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 const BiletyTab = ({ currentUserRole, getRequestConfig, setStatus, API_BASE_URL, authCredentials, isLoggedIn }) => {
+  const { t } = useTranslation();
   const [myBilety, setMyBilety] = useState([]);
   const [selectedZwrotBilet, setSelectedZwrotBilet] = useState(null);
   const [zwrotForm, setZwrotForm] = useState({ powod: '' });
@@ -11,9 +13,9 @@ const BiletyTab = ({ currentUserRole, getRequestConfig, setStatus, API_BASE_URL,
       const response = await axios.get(`${API_BASE_URL}/bilety/my`, getRequestConfig());
       setMyBilety(response.data);
     } catch (error) {
-      setStatus({ type: 'error', message: 'Nie udalo sie pobrac biletow.' });
+      setStatus({ type: 'error', message: t('tickets.status.fetchError') });
     }
-  }, [API_BASE_URL, getRequestConfig, setStatus]);
+  }, [API_BASE_URL, getRequestConfig, setStatus, t]);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -27,40 +29,40 @@ const BiletyTab = ({ currentUserRole, getRequestConfig, setStatus, API_BASE_URL,
     try {
       const response = await axios.post(`${API_BASE_URL}/zwroty/wyst-bilety/${selectedZwrotBilet.id}`, 
         { powod: zwrotForm.powod }, getRequestConfig());
-      setStatus({ type: 'success', message: response.data || 'Prosba o zwrot zostala wyslana.' });
+      setStatus({ type: 'success', message: response.data || t('tickets.status.refundSuccess') });
       setSelectedZwrotBilet(null);
       fetchMyBilety();
     } catch (error) {
-      setStatus({ type: 'error', message: 'Blad podczas wysylania zwrotu.' });
+      setStatus({ type: 'error', message: t('tickets.status.refundError') });
     }
   };
 
   if (currentUserRole === 'ADMIN') {
     return (
       <div>
-        <h2>Panel Biletów</h2>
-        <p>Zarządzanie zwrotami zostało przeniesione do panelu administratora (ikona w górnym pasku).</p>
+        <h2>{t('tickets.page.title')}</h2>
+        <p>{t('tickets.admin.info')}</p>
       </div>
     );
   }
 
   return (
     <div>
-      <h2>Panel Biletów</h2>
+      <h2>{t('tickets.page.title')}</h2>
 
       <div>
-        <h3>Moje Bilety</h3>
+        <h3>{t('tickets.my.title')}</h3>
         <div className="events-grid">
             {myBilety.map(b => (
               <article key={b.id} className="event-card">
                 <span className="event-badge">{b.stan}</span>
                 <h3>{b.wydarzenieTytul}</h3>
-                <p>Kod: {b.kod} | Klasa: {b.klasa}</p>
+                <p>{t('tickets.ticket.codeAndClass', { code: b.kod, class: b.klasa })}</p>
                 {b.qrCode && (
                   <div style={{ marginTop: '10px', textAlign: 'center' }}>
                     <img 
                       src={b.qrCode} 
-                      alt="QR Code biletu" 
+                      alt={t('tickets.ticket.qrAlt')} 
                       style={{ width: '150px', height: '150px', border: '1px solid #ddd' }}
                     />
                   </div>
@@ -70,7 +72,7 @@ const BiletyTab = ({ currentUserRole, getRequestConfig, setStatus, API_BASE_URL,
                   disabled={b.maProsbeZwrotu} 
                   onClick={() => setSelectedZwrotBilet(b)}
                 >
-                  {b.maProsbeZwrotu ? 'Wysłano prośbę' : 'Prośba o zwrot'}
+                  {b.maProsbeZwrotu ? t('tickets.refund.sent') : t('tickets.refund.request')}
                 </button>
               </article>
             ))}
@@ -80,11 +82,11 @@ const BiletyTab = ({ currentUserRole, getRequestConfig, setStatus, API_BASE_URL,
       {selectedZwrotBilet && (
         <div className="modal-overlay" onClick={() => setSelectedZwrotBilet(null)}>
           <div className="modal-card" onClick={e => e.stopPropagation()}>
-            <h3>Zwrot biletu: {selectedZwrotBilet.wydarzenieTytul}</h3>
+            <h3>{t('tickets.refund.modalTitle', { title: selectedZwrotBilet.wydarzenieTytul })}</h3>
             <form onSubmit={onZwrotSubmit} className="auth-form">
-              <label>Powód</label>
+              <label>{t('tickets.refund.reason')}</label>
               <textarea value={zwrotForm.powod} onChange={e => setZwrotForm({powod: e.target.value})} required />
-              <button type="submit">Wyślij</button>
+              <button type="submit">{t('tickets.refund.send')}</button>
             </form>
           </div>
         </div>

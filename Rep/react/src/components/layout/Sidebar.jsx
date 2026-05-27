@@ -1,20 +1,22 @@
 import React, { useContext } from 'react';
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../../context/AuthContext';
 
 const Sidebar = () => {
+  const { t } = useTranslation();
   const { isLoggedIn, sessionTimeoutEnabled, sessionTimeLeft } = useContext(AuthContext);
 
   if (!isLoggedIn) return null;
 
   const navItems =[
-    { path: '/dashboard', label: 'Panel główny', icon: '/icons/home.png' },
-    { path: '/wydarzenia', label: 'Wydarzenia', icon: '/icons/events.png' },
-    { path: '/bilety', label: 'Bilety', icon: '/icons/tickets.png' },
-    { path: '/uczestnicy', label: 'Uczestnicy', icon: '/icons/users.png' },
-    { path: '/miejsca', label: 'Miejsca', icon: '/icons/places.png' },
-    { path: '/analityka', label: 'Analityka', icon: '/icons/analytics.png' },
-    { path: '/ustawienia', label: 'Ustawienia', icon: '/icons/settings.png' }
+    { path: '/dashboard', label: t('sidebar.nav.dashboard'), icon: '/icons/home.png' },
+    { path: '/wydarzenia', label: t('sidebar.nav.events'), icon: '/icons/events.png' },
+    { path: '/bilety', label: t('sidebar.nav.tickets'), icon: '/icons/tickets.png' },
+    { path: '/uczestnicy', label: t('sidebar.nav.participants'), icon: '/icons/users.png' },
+    { path: '/miejsca', label: t('sidebar.nav.places'), icon: '/icons/places.png' },
+    { path: '/analityka', label: t('sidebar.nav.analytics'), icon: '/icons/analytics.png' },
+    { path: '/ustawienia', label: t('sidebar.nav.settings'), icon: '/icons/settings.png' }
   ];
 
   const formatSessionTime = (totalSeconds) => {
@@ -46,7 +48,7 @@ const Sidebar = () => {
       </nav>
       {sessionTimeoutEnabled && (
         <div className="sidebar-session">
-          <span className="sidebar-session-label">Sesja wygasa za</span>
+          <span className="sidebar-session-label">{t('sidebar.session.expiresIn')}</span>
           <strong className="sidebar-session-time">{formatSessionTime(sessionTimeLeft)}</strong>
         </div>
       )}

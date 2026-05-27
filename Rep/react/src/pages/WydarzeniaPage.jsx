@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
 import { AuthContext } from '../context/AuthContext';
 import WydarzenieCard from '../components/WydarzenieCard';
@@ -7,6 +8,7 @@ import PurchaseModal from '../components/PurchaseModal';
 import SeatPlanMap from '../components/SeatPlanMap';
 
 const WydarzeniaPage = () => {
+  const { t } = useTranslation();
   const { currentUser, authCredentials } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -71,20 +73,20 @@ const WydarzeniaPage = () => {
       const response = await apiClient.get('/wydarzenia/options', getRequestConfig());
       setWydarzenieOptions(response.data);
     } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie pobrac opcji formularza wydarzenia.' });
+      setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.optionsFetchError') });
     } finally {
       setWydarzenieLoading(false);
     }
-  }, [getRequestConfig]);
+  }, [getRequestConfig, t]);
 
   const fetchMyWydarzenia = useCallback(async () => {
     try {
       const response = await apiClient.get('/wydarzenia', getRequestConfig());
       setMyWydarzenia(response.data);
     } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie pobrac listy wydarzen.' });
+      setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.listFetchError') });
     }
-  }, [getRequestConfig]);
+  }, [getRequestConfig, t]);
 
   useEffect(() => {
     if (confirmEndEventId == null) return undefined;
@@ -102,11 +104,11 @@ const WydarzeniaPage = () => {
       await apiClient.put(`/wydarzenia/${eventId}/status`, { status: 'NIEAKTYWNY' }, getRequestConfig());
       await fetchMyWydarzenia();
       setConfirmEndEventId(null);
-      setStatus({ type: 'success', message: 'Wydarzenie zostało zakończone (NIEAKTYWNY).' });
+      setStatus({ type: 'success', message: t('events.status.endSuccess') });
     } catch (error) {
       setStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Nie udało się zmienić statusu wydarzenia.',
+        message: error.response?.data?.message || t('events.status.endError'),
       });
     }
   };
@@ -173,7 +175,7 @@ const WydarzeniaPage = () => {
     setStatus({ type: '', message: '' });
 
     if (wydarzenieForm.bilety.length === 0) {
-      setStatus({ type: 'error', message: 'Musisz dodać co najmniej jeden typ biletu.' });
+      setStatus({ type: 'error', message: t('events.status.mustAddTicketType') });
       return;
     }
 
@@ -219,7 +221,7 @@ const WydarzeniaPage = () => {
         getRequestConfig()
       );
 
-      setStatus({ type: 'success', message: 'Wydarzenie zostalo dodane.' });
+      setStatus({ type: 'success', message: t('events.status.addSuccess') });
       setShowWydarzenieForm(false);
       setWydarzenieForm({
         salaId: '', tytul: '', opis: '', kategoriaId: '', status: '',
@@ -230,7 +232,7 @@ const WydarzeniaPage = () => {
       fetchWydarzeniaOptions();
       fetchMyWydarzenia();
     } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie dodac wydarzenia.' });
+      setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.addError') });
     }
   };
 
@@ -266,12 +268,12 @@ const WydarzeniaPage = () => {
         startSprzedazy: form.start_sprzedazy || null,
         koniecSprzedazy: form.koniec_sprzedazy || null
       }, getRequestConfig());
-      setStatus({ type: 'success', message: 'Pula biletów została dodana.' });
+      setStatus({ type: 'success', message: t('events.status.ticketPoolAdded') });
       setTicketForms(prev => ({ ...prev, [eventId]: { klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '' } }));
       setOpenTicketFormEventId(null);
       fetchMyWydarzenia(); // Odśwież listę, by zobaczyć zmiany
     } catch (error) {
-      setStatus({ type: 'error', message: 'Nie udało się dodać biletów.' });
+      setStatus({ type: 'error', message: t('events.status.ticketPoolAddError') });
     }
   };
 
@@ -291,7 +293,7 @@ const WydarzeniaPage = () => {
       });
       setZakupFormOpen(true);
     } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udało się pobrać dostępnych biletów.' });
+      setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.availableTicketsError') });
     } finally {
       setZakupLoading(false);
     }
@@ -309,7 +311,7 @@ const WydarzeniaPage = () => {
         potwierdzPlatnosc: zakupForm.potwierdzPlatnosc,
         seatId: zakupForm.seatId || null
       }, getRequestConfig());
-      setStatus({ type: 'success', message: 'Zakup zakończony pomyślnie.' });
+      setStatus({ type: 'success', message: t('events.status.purchaseSuccess') });
       setZakupFormOpen(false);
       setSelectedZakupEvent(null);
       fetchMyWydarzenia();
@@ -317,7 +319,7 @@ const WydarzeniaPage = () => {
       const message = error.response?.data?.message
         || error.response?.data?.detail
         || (typeof error.response?.data === 'string' ? error.response.data : null)
-        || 'Nie udało się zakończyć zakupu.';
+        || t('events.status.purchaseError');
       setStatus({ type: 'error', message });
     } finally {
       setZakupLoading(false);
@@ -331,7 +333,7 @@ const WydarzeniaPage = () => {
       setSelectedInfoEvent(eventResponse.data);
       setOpiniaForm({ ocena: '5', opis: '' });
     } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie pobrac szczegolow wydarzenia.' });
+      setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.eventDetailsError') });
     } finally {
       setInfoLoading(false);
     }
@@ -348,7 +350,7 @@ const WydarzeniaPage = () => {
       setPersonelUsers(usersResponse.data || []);
       setPersonelForm({ userId: '', rola: 'ochrona' });
     } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie pobrac danych personelu.' });
+      setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.personnelDataError') });
     } finally {
       setInfoLoading(false);
     }
@@ -364,11 +366,11 @@ const WydarzeniaPage = () => {
         { ocena: Number(opiniaForm.ocena), opis: opiniaForm.opis },
         getRequestConfig()
       );
-      setStatus({ type: 'success', message: response.data || 'Opinia zostala dodana.' });
+      setStatus({ type: 'success', message: response.data || t('events.status.reviewAdded') });
       setOpiniaForm({ ocena: '5', opis: '' });
       await openInfoModal(selectedInfoEvent.id);
     } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie dodac opinii.' });
+      setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.reviewAddError') });
     }
   };
 
@@ -380,10 +382,10 @@ const WydarzeniaPage = () => {
         `/wydarzenia/${selectedInfoEvent.id}/opinie/${opiniaId}`,
         getRequestConfig()
       );
-      setStatus({ type: 'success', message: response.data || 'Opinia zostala usunieta.' });
+      setStatus({ type: 'success', message: response.data || t('events.status.reviewDeleted') });
       await openInfoModal(selectedInfoEvent.id);
     } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie usunac opinii.' });
+      setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.reviewDeleteError') });
     }
   };
 
@@ -397,11 +399,11 @@ const WydarzeniaPage = () => {
         { userId: Number(personelForm.userId), rola: personelForm.rola },
         getRequestConfig()
       );
-      setStatus({ type: 'success', message: response.data || 'Personel zostal dodany.' });
+      setStatus({ type: 'success', message: response.data || t('events.status.personnelAdded') });
       setPersonelForm({ userId: '', rola: 'ochrona' });
       await openPersonelModal(selectedPersonelEvent.id);
     } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie dodac personelu.' });
+      setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.personnelAddError') });
     }
   };
 
@@ -413,10 +415,10 @@ const WydarzeniaPage = () => {
         `/wydarzenia/${selectedPersonelEvent.id}/personel/${personelId}`,
         getRequestConfig()
       );
-      setStatus({ type: 'success', message: response.data || 'Rola personelu zostala anulowana.' });
+      setStatus({ type: 'success', message: response.data || t('events.status.personnelRevoked') });
       await openPersonelModal(selectedPersonelEvent.id);
     } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udalo sie anulowac roli.' });
+      setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.personnelRevokeError') });
     }
   };
 
@@ -426,11 +428,11 @@ const WydarzeniaPage = () => {
 
     try {
       const response = await apiClient.post('/organizator/request', organizerForm, getRequestConfig());
-      setStatus({ type: 'success', message: response.data || 'Wniosek zostal wyslany.' });
+      setStatus({ type: 'success', message: response.data || t('events.status.organizerRequestSent') });
       setOrganizerForm({ firma: '', kwalifikacje: '', strona: '' });
       setOrganizerRequestOpen(false);
     } catch (error) {
-      const message = error.response?.data?.message || error.response?.data || 'Nie udalo sie wyslac wniosku.';
+      const message = error.response?.data?.message || error.response?.data || t('events.status.organizerRequestError');
       setStatus({ type: 'error', message });
     }
   };
@@ -454,16 +456,16 @@ const WydarzeniaPage = () => {
   return (
     <>
     <div>
-      <h2>Wydarzenia</h2>
+      <h2>{t('events.page.title')}</h2>
       {status.message && <p className={`status-message ${status.type}`}>{status.message}</p>}
       
       <div className="events-view">
-        <p>{currentUser?.rola === 'ORG' ? 'Zarzadzaj wszystkimi swoimi wydarzeniami w jednym miejscu.' : 'Przeglądaj wszystkie wydarzenia dostępne w systemie.'}</p>
+        <p>{currentUser?.rola === 'ORG' ? t('events.page.leadOrg') : t('events.page.leadUser')}</p>
         <div className="events-toolbar">
             <input
               type="text"
               className="events-search"
-              placeholder="Szukaj wydarzeń..."
+              placeholder={t('events.search.placeholder')}
               value={wydarzeniaSearch}
               onChange={(event) => setWydarzeniaSearch(event.target.value)}
             />
@@ -472,15 +474,15 @@ const WydarzeniaPage = () => {
               value={wydarzeniaStatusFilter}
               onChange={(event) => setWydarzeniaStatusFilter(event.target.value)}
             >
-              <option value="ALL">Filtry: wszystkie</option>
-              <option value="AKTYWNE">aktywne</option>
-              <option value="SZKIC">szkic</option>
-              <option value="ZAMKNIETE">zamkniete</option>
+              <option value="ALL">{t('events.filter.all')}</option>
+              <option value="AKTYWNE">{t('events.filter.active')}</option>
+              <option value="SZKIC">{t('events.filter.draft')}</option>
+              <option value="ZAMKNIETE">{t('events.filter.closed')}</option>
             </select>
             <div className="events-toolbar-actions">
               <span
                 className={`permission-tooltip ${currentUser?.rola !== 'ORG' ? 'has-tooltip' : ''}`}
-                data-tooltip={currentUser?.rola !== 'ORG' ? 'Dostępne tylko dla organizatora' : ''}
+                data-tooltip={currentUser?.rola !== 'ORG' ? t('events.tooltip.onlyOrganizer') : ''}
               >
                 <button
                   type="button"
@@ -492,12 +494,12 @@ const WydarzeniaPage = () => {
                     if (!showWydarzenieForm) fetchWydarzeniaOptions();
                   }}
                 >
-                  {showWydarzenieForm ? 'Zamknij formularz' : '+ Nowe wydarzenie'}
+                  {showWydarzenieForm ? t('events.toolbar.closeForm') : t('events.toolbar.newEvent')}
                 </button>
               </span>
               <span
                 className={`permission-tooltip ${currentUser?.rola !== 'USER' ? 'has-tooltip' : ''}`}
-                data-tooltip={currentUser?.rola !== 'USER' ? 'Dostępne tylko dla użytkownika' : ''}
+                data-tooltip={currentUser?.rola !== 'USER' ? t('events.tooltip.onlyUser') : ''}
               >
                 <button
                   type="button"
@@ -505,7 +507,7 @@ const WydarzeniaPage = () => {
                   disabled={currentUser?.rola !== 'USER'}
                   onClick={() => setOrganizerRequestOpen(true)}
                 >
-                  Zostań organizatorem
+                  {t('events.toolbar.becomeOrganizer')}
                 </button>
               </span>
             </div>
@@ -515,7 +517,7 @@ const WydarzeniaPage = () => {
             <form onSubmit={onWydarzenieSubmit} className="auth-form organizer-form event-form">
               <div className="event-form-layout">
                 <div className="event-form-panel">
-                  <label htmlFor="wyd-sala">Sala</label>
+                  <label htmlFor="wyd-sala">{t('events.form.hall')}</label>
                   <select
                     id="wyd-sala"
                     value={wydarzenieForm.salaId}
@@ -533,13 +535,13 @@ const WydarzeniaPage = () => {
                     }}
                     required
                   >
-                    <option value="">Wybierz salę</option>
+                    <option value="">{t('events.form.hallSelect')}</option>
                     {wydarzenieOptions.sale.map((item) => (
                       <option key={item.id} value={item.id}>{item.nazwa} ({item.miejsceNazwa})</option>
                     ))}
                   </select>
 
-                  <label htmlFor="wyd-tytul">Tytul</label>
+                  <label htmlFor="wyd-tytul">{t('events.form.title')}</label>
                   <input
                     id="wyd-tytul"
                     type="text"
@@ -548,7 +550,7 @@ const WydarzeniaPage = () => {
                     required
                   />
 
-                  <label htmlFor="wyd-opis">Opis</label>
+                  <label htmlFor="wyd-opis">{t('events.form.description')}</label>
                   <input
                     id="wyd-opis"
                     type="text"
@@ -556,7 +558,7 @@ const WydarzeniaPage = () => {
                     onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, opis: event.target.value })}
                   />
 
-                  <label htmlFor="wyd-kategoria">Kategoria</label>
+                  <label htmlFor="wyd-kategoria">{t('events.form.category')}</label>
                   <select
                     id="wyd-kategoria"
                     value={wydarzenieForm.createNowaKategoria ? '__NOWA_KATEGORIA__' : wydarzenieForm.kategoriaId}
@@ -570,23 +572,23 @@ const WydarzeniaPage = () => {
                     }}
                     required
                   >
-                    <option value="">Wybierz kategorie</option>
-                    <optgroup label="Systemowe (ADMIN)">
+                    <option value="">{t('events.form.categorySelect')}</option>
+                    <optgroup label={t('events.form.categorySystem')}>
                       {wydarzenieOptions.kategorieSystemowe.map((item) => (
                         <option key={item.id} value={item.id}>{item.nazwa}</option>
                       ))}
                     </optgroup>
-                    <optgroup label="Twoje (ORG)">
+                    <optgroup label={t('events.form.categoryYours')}>
                       {wydarzenieOptions.kategorieUzytkownika.map((item) => (
                         <option key={item.id} value={item.id}>{item.nazwa}</option>
                       ))}
-                      <option value="__NOWA_KATEGORIA__">+ Utworz nowa kategorie</option>
+                      <option value="__NOWA_KATEGORIA__">{t('events.form.categoryCreate')}</option>
                     </optgroup>
                   </select>
 
                   {wydarzenieForm.createNowaKategoria && (
                     <>
-                      <label htmlFor="wyd-nowa-kategoria-nazwa">Nowa kategoria - nazwa</label>
+                      <label htmlFor="wyd-nowa-kategoria-nazwa">{t('events.form.newCategoryName')}</label>
                       <input
                         id="wyd-nowa-kategoria-nazwa"
                         type="text"
@@ -595,7 +597,7 @@ const WydarzeniaPage = () => {
                         required
                       />
 
-                      <label htmlFor="wyd-nowa-kategoria-opis">Nowa kategoria - opis</label>
+                      <label htmlFor="wyd-nowa-kategoria-opis">{t('events.form.newCategoryDescription')}</label>
                       <input
                         id="wyd-nowa-kategoria-opis"
                         type="text"
@@ -605,68 +607,68 @@ const WydarzeniaPage = () => {
                     </>
                   )}
 
-                  <label htmlFor="wyd-status">Status</label>
+                  <label htmlFor="wyd-status">{t('events.form.status')}</label>
                   <select id="wyd-status" value={wydarzenieForm.status} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, status: e.target.value })} required>
-                    <option value="">Wybierz status</option>
+                    <option value="">{t('events.form.statusSelect')}</option>
                     <option value="AKTYWNY">AKTYWNY</option>
                     <option value="DRAFT">DRAFT</option>
                     <option value="NIEAKTYWNY">NIEAKTYWNY</option>
                   </select>
 
-                  <label htmlFor="wyd-start">Data rozpoczecia</label>
+                  <label htmlFor="wyd-start">{t('events.form.dateStart')}</label>
                   <input id="wyd-start" type="datetime-local" value={wydarzenieForm.dataRozp} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, dataRozp: e.target.value })} required />
 
-                  <label htmlFor="wyd-end">Data zakonczenia</label>
+                  <label htmlFor="wyd-end">{t('events.form.dateEnd')}</label>
                   <input id="wyd-end" type="datetime-local" value={wydarzenieForm.dataZamk} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, dataZamk: e.target.value })} required />
                 </div>
 
                 <div className="event-form-panel event-form-panel--tickets">
                   <div className="event-ticket-section">
                     <div className="event-ticket-section-header">
-                      <h4 style={{ margin: 0 }}>Konfiguracja Biletów</h4>
+                      <h4 style={{ margin: 0 }}>{t('events.tickets.sectionTitle')}</h4>
                       <div className="event-ticket-actions">
-                        <button type="button" onClick={addBiletForm} className="btn-refresh">+ Dodaj pulę</button>
-                        <button type="submit">Dodaj wydarzenie</button>
+                        <button type="button" onClick={addBiletForm} className="btn-refresh">{t('events.tickets.addPool')}</button>
+                        <button type="submit">{t('events.tickets.addEvent')}</button>
                       </div>
                     </div>
                     <div className="event-ticket-grid">
                       {wydarzenieForm.bilety.map((bilet, index) => (
                         <div key={index} className="event-ticket-card">
-                          <label htmlFor={`bilet-kategoria-${index}`}>Kategoria biletu</label>
+                          <label htmlFor={`bilet-kategoria-${index}`}>{t('events.tickets.ticketCategory')}</label>
                           <select id={`bilet-kategoria-${index}`} value={bilet.kategoriaBiletu || 'miejscówka'} onChange={(e) => updateBiletInForm(index, 'kategoriaBiletu', e.target.value)} required>
-                            <option value="miejscówka">Miejscówka</option>
-                            <option value="wejściówka">Wejściówka</option>
+                            <option value="miejscówka">{t('events.tickets.categorySeat')}</option>
+                            <option value="wejściówka">{t('events.tickets.categoryEntry')}</option>
                           </select>
 
-                          <label htmlFor={`bilet-klasa-${index}`}>Klasa biletu</label>
+                          <label htmlFor={`bilet-klasa-${index}`}>{t('events.tickets.class')}</label>
                           <select id={`bilet-klasa-${index}`} value={bilet.klasa} onChange={(e) => updateBiletInForm(index, 'klasa', e.target.value)} required>
-                            <option value="">Wybierz klasę</option>
+                            <option value="">{t('events.tickets.classSelect')}</option>
                             <option value="Standard">Standard</option>
                             <option value="VIP">VIP</option>
                           </select>
 
-                          <label htmlFor={`bilet-cena-${index}`}>Cena</label>
-                          <input id={`bilet-cena-${index}`} type="number" step="0.01" placeholder="Cena" value={bilet.cena} onChange={(e) => updateBiletInForm(index, 'cena', e.target.value)} required />
+                          <label htmlFor={`bilet-cena-${index}`}>{t('events.tickets.price')}</label>
+                          <input id={`bilet-cena-${index}`} type="number" step="0.01" placeholder={t('events.tickets.price')} value={bilet.cena} onChange={(e) => updateBiletInForm(index, 'cena', e.target.value)} required />
 
-                          <label htmlFor={`bilet-ilosc-${index}`}>Ilość</label>
-                          <input id={`bilet-ilosc-${index}`} type="number" placeholder="Ilość" value={bilet.ilosc} onChange={(e) => updateBiletInForm(index, 'ilosc', e.target.value)} disabled={hasSelectedSalaPlan && (bilet.kategoriaBiletu || 'miejscówka') === 'miejscówka'} required />
+                          <label htmlFor={`bilet-ilosc-${index}`}>{t('events.tickets.quantity')}</label>
+                          <input id={`bilet-ilosc-${index}`} type="number" placeholder={t('events.tickets.quantity')} value={bilet.ilosc} onChange={(e) => updateBiletInForm(index, 'ilosc', e.target.value)} disabled={hasSelectedSalaPlan && (bilet.kategoriaBiletu || 'miejscówka') === 'miejscówka'} required />
 
-                          <label htmlFor={`bilet-waluta-${index}`}>Waluta</label>
+                          <label htmlFor={`bilet-waluta-${index}`}>{t('events.tickets.currency')}</label>
                           <select id={`bilet-waluta-${index}`} value={bilet.waluta} onChange={(e) => updateBiletInForm(index, 'waluta', e.target.value)} required>
                             <option value="PLN">PLN</option>
                             <option value="EUR">EUR</option>
                             <option value="USD">USD</option>
                           </select>
 
-                          <label htmlFor={`bilet-start-${index}`}>Start sprzedaży</label>
+                          <label htmlFor={`bilet-start-${index}`}>{t('events.tickets.salesStart')}</label>
                           <input id={`bilet-start-${index}`} type="datetime-local" value={bilet.start_sprzedazy} onChange={(e) => updateBiletInForm(index, 'start_sprzedazy', e.target.value)} />
 
-                          <label htmlFor={`bilet-koniec-${index}`}>Koniec sprzedaży</label>
+                          <label htmlFor={`bilet-koniec-${index}`}>{t('events.tickets.salesEnd')}</label>
                           <input id={`bilet-koniec-${index}`} type="datetime-local" value={bilet.koniec_sprzedazy} onChange={(e) => updateBiletInForm(index, 'koniec_sprzedazy', e.target.value)} />
 
                           {hasSelectedSalaPlan && (bilet.kategoriaBiletu || 'miejscówka') === 'miejscówka' && (
                             <>
-                              <p style={{ margin: '8px 0 0', color: '#cbd5e1' }}>Wybierz miejsca tej klasy. Ilość ustala się automatycznie.</p>
+                              <p style={{ margin: '8px 0 0', color: '#cbd5e1' }}>{t('events.tickets.seatHint')}</p>
                               <SeatPlanMap
                                 seats={selectedSalaSeats}
                                 rows={selectedSalaSeats.filter((item) => (item.type || 'SEAT') === 'ROW')}
@@ -689,7 +691,7 @@ const WydarzeniaPage = () => {
             </form>
           )}
 
-          {wydarzenieLoading && <h3>Ladowanie...</h3>}
+          {wydarzenieLoading && <h3>{t('events.loading')}</h3>}
 
           <div className="events-grid events-grid--wydarzenia">
             {filteredWydarzenia.length > 0 ? filteredWydarzenia.map((item) => (
@@ -706,20 +708,20 @@ const WydarzeniaPage = () => {
                   <div style={{ marginTop: '12px' }}>
                     <span className="inline-confirm-anchor" style={{ display: 'inline-block' }}>
                       {confirmEndEventId === item.id ? (
-                        <span className="inline-confirm-popover" role="group" aria-label="Potwierdź zakończenie wydarzenia">
+                        <span className="inline-confirm-popover" role="group" aria-label={t('events.admin.confirmEndAria')}>
                           <button
                             type="button"
                             className="btn-new-event inline-confirm-popover-btn"
                             onClick={() => handleEndEventAsAdmin(item.id)}
                           >
-                            Tak
+                            {t('events.common.yes')}
                           </button>
                           <button
                             type="button"
                             className="btn-secondary inline-confirm-popover-btn"
                             onClick={() => setConfirmEndEventId(null)}
                           >
-                            Nie
+                            {t('events.common.no')}
                           </button>
                         </span>
                       ) : null}
@@ -728,7 +730,7 @@ const WydarzeniaPage = () => {
                         className="btn-secondary"
                         onClick={() => setConfirmEndEventId(item.id)}
                       >
-                        Zakończ wydarzenie
+                        {t('events.admin.endEvent')}
                       </button>
                     </span>
                   </div>
@@ -753,7 +755,7 @@ const WydarzeniaPage = () => {
                 */}
               </div>
             )) : (
-              <p>Brak wydarzen.</p>
+              <p>{t('events.empty')}</p>
             )}
           </div>
         </div>
@@ -779,12 +781,12 @@ const WydarzeniaPage = () => {
         >
           <div className="modal-card info-modal-card">
             <div className="modal-header">
-              <div className="modal-title">Formularz nowej puli biletów</div>
+              <div className="modal-title">{t('events.ticketPool.modalTitle')}</div>
               <button
                 type="button"
                 className="modal-close"
                 onClick={() => setOpenTicketFormEventId(null)}
-                aria-label="Zamknij"
+                aria-label={t('events.common.close')}
               >
                 ×
               </button>
@@ -796,11 +798,11 @@ const WydarzeniaPage = () => {
               style={{ display: 'grid', gap: '15px', padding: '0', opacity: currentUser?.rola === 'ORG' ? 1 : 0.5 }}
             >
               <div>
-                <label htmlFor={`t-klasa-${openTicketFormEventId}`}>Klasa biletu (np. VIP)</label>
+                <label htmlFor={`t-klasa-${openTicketFormEventId}`}>{t('events.ticketPool.classLabel')}</label>
                 <input
                   id={`t-klasa-${openTicketFormEventId}`}
                   type="text"
-                  placeholder="Wpisz klasę..."
+                  placeholder={t('events.ticketPool.classPlaceholder')}
                   value={ticketForms[openTicketFormEventId]?.klasa || ''}
                   onChange={e => updateTicketForm(openTicketFormEventId, 'klasa', e.target.value)}
                   disabled={currentUser?.rola !== 'ORG'}
@@ -810,7 +812,7 @@ const WydarzeniaPage = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
                 <div>
-                  <label htmlFor={`t-cena-${openTicketFormEventId}`}>Cena</label>
+                  <label htmlFor={`t-cena-${openTicketFormEventId}`}>{t('events.ticketPool.price')}</label>
                   <input
                     id={`t-cena-${openTicketFormEventId}`}
                     type="number" step="0.01" placeholder="0.00"
@@ -820,7 +822,7 @@ const WydarzeniaPage = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor={`t-qty-${openTicketFormEventId}`}>Liczba biletów</label>
+                  <label htmlFor={`t-qty-${openTicketFormEventId}`}>{t('events.ticketPool.qty')}</label>
                   <input
                     id={`t-qty-${openTicketFormEventId}`}
                     type="number" placeholder="np. 50"
@@ -830,7 +832,7 @@ const WydarzeniaPage = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor={`t-waluta-${openTicketFormEventId}`}>Waluta</label>
+                  <label htmlFor={`t-waluta-${openTicketFormEventId}`}>{t('events.ticketPool.currency')}</label>
                   <select
                     id={`t-waluta-${openTicketFormEventId}`}
                     value={ticketForms[openTicketFormEventId]?.waluta || 'PLN'}
@@ -846,7 +848,7 @@ const WydarzeniaPage = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
                 <div>
-                  <label htmlFor={`t-start-${openTicketFormEventId}`}>Start sprzedaży</label>
+                  <label htmlFor={`t-start-${openTicketFormEventId}`}>{t('events.ticketPool.salesStart')}</label>
                   <input
                     id={`t-start-${openTicketFormEventId}`}
                     type="datetime-local"
@@ -855,7 +857,7 @@ const WydarzeniaPage = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor={`t-end-${openTicketFormEventId}`}>Koniec sprzedaży</label>
+                  <label htmlFor={`t-end-${openTicketFormEventId}`}>{t('events.ticketPool.salesEnd')}</label>
                   <input
                     id={`t-end-${openTicketFormEventId}`}
                     type="datetime-local"
@@ -867,11 +869,11 @@ const WydarzeniaPage = () => {
 
               <span
                 className={`permission-tooltip ${currentUser?.rola !== 'ORG' ? 'has-tooltip' : ''}`}
-                data-tooltip={currentUser?.rola !== 'ORG' ? 'Dostępne tylko dla organizatora' : ''}
+                data-tooltip={currentUser?.rola !== 'ORG' ? t('events.tooltip.onlyOrganizer') : ''}
                 style={{ width: '100%' }}
               >
                 <button type="submit" className="btn-new-event" style={{ width: '100%' }} disabled={currentUser?.rola !== 'ORG'}>
-                  Dodaj pulę biletów
+                  {t('events.ticketPool.submit')}
                 </button>
               </span>
             </form>
@@ -889,27 +891,27 @@ const WydarzeniaPage = () => {
         >
           <div className="modal-card modal-card--w600">
             <div className="modal-header">
-              <div className="modal-title">Więcej informacji</div>
+              <div className="modal-title">{t('events.moreInfo.modalTitle')}</div>
               <button
                 type="button"
                 className="modal-close"
                 onClick={() => setSelectedInfoEvent(null)}
-                aria-label="Zamknij"
+                aria-label={t('events.common.close')}
               >
                 ×
               </button>
             </div>
             <div className="modal-grid info-modal-layout">
               <div className="info-top-section">
-                <p>Szczegóły na temat: {selectedInfoEvent.tytul}</p>
-                <p>do rozbudowania</p>
-                {infoLoading && <p>Ladowanie szczegolow...</p>}
+                <p>{t('events.moreInfo.detailsPrefix', { title: selectedInfoEvent.tytul })}</p>
+                <p>{t('events.moreInfo.todo')}</p>
+                {infoLoading && <p>{t('events.moreInfo.loading')}</p>}
               </div>
 
               <div className="event-detail-opinie info-left-section">
-                <h3>Opinie</h3>
+                <h3>{t('events.moreInfo.reviews.title')}</h3>
                 <form onSubmit={onOpiniaSubmit} className="auth-form organizer-form">
-                  <label htmlFor="opinia-ocena">Ocena</label>
+                  <label htmlFor="opinia-ocena">{t('events.moreInfo.reviews.rating')}</label>
                   <select
                     id="opinia-ocena"
                     value={opiniaForm.ocena}
@@ -922,7 +924,7 @@ const WydarzeniaPage = () => {
                     <option value="1">1</option>
                   </select>
 
-                  <label htmlFor="opinia-opis">Opis</label>
+                  <label htmlFor="opinia-opis">{t('events.moreInfo.reviews.description')}</label>
                   <textarea
                     id="opinia-opis"
                     value={opiniaForm.opis}
@@ -930,13 +932,13 @@ const WydarzeniaPage = () => {
                     required
                   />
 
-                  <button type="submit">Dodaj opinię</button>
+                  <button type="submit">{t('events.moreInfo.reviews.add')}</button>
                 </form>
 
                 <div className="events-grid">
                   {selectedInfoEvent.opinie?.length > 0 ? selectedInfoEvent.opinie.map((opinia) => (
                     <article key={opinia.id} className="event-card">
-                      <span className="event-badge">ocena {opinia.ocena}/5</span>
+                      <span className="event-badge">{t('events.moreInfo.reviews.badge', { value: opinia.ocena })}</span>
                       <h3>{opinia.userLogin}</h3>
                       <p>{opinia.opis}</p>
                       <p>{opinia.data ? new Date(opinia.data).toLocaleString() : '-'}</p>
@@ -946,12 +948,12 @@ const WydarzeniaPage = () => {
                           className="btn-delete"
                           onClick={() => onDeleteOpinia(opinia.id)}
                         >
-                          Usuń opinię
+                          {t('events.moreInfo.reviews.delete')}
                         </button>
                       )}
                     </article>
                   )) : (
-                    <p>Brak opinii dla tego wydarzenia.</p>
+                    <p>{t('events.moreInfo.reviews.empty')}</p>
                   )}
                 </div>
               </div>
@@ -971,26 +973,26 @@ const WydarzeniaPage = () => {
         >
           <div className="modal-card modal-card--w600">
             <div className="modal-header">
-              <div className="modal-title">Personel</div>
+              <div className="modal-title">{t('events.personnel.modalTitle')}</div>
               <button
                 type="button"
                 className="modal-close"
                 onClick={() => setSelectedPersonelEvent(null)}
-                aria-label="Zamknij"
+                aria-label={t('events.common.close')}
               >
                 ×
               </button>
             </div>
             <div className="modal-grid info-modal-layout">
               <div className="info-top-section">
-                <p>Personel dla wydarzenia: {selectedPersonelEvent.tytul}</p>
-                {infoLoading && <p>Ladowanie danych...</p>}
+                <p>{t('events.personnel.forEvent', { title: selectedPersonelEvent.tytul })}</p>
+                {infoLoading && <p>{t('events.personnel.loading')}</p>}
               </div>
               <div className="event-detail-opinie info-left-section">
-                <h3>Zarządzanie personelem</h3>
-                <p>{currentUser?.rola === 'ORG' ? 'Możesz dodawać i usuwać personel.' : 'Edycja tylko dla organizatora.'}</p>
+                <h3>{t('events.personnel.manageTitle')}</h3>
+                <p>{currentUser?.rola === 'ORG' ? t('events.personnel.manageOrg') : t('events.personnel.manageReadOnly')}</p>
                 <form onSubmit={onPersonelSubmit} className="auth-form organizer-form">
-                  <label htmlFor="personel-user">Użytkownik</label>
+                  <label htmlFor="personel-user">{t('events.personnel.user')}</label>
                   <select
                     id="personel-user"
                     value={personelForm.userId}
@@ -998,7 +1000,7 @@ const WydarzeniaPage = () => {
                     required
                     disabled={currentUser?.rola !== 'ORG'}
                   >
-                    <option value="">Wybierz użytkownika</option>
+                    <option value="">{t('events.personnel.userSelect')}</option>
                     {personelUsers
                       .filter((user) => user.rola !== 'ADMIN' && user.aktywnosc !== false)
                       .map((user) => (
@@ -1008,7 +1010,7 @@ const WydarzeniaPage = () => {
                       ))}
                   </select>
 
-                  <label htmlFor="personel-rola">Rola</label>
+                  <label htmlFor="personel-rola">{t('events.personnel.role')}</label>
                   <select
                     id="personel-rola"
                     value={personelForm.rola}
@@ -1021,21 +1023,21 @@ const WydarzeniaPage = () => {
                   </select>
 
                   <button type="submit" disabled={currentUser?.rola !== 'ORG'}>
-                    Dodaj personel
+                    {t('events.personnel.add')}
                   </button>
                 </form>
               </div>
               <div className="event-detail-opinie info-right-section">
-                <h3>Aktualny personel</h3>
+                <h3>{t('events.personnel.currentTitle')}</h3>
                 {selectedPersonelEvent.personel?.length > 0 ? (
                   <table className="participants-table">
                     <thead>
                       <tr>
-                        <th>ID</th>
-                        <th>Użytkownik</th>
-                        <th>Rola</th>
-                        <th>Data zajęcia</th>
-                        <th>Akcje</th>
+                        <th>{t('events.personnel.table.id')}</th>
+                        <th>{t('events.personnel.table.user')}</th>
+                        <th>{t('events.personnel.table.role')}</th>
+                        <th>{t('events.personnel.table.assignedAt')}</th>
+                        <th>{t('events.personnel.table.actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1051,7 +1053,7 @@ const WydarzeniaPage = () => {
                               onClick={() => onDeletePersonel(item.id)}
                               disabled={currentUser?.rola !== 'ORG'}
                             >
-                              Anuluj
+                              {t('events.personnel.revoke')}
                             </button>
                           </td>
                         </tr>
@@ -1059,7 +1061,7 @@ const WydarzeniaPage = () => {
                     </tbody>
                   </table>
                 ) : (
-                  <p>Brak przypisanego personelu.</p>
+                  <p>{t('events.personnel.empty')}</p>
                 )}
               </div>
             </div>
@@ -1077,18 +1079,18 @@ const WydarzeniaPage = () => {
         >
           <div className="modal-card">
             <div className="modal-header">
-              <div className="modal-title">Wniosek o rolę organizatora</div>
+              <div className="modal-title">{t('events.organizerRequest.modalTitle')}</div>
               <button
                 type="button"
                 className="modal-close"
                 onClick={() => setOrganizerRequestOpen(false)}
-                aria-label="Zamknij"
+                aria-label={t('events.common.close')}
               >
                 ×
               </button>
             </div>
             <form onSubmit={onOrganizerRequestSubmit} className="auth-form organizer-form" style={{ padding: '16px' }}>
-              <label htmlFor="org-firma">Firma</label>
+              <label htmlFor="org-firma">{t('events.organizerRequest.company')}</label>
               <input
                 id="org-firma"
                 type="text"
@@ -1098,7 +1100,7 @@ const WydarzeniaPage = () => {
                 disabled={currentUser?.rola !== 'USER'}
               />
 
-              <label htmlFor="org-kwalifikacje">Kwalifikacje</label>
+              <label htmlFor="org-kwalifikacje">{t('events.organizerRequest.qualifications')}</label>
               <input
                 id="org-kwalifikacje"
                 type="text"
@@ -1108,7 +1110,7 @@ const WydarzeniaPage = () => {
                 disabled={currentUser?.rola !== 'USER'}
               />
 
-              <label htmlFor="org-strona">Strona</label>
+              <label htmlFor="org-strona">{t('events.organizerRequest.website')}</label>
               <input
                 id="org-strona"
                 type="text"
@@ -1119,7 +1121,7 @@ const WydarzeniaPage = () => {
               />
 
               <button type="submit" disabled={currentUser?.rola !== 'USER'}>
-                Wyślij wniosek
+                {t('events.organizerRequest.submit')}
               </button>
             </form>
           </div>

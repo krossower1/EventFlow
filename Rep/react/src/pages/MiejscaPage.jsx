@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
 import { AuthContext } from '../context/AuthContext';
 
 const MiejscaPage = () => {
+  const { t } = useTranslation();
   const { currentUser, authCredentials } = useContext(AuthContext);
   const [miejsca, setMiejsca] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,7 @@ const MiejscaPage = () => {
       const response = await apiClient.get('/miejsca/my', getRequestConfig());
       setMiejsca(response.data);
     } catch (error) {
-      setStatus({ type: 'error', message: 'Nie udało się pobrać miejsc.' });
+      setStatus({ type: 'error', message: t('places.status.fetchError') });
     } finally {
       setLoading(false);
     }
@@ -70,12 +72,12 @@ const MiejscaPage = () => {
         ...miejsceForm,
         iloscSal: Number(miejsceForm.iloscSal)
       }, getRequestConfig());
-      setStatus({ type: 'success', message: 'Miejsce zostało dodane.' });
+      setStatus({ type: 'success', message: t('places.status.addSuccess') });
       setMiejsceForm({ nazwa: '', panstwo: 'Polska', miasto: '', ulica: '', kodPoczt: '', iloscSal: '', opis: '' });
       setView('list');
       fetchMyMiejsca();
     } catch (error) {
-      setStatus({ type: 'error', message: error?.response?.data?.message || 'Nie udało się dodać miejsca.' });
+      setStatus({ type: 'error', message: error?.response?.data?.message || t('places.status.addError') });
     }
   };
 
@@ -100,11 +102,11 @@ const MiejscaPage = () => {
         pietro: Number(form.pietro),
         maPlan: Boolean(form.maPlan)
       }, getRequestConfig());
-      setStatus({ type: 'success', message: 'Sala została dodana.' });
+      setStatus({ type: 'success', message: t('places.status.roomAddSuccess') });
       setSalaForms(prev => ({ ...prev, [miejsceId]: { nazwa: '', pojemnosc: '', pietro: '', maPlan: false } }));
       fetchMyMiejsca();
     } catch (error) {
-      setStatus({ type: 'error', message: error?.response?.data?.message || 'Nie udało się dodać sali.' });
+      setStatus({ type: 'error', message: error?.response?.data?.message || t('places.status.roomAddError') });
     }
   };
 
@@ -116,7 +118,7 @@ const MiejscaPage = () => {
     const rawValue = increaseForms[miejsce.id];
     const nowaIloscSal = Number(rawValue);
     if (!rawValue || Number.isNaN(nowaIloscSal) || nowaIloscSal <= 0) {
-      setStatus({ type: 'error', message: 'Podaj poprawną nową ilość sal.' });
+      setStatus({ type: 'error', message: t('places.status.increaseInvalid') });
       return;
     }
 
@@ -125,12 +127,12 @@ const MiejscaPage = () => {
         nowaIloscSal,
         potwierdzenie: true
       }, getRequestConfig());
-      setStatus({ type: 'success', message: 'Ilość sal została zwiększona.' });
+      setStatus({ type: 'success', message: t('places.status.increaseSuccess') });
       setIncreaseForms(prev => ({ ...prev, [miejsce.id]: '' }));
       setConfirmIncreaseMiejsceId(null);
       fetchMyMiejsca();
     } catch (error) {
-      setStatus({ type: 'error', message: error?.response?.data?.message || 'Nie udało się zwiększyć ilości sal.' });
+      setStatus({ type: 'error', message: error?.response?.data?.message || t('places.status.increaseError') });
     }
   };
 
@@ -139,31 +141,31 @@ const MiejscaPage = () => {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>{currentUser?.rola === 'ORG' ? 'Zarządzaj miejscami' : 'Przeglądaj miejsca (zarządzanie tylko dla organizatorów)'}</h2>
+        <h2>{currentUser?.rola === 'ORG' ? t('places.page.titleOrg') : t('places.page.titleViewer')}</h2>
         <div className="miejsca-page-toolbar-actions">
           <span
             className={`permission-tooltip ${currentUser?.rola !== 'ORG' ? 'has-tooltip' : ''}`}
-            data-tooltip={currentUser?.rola !== 'ORG' ? 'Dostępne tylko dla organizatora' : ''}
+            data-tooltip={currentUser?.rola !== 'ORG' ? t('places.tooltip.onlyOrganizer') : ''}
           >
             <button
               type="button"
               className="btn-refresh-icon"
               onClick={fetchMyMiejsca}
-              aria-label="Odśwież"
+              aria-label={t('places.toolbar.refreshAriaLabel')}
             >
               <img src="/icons/refresh.png" alt="" width={22} height={22} />
             </button>
           </span>
           <span
             className={`permission-tooltip ${currentUser?.rola !== 'ORG' ? 'has-tooltip' : ''}`}
-            data-tooltip={currentUser?.rola !== 'ORG' ? 'Dostępne tylko dla organizatora' : ''}
+            data-tooltip={currentUser?.rola !== 'ORG' ? t('places.tooltip.onlyOrganizer') : ''}
           >
             <button
               className="btn-new-event"
               onClick={() => setView(view === 'list' ? 'add' : 'list')}
               disabled={currentUser?.rola !== 'ORG'}
             >
-              {view === 'list' ? '+ Dodaj miejsce' : 'Powrót do listy'}
+              {view === 'list' ? t('places.toolbar.add') : t('places.toolbar.backToList')}
             </button>
           </span>
         </div>
@@ -174,75 +176,75 @@ const MiejscaPage = () => {
       {view === 'add' ? (
         currentUser?.rola === 'ORG' ? (
           <div className="auth-form organizer-form miejsce-form-card">
-            <h3>Nowe miejsce</h3>
+            <h3>{t('places.form.newPlaceTitle')}</h3>
             <form onSubmit={onMiejsceSubmit} className="miejsce-form-grid">
               <div className="miejsce-form-field miejsce-form-field--full">
-                <label htmlFor="miejsce-nazwa">Nazwa</label>
+                <label htmlFor="miejsce-nazwa">{t('places.form.name')}</label>
                 <input id="miejsce-nazwa" type="text" value={miejsceForm.nazwa} onChange={e => setMiejsceForm({...miejsceForm, nazwa: e.target.value})} required />
               </div>
 
               <div className="miejsce-form-field">
-                <label htmlFor="miejsce-panstwo">Państwo</label>
-                <input id="miejsce-panstwo" type="text" value="Polska" disabled />
+                <label htmlFor="miejsce-panstwo">{t('places.form.country')}</label>
+                <input id="miejsce-panstwo" type="text" value={t('places.form.countryDefault')} disabled />
               </div>
 
               <div className="miejsce-form-field">
-                <label htmlFor="miejsce-miasto">Miasto</label>
+                <label htmlFor="miejsce-miasto">{t('places.form.city')}</label>
                 <input id="miejsce-miasto" type="text" value={miejsceForm.miasto} onChange={e => setMiejsceForm({...miejsceForm, miasto: e.target.value})} required />
               </div>
 
               <div className="miejsce-form-field">
-                <label htmlFor="miejsce-ulica">Ulica</label>
+                <label htmlFor="miejsce-ulica">{t('places.form.street')}</label>
                 <input id="miejsce-ulica" type="text" value={miejsceForm.ulica} onChange={e => setMiejsceForm({...miejsceForm, ulica: e.target.value})} required />
               </div>
 
               <div className="miejsce-form-field">
-                <label htmlFor="miejsce-kod">Kod pocztowy</label>
+                <label htmlFor="miejsce-kod">{t('places.form.postalCode')}</label>
                 <input id="miejsce-kod" type="text" value={miejsceForm.kodPoczt} onChange={e => setMiejsceForm({...miejsceForm, kodPoczt: e.target.value})} required />
               </div>
 
               <div className="miejsce-form-field miejsce-form-field--full">
-                <label htmlFor="miejsce-ilosc-sal">Ilość sal (limit sal dla miejsca)</label>
+                <label htmlFor="miejsce-ilosc-sal">{t('places.form.roomsLimit')}</label>
                 <input id="miejsce-ilosc-sal" type="number" value={miejsceForm.iloscSal} onChange={e => setMiejsceForm({...miejsceForm, iloscSal: e.target.value})} required />
               </div>
 
               <div className="miejsce-form-field miejsce-form-field--full">
-                <label htmlFor="miejsce-opis">Opis</label>
+                <label htmlFor="miejsce-opis">{t('places.form.description')}</label>
                 <textarea id="miejsce-opis" value={miejsceForm.opis} onChange={e => setMiejsceForm({...miejsceForm, opis: e.target.value})} />
               </div>
 
               <div className="miejsce-form-actions">
-                <button type="submit">Zapisz miejsce</button>
+                <button type="submit">{t('places.form.savePlace')}</button>
               </div>
             </form>
           </div>
         ) : (
           <div style={{padding: '20px', textAlign: 'center', color: '#666'}}>
-            <p>Dodawanie nowych miejsc dostępne tylko dla organizatorów.</p>
+            <p>{t('places.form.onlyOrganizer')}</p>
           </div>
         )
       ) : (
         <div className="miejsca-list">
-          {loading && <h3>Ładowanie...</h3>}
+          {loading && <h3>{t('places.loading')}</h3>}
           {miejsca.length > 0 ? miejsca.map((miejsce) => (
             <div key={miejsce.id} className="miejsce-card" style={{ marginBottom: '30px', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <h3>{miejsce.nazwa}</h3>
                 <span className="event-badge">ID: {miejsce.id}</span>
               </div>
-              <p><strong>Adres:</strong> {miejsce.ulica}, {miejsce.kodPoczt} {miejsce.miasto}, {miejsce.panstwo}</p>
-              <p><strong>Ilość sal (limit):</strong> {miejsce.iloscSal}</p>
-              <p><strong>Wykorzystane:</strong> {miejsce.sale?.length || 0} / {miejsce.iloscSal}</p>
+              <p><strong>{t('places.card.addressLabel')}</strong> {miejsce.ulica}, {miejsce.kodPoczt} {miejsce.miasto}, {miejsce.panstwo}</p>
+              <p><strong>{t('places.card.roomsLimitLabel')}</strong> {miejsce.iloscSal}</p>
+              <p><strong>{t('places.card.usedLabel')}</strong> {miejsce.sale?.length || 0} / {miejsce.iloscSal}</p>
               <p>{miejsce.opis}</p>
 
               {currentUser?.rola === 'ORG' && (
                 <div style={{ marginTop: '12px', padding: '12px', border: '1px dashed #666', borderRadius: '6px' }}>
-                  <h5 style={{ marginTop: 0 }}>Zwiększ ilość sal (wymagane potwierdzenie)</h5>
+                  <h5 style={{ marginTop: 0 }}>{t('places.increaseRooms.title')}</h5>
                   <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', gap: '10px', alignItems: 'end' }}>
                     <div>
-                      <label style={{fontSize: '12px'}}>Nowa ilość sal</label>
                       <input
                         type="number"
+                        className="buttonv2"
                         min={miejsce.iloscSal || 1}
                         value={increaseForms[miejsce.id] || ''}
                         onChange={e => updateIncreaseForm(miejsce.id, e.target.value)}
@@ -257,39 +259,39 @@ const MiejscaPage = () => {
                             className="btn-new-event inline-confirm-popover-btn"
                             onClick={() => onIncreaseIloscSal(miejsce)}
                           >
-                            Tak
+                            {t('places.increaseRooms.confirmYes')}
                           </button>
                           <button
                             type="button"
                             className="btn-secondary inline-confirm-popover-btn"
                             onClick={() => setConfirmIncreaseMiejsceId(null)}
                           >
-                            Nie
+                            {t('places.increaseRooms.confirmNo')}
                           </button>
                         </span>
                       ) : null}
                       <button
                         type="button"
-                        style={{ padding: '8px 15px' }}
+                        className="buttonv2"
                         onClick={() => setConfirmIncreaseMiejsceId(miejsce.id)}
                       >
-                        Zwiększ
+                        {t('places.increaseRooms.button')}
                       </button>
                     </span>
                   </form>
                 </div>
               )}
 
-              <h4 style={{ marginTop: '20px' }}>Sale w tym miejscu</h4>
+              <h4 style={{ marginTop: '20px' }}>{t('places.rooms.sectionTitle')}</h4>
               {miejsce.sale && miejsce.sale.length > 0 ? (
                 <table className="participants-table" style={{ fontSize: '0.9em' }}>
                   <thead>
                     <tr>
-                      <th>ID</th>
-                      <th>Nazwa</th>
-                      <th>Pojemność</th>
-                      <th>Piętro</th>
-                      <th>Plan</th>
+                      <th>{t('places.rooms.table.id')}</th>
+                      <th>{t('places.rooms.table.name')}</th>
+                      <th>{t('places.rooms.table.capacity')}</th>
+                      <th>{t('places.rooms.table.floor')}</th>
+                      <th>{t('places.rooms.table.plan')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -299,72 +301,77 @@ const MiejscaPage = () => {
                         <td>{sala.nazwa}</td>
                         <td>{sala.pojemnosc}</td>
                         <td>{sala.pietro}</td>
-                        <td>{sala.maPlan ? 'Tak' : 'Nie'}</td>
+                        <td>{sala.maPlan ? t('places.rooms.table.planYes') : t('places.rooms.table.planNo')}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               ) : (
-                <p>Brak zdefiniowanych sal.</p>
+                <p>{t('places.card.noRoomsDefined')}</p>
               )}
 
               <div style={{ marginTop: '15px', color: 'white', border: '1px solid white', backgroundColor: '#0d0f14', padding: '15px', borderRadius: '5px' }}>
-                <h5>+ Dodaj salę do {miejsce.nazwa}</h5>
+                <h5>{t('places.addRoom.titlePrefix')} {miejsce.nazwa}</h5>
                 {currentUser?.rola === 'ORG' ? (
                   <form onSubmit={e => onSalaSubmit(e, miejsce.id)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '10px', alignItems: 'end' }}>
                   <div>
-                    <label style={{fontSize: '12px'}}>Nazwa</label>
+                    <label style={{fontSize: '15px', paddingRight: '10px'}}>{t('places.addRoom.name')}</label>
                     <input 
                       type="text" 
+                      className="buttonv2"
                       value={salaForms[miejsce.id]?.nazwa || ''} 
                       onChange={e => updateSalaForm(miejsce.id, 'nazwa', e.target.value)} 
                       required 
                     />
                   </div>
                   <div>
-                    <label style={{fontSize: '12px'}}>Pojemność</label>
+                    <label style={{fontSize: '15px', paddingRight: '10px'}}>{t('places.addRoom.capacity')}</label>
                     <input 
                       type="number" 
+                      className="buttonv2"
                       value={salaForms[miejsce.id]?.pojemnosc || ''} 
                       onChange={e => updateSalaForm(miejsce.id, 'pojemnosc', e.target.value)} 
                       required 
                     />
                   </div>
                   <div>
-                    <label style={{fontSize: '12px'}}>Piętro</label>
+                    <label style={{fontSize: '15px', paddingRight: '10px'}}>{t('places.addRoom.floor')}</label>
                     <input 
                       type="number" 
+                      className="buttonv2"
                       value={salaForms[miejsce.id]?.pietro || ''} 
                       onChange={e => updateSalaForm(miejsce.id, 'pietro', e.target.value)} 
                       required 
                     />
                   </div>
                   <div>
-                    <label style={{fontSize: '12px'}}>Plan</label>
+                    <label style={{fontSize: '15px', paddingRight: '10px'}}>{t('places.addRoom.plan')}</label>
                     <select 
+                      className="buttonv2"
                       value={salaForms[miejsce.id]?.maPlan || false} 
                       onChange={e => updateSalaForm(miejsce.id, 'maPlan', e.target.value === 'true')}
                     >
-                      <option value="false">Nie</option>
-                      <option value="true">Tak</option>
+                      <option value="false" style={{backgroundColor: '#0d0f14', color: '#ffffff'}}>Nie</option>
+                      <option value="true" style={{backgroundColor: '#0d0f14', color: '#ffffff'}}>{t('places.rooms.table.planYes')}</option>
                     </select>
                   </div>
                   <button
                     type="submit"
-                    style={{ padding: '8px 15px' }}
+                    className="buttonv2"
+                    style={{padding: '4px 8px'}}
                     disabled={(miejsce.sale?.length || 0) >= (miejsce.iloscSal || 0)}
                     title={(miejsce.sale?.length || 0) >= (miejsce.iloscSal || 0) ? 'Osiągnięto limit sal. Najpierw zwiększ ilosc_sal.' : ''}
                   >
-                    Dodaj
+                    {t('places.addRoom.submit')}
                   </button>
                 </form>
                 ) : (
-                  <p style={{ color: '#666', textAlign: 'center' }}>Dodawanie sal dostępne tylko dla organizatorów.</p>
+                  <p style={{ color: '#666', textAlign: 'center' }}>{t('places.addRoom.onlyOrganizer')}</p>
                 )}
               </div>
             </div>
           )) : (
-            <p>Nie masz jeszcze dodanych żadnych miejsc.</p>
+            <p>{t('places.empty')}</p>
           )}
         </div>
       )}

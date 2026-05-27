@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ResponsiveContainer,
   BarChart,
@@ -53,7 +54,7 @@ function parseLocalDate(isoDate) {
  */
 function formatAxisLabel(d) {
   if (!d || Number.isNaN(d.getTime())) return '';
-  const weekday = new Intl.DateTimeFormat('pl-PL', { weekday: 'short' }).format(d);
+  const weekday = new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(d);
   const dayMonth = `${d.getDate()}.${d.getMonth() + 1}.`;
   return `${weekday.replace(/\.$/, '')} ${dayMonth}`;
 }
@@ -77,7 +78,7 @@ function buildBarDataFromApi(registrationsByDay) {
  * Redukuje listę kategorii do segmentów `PieChart` (donut): sortowanie malejące, TOP 5 osobnych segmentów,
  * pozostałe kategorie sumowane w jeden segment „Pozostałe”. Zwraca `{ name, value }` pod `dataKey="value"`.
  */
-function buildTop5Donut(categories) {
+function buildTop5Donut(categories, otherLabel) {
   const normalized = (categories || [])
     .map((x) => ({ name: String(x.name ?? '—'), count: Number(x.count) || 0 }))
     .filter((x) => x.count > 0);
@@ -87,7 +88,7 @@ function buildTop5Donut(categories) {
   const otherSum = rest.reduce((s, x) => s + x.count, 0);
   const rows = top.map((x) => ({ name: x.name, value: x.count }));
   if (otherSum > 0) {
-    rows.push({ name: 'Pozostałe', value: otherSum });
+    rows.push({ name: otherLabel, value: otherSum });
   }
   return { rows };
 }
@@ -104,6 +105,7 @@ const tooltipBarStyle = {
 };
 
 const AnalitykaPage = () => {
+  const { t } = useTranslation();
   const { authCredentials } = useContext(AuthContext);
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -132,13 +134,13 @@ const AnalitykaPage = () => {
         err?.response?.data?.message ||
         err?.response?.statusText ||
         err?.message ||
-        'Nie udało się pobrać analityki.';
-      setError(typeof msg === 'string' ? msg : 'Nie udało się pobrać analityki.');
+        t('analytics.error.load');
+      setError(typeof msg === 'string' ? msg : t('analytics.error.load'));
       setOverview(null);
     } finally {
       setLoading(false);
     }
-  }, [getRequestConfig]);
+  }, [getRequestConfig, t]);
 
   useEffect(() => {
     fetchOverview();
@@ -168,8 +170,8 @@ const AnalitykaPage = () => {
    * Segmenty donut; środek pierścienia pokazuje `activeEventsTotal` (spójnie z KPI), nie sumę widocznych segmentów po TOP 5.
    */
   const { rows: pieRows } = useMemo(
-    () => buildTop5Donut(overview?.eventsByCategory),
-    [overview]
+    () => buildTop5Donut(overview?.eventsByCategory, t('analytics.charts.donut.other')),
+    [overview, t]
   );
 
   const metricZone = overview?.metricTimeZone;
@@ -177,23 +179,22 @@ const AnalitykaPage = () => {
   return (
     <div className="analityka-page">
       <h2>
-        Sprawdź, co słychać w liczbach!{' '}
+        {t('analytics.page.title')}{' '}
         <img src="/icons/chart.png" alt="" width={32} height={32} style={{ marginBottom: '10px' }} />
       </h2>
 
       <p className="analityka-lead">
-        Zobacz, ile nowych osób dołączyło do nas w tym tygodniu i jakie wydarzenia rządzą na platformie. Kilka
-        prostych wykresów, które pomogą Ci ogarnąć, co aktualnie najbardziej popularne i co przyciąga ludzi.
+        {t('analytics.page.lead')}
         {metricZone ? (
           <>
             {' '}
-            <strong>Dni kalendarzowe</strong> liczone wg strefy serwera: {metricZone}.
+            <strong>{t('analytics.page.calendarDaysStrong')}</strong> {t('analytics.page.serverZonePrefix')} {metricZone}.
           </>
         ) : null}
       </p>
 
       {error ? <p className="status-message status-error">{error}</p> : null}
-      {loading ? <p className="analityka-status-muted">Ładowanie danych…</p> : null}
+      {loading ? <p className="analityka-status-muted">{t('analytics.status.loading')}</p> : null}
 
       {/*
         KPI: te same źródła co wykresy — rejestracje z `counts`, wydarzenia z `activeEventsTotal` (API).
@@ -201,35 +202,35 @@ const AnalitykaPage = () => {
       <div className="analityka-kpi-grid">
         <div className="analityka-kpi-card">
           <div className="analityka-kpi-header">
-            <span className="header-accent">DZISIAJ</span>
+            <span className="header-accent">{t('analytics.kpi.today.title')}</span>
             <img src="/icons/add.png" alt="" className="analityka-kpi-header-icon" width={28} height={28} />
           </div>
           <span className="analityka-kpi-value">+{todayCount}</span>
-          <span className="analityka-kpi-hint">nowi użytkownicy</span>
+          <span className="analityka-kpi-hint">{t('analytics.kpi.usersHint')}</span>
         </div>
         <div className="analityka-kpi-card">
           <div className="analityka-kpi-header">
-            <span className="header-accent">WCZORAJ</span>
+            <span className="header-accent">{t('analytics.kpi.yesterday.title')}</span>
             <img src="/icons/add.png" alt="" className="analityka-kpi-header-icon" width={28} height={28} />
           </div>
           <span className="analityka-kpi-value">+{yesterdayCount}</span>
-          <span className="analityka-kpi-hint">nowi użytkownicy</span>
+          <span className="analityka-kpi-hint">{t('analytics.kpi.usersHint')}</span>
         </div>
         <div className="analityka-kpi-card">
           <div className="analityka-kpi-header">
-            <span className="header-accent">OSTATNIE 7 DNI</span>
+            <span className="header-accent">{t('analytics.kpi.last7Days.title')}</span>
             <img src="/icons/people.png" alt="" className="analityka-kpi-header-icon" width={28} height={28} />
           </div>
           <span className="analityka-kpi-value">+{sum7}</span>
-          <span className="analityka-kpi-hint">nowi użytkownicy (suma słupków)</span>
+          <span className="analityka-kpi-hint">{t('analytics.kpi.last7Days.hint')}</span>
         </div>
         <div className="analityka-kpi-card">
           <div className="analityka-kpi-header">
-            <span className="header-accent">ŁĄCZNIE WYDARZEŃ</span>
+            <span className="header-accent">{t('analytics.kpi.totalEvents.title')}</span>
             <img src="/icons/calendar.png" alt="" className="analityka-kpi-header-icon" width={28} height={28} />
           </div>
           <span className="analityka-kpi-value">{activeEventsTotal}</span>
-          <span className="analityka-kpi-hint">aktywne (status AKTYWNY)</span>
+          <span className="analityka-kpi-hint">{t('analytics.kpi.totalEvents.hint')}</span>
         </div>
       </div>
 
@@ -239,9 +240,9 @@ const AnalitykaPage = () => {
       <div className="analityka-charts-grid">
         <section className="analityka-chart-card" aria-labelledby="analityka-bar-title">
           <h3 className="header-accent" id="analityka-bar-title">
-            REJESTRACJE UŻYTKOWNIKÓW
+            {t('analytics.charts.bar.title')}
           </h3>
-          <p className="analityka-chart-sub">Ostatnie 7 dni (dziś + 6 dni wstecz), dane z serwera.</p>
+          <p className="analityka-chart-sub">{t('analytics.charts.bar.subtitle')}</p>
           <div className="analityka-chart-body">
             <div className="analityka-recharts-fill">
               {barData.length > 0 ? (
@@ -266,7 +267,7 @@ const AnalitykaPage = () => {
                     <Tooltip
                       cursor={{ fill: 'rgba(6, 182, 212, 0.08)' }}
                       contentStyle={tooltipBarStyle}
-                      formatter={(value) => [`${value}`, 'Nowi użytkownicy']}
+                      formatter={(value) => [`${value}`, t('analytics.charts.bar.tooltipUsers')]}
                       labelFormatter={(label) => label}
                     />
                     <Bar
@@ -274,13 +275,13 @@ const AnalitykaPage = () => {
                       fill="#06b6d4"
                       radius={[6, 6, 0, 0]}
                       maxBarSize={48}
-                      name="Rejestracje"
+                      name={t('analytics.charts.bar.seriesName')}
                     />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="analityka-empty-chart">
-                  {loading ? '…' : 'Brak danych do wykresu (np. pusta odpowiedź lub błąd wczytania).'}
+                  {loading ? t('analytics.status.ellipsis') : t('analytics.charts.bar.empty')}
                 </div>
               )}
             </div>
@@ -289,9 +290,9 @@ const AnalitykaPage = () => {
 
         <section className="analityka-chart-card" aria-labelledby="analityka-donut-title">
           <h3 className="header-accent" id="analityka-donut-title">
-            KATEGORIE WYDARZEŃ
+            {t('analytics.charts.donut.title')}
           </h3>
-          <p className="analityka-chart-sub">Top 5 + Pozostałe — zakres wydarzeń wg roli (organizator: tylko swoje).</p>
+          <p className="analityka-chart-sub">{t('analytics.charts.donut.subtitle')}</p>
           <div className="analityka-donut-wrap">
             <div className="analityka-recharts-fill">
               {pieRows.length > 0 ? (
@@ -318,15 +319,15 @@ const AnalitykaPage = () => {
                         />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={tooltipBarStyle} formatter={(value) => [`${value}`, 'Wydarzenia']} />
+                    <Tooltip contentStyle={tooltipBarStyle} formatter={(value) => [`${value}`, t('analytics.charts.donut.tooltipEvents')]} />
                     <Legend wrapperStyle={{ color: 'var(--text-muted)', fontSize: 13 }} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="analityka-empty-chart">
                   {loading
-                    ? '…'
-                    : 'Brak aktywnych wydarzeń w podziale na kategorie (lub brak uprawnień do danych).'}
+                    ? t('analytics.status.ellipsis')
+                    : t('analytics.charts.donut.empty')}
                 </div>
               )}
             </div>
@@ -334,7 +335,7 @@ const AnalitykaPage = () => {
               Liczba w środku = `activeEventsTotal` z API (zgodność z KPI), nie suma segmentów po TOP 5.
             */}
             <div className="analityka-donut-center">
-              <span className="analityka-donut-center-label">Wszystkich</span>
+              <span className="analityka-donut-center-label">{t('analytics.charts.donut.centerLabel')}</span>
               <span className="analityka-donut-center-value">{activeEventsTotal}</span>
             </div>
           </div>

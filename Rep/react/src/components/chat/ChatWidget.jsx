@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { apiClient, getAuthHeaders } from '../../api/apiClient';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -15,6 +16,7 @@ const formatMessageTime = (value) => {
 };
 
 const ChatWidget = () => {
+  const { t } = useTranslation();
   const { currentUser, authCredentials } = useContext(AuthContext);
   const [favorites, setFavorites] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
@@ -48,9 +50,9 @@ const ChatWidget = () => {
         setExternalActiveChat(nextFavorites[0]);
       }
     } catch (error) {
-      setStatus(error.response?.data?.message || 'Nie udało się pobrać ulubionych.');
+      setStatus(error.response?.data?.message || t('chat.status.favoritesLoadError'));
     }
-  }, [activeChatId, getRequestConfig]);
+  }, [activeChatId, getRequestConfig, t]);
 
   const loadConversation = useCallback(async (userId) => {
     if (!userId) return;
@@ -59,9 +61,9 @@ const ChatWidget = () => {
       setMessages(Array.isArray(response.data) ? response.data : []);
       setStatus('');
     } catch (error) {
-      setStatus(error.response?.data?.message || 'Nie udało się pobrać wiadomości.');
+      setStatus(error.response?.data?.message || t('chat.status.messagesLoadError'));
     }
-  }, [getRequestConfig]);
+  }, [getRequestConfig, t]);
 
   useEffect(() => {
     loadFavorites();
@@ -113,7 +115,7 @@ const ChatWidget = () => {
       loadFavorites();
       loadConversation(activeChatId);
     } catch (error) {
-      setStatus(error.response?.data?.message || 'Nie udało się wysłać wiadomości.');
+      setStatus(error.response?.data?.message || t('chat.status.sendError'));
     }
   };
 
@@ -127,7 +129,7 @@ const ChatWidget = () => {
       {!collapsed && (
         <div className="chat-widget-panel">
           <div className="chat-widget-sidebar">
-            <div className="chat-widget-title">Ulubieni</div>
+            <div className="chat-widget-title">{t('chat.title.favorites')}</div>
             <div className="chat-widget-favorites">
               {sortedFavorites.length > 0 ? sortedFavorites.map((item) => (
                 <button
@@ -143,13 +145,13 @@ const ChatWidget = () => {
                   <small>@{item.login}</small>
                 </button>
               )) : (
-                <p className="chat-widget-empty">Dodaj użytkowników do ulubionych.</p>
+                <p className="chat-widget-empty">{t('chat.empty.addFavorites')}</p>
               )}
             </div>
           </div>
           <div className="chat-widget-main">
             <div className="chat-widget-header">
-              <strong>{activeChat ? `${activeChat.imie || ''} ${activeChat.nazwisko || ''}`.trim() || activeChat.login : 'Wybierz rozmowę'}</strong>
+              <strong>{activeChat ? `${activeChat.imie || ''} ${activeChat.nazwisko || ''}`.trim() || activeChat.login : t('chat.empty.selectConversation')}</strong>
             </div>
             <div className="chat-widget-messages">
               {activeChat ? messages.map((message) => (
@@ -158,7 +160,7 @@ const ChatWidget = () => {
                   <small className="chat-message-time">{formatMessageTime(message.sentAt)}</small>
                 </div>
               )) : (
-                <p className="chat-widget-empty">Kliknij osobę z ulubionych, aby rozpocząć rozmowę.</p>
+                <p className="chat-widget-empty">{t('chat.empty.clickFavorite')}</p>
               )}
             </div>
             {status ? <p className="chat-widget-status">{status}</p> : null}
@@ -168,11 +170,11 @@ const ChatWidget = () => {
                 value={draft}
                 className="buttonv2"
                 onChange={(event) => setDraft(event.target.value)}
-                placeholder="Napisz wiadomość..."
+                placeholder={t('chat.placeholder.message')}
                 disabled={!activeChat}
               />
               <button type="submit" className="buttonv2" disabled={!activeChat || !draft.trim()}>
-                Wyślij
+                {t('chat.send')}
               </button>
             </form>
           </div>

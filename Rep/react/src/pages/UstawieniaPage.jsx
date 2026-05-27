@@ -1,8 +1,10 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../context/AuthContext';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
 import { authService } from '../services/authService';
+import i18n from '../i18n';
 import {
   getNotificationSettings,
   updateNotificationSettings,
@@ -35,17 +37,8 @@ const ROW_BASE_HEIGHT = 72;
 const LAYOUT_CANVAS_WIDTH = 720;
 const LAYOUT_CANVAS_HEIGHT = 420;
 
-const tabs = [
-  { id: 'profil', label: 'Profil' },
-  { id: 'powiadomienia', label: 'Powiadomienia' },
-  { id: 'obserwowane', label: 'Obserwowane' },
-  { id: 'bezpieczenstwo', label: 'Bezpieczeństwo' },
-  { id: 'uklady-sal', label: 'Układy sal' },
-  { id: 'wyglad', label: 'Wygląd' },
-  { id: 'jezyk-region', label: 'Język i region' }
-];
-
 const UstawieniaPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, authCredentials, applyAuthenticatedUser, applySessionSettings } = useContext(AuthContext);
@@ -144,6 +137,9 @@ const UstawieniaPage = () => {
   const [isLoadingNotificationSettings, setIsLoadingNotificationSettings] = useState(false);
   const [isSavingNotificationSettings, setIsSavingNotificationSettings] = useState(false);
   const [notificationSettingsStatus, setNotificationSettingsStatus] = useState({ type: '', message: '' });
+  const [languageForm, setLanguageForm] = useState(currentUser?.language === 'en' ? 'en' : 'pl');
+  const [isSavingLanguage, setIsSavingLanguage] = useState(false);
+  const [languageStatus, setLanguageStatus] = useState({ type: '', message: '' });
   const [selectedElementId, setSelectedElementId] = useState(null);
   const [rowLabelDraft, setRowLabelDraft] = useState('A');
   const [dragState, setDragState] = useState(null);
@@ -156,23 +152,32 @@ const UstawieniaPage = () => {
   });
 
   const profileFields = useMemo(() => ([
-    { key: 'imie', label: 'Imię', type: 'text' },
-    { key: 'nazwisko', label: 'Nazwisko', type: 'text' },
-    { key: 'email', label: 'Email', type: 'email' },
-    { key: 'telefon', label: 'Telefon', type: 'tel' }
-  ]), []);
+    { key: 'imie', label: t('settings.profile.name'), type: 'text' },
+    { key: 'nazwisko', label: t('settings.profile.last_name'), type: 'text' },
+    { key: 'email', label: t('settings.profile.email'), type: 'email' },
+    { key: 'telefon', label: t('settings.profile.phone_number'), type: 'tel' }
+  ]), [t]);
 
   const isAdminUser = String(currentUser?.rola || '').toUpperCase() === 'ADMIN';
+  const tabs = useMemo(() => ([
+    { id: 'profil', label: t('settings.tabs.profil') },
+    { id: 'powiadomienia', label: t('settings.tabs.powiadomienia') },
+    { id: 'obserwowane', label: t('settings.tabs.obserwowane') },
+    { id: 'bezpieczenstwo', label: t('settings.tabs.bezpieczenstwo') },
+    { id: 'uklady-sal', label: t('settings.tabs.ukladySal') },
+    { id: 'wyglad', label: t('settings.tabs.wyglad') },
+    { id: 'jezyk', label: t('settings.tabs.jezyk') }
+  ]), [t]);
 
   /** Podzakładki sekcji Bezpieczeństwo; „Zgłoszenia” tylko dla admina (UI: tooltip + disabled). */
   const securityTabs = useMemo(() => {
     return [
-      { id: 'zmiana-hasla', label: 'Zmiana hasła' },
-      { id: '2fa', label: '2FA' },
-      { id: 'czas-sesji', label: 'Czas sesji' },
-      { id: 'historia-logowan', label: 'Historia logowań' }
+      { id: 'zmiana-hasla', label: t('settings.security.tabs.changePassword') },
+      { id: '2fa', label: t('settings.security.tabs.twoFactor') },
+      { id: 'czas-sesji', label: t('settings.security.tabs.sessionTime') },
+      { id: 'historia-logowan', label: t('settings.security.loginHistory.title') }
     ];
-  }, []);
+  }, [t]);
 
   const selectedSala = useMemo(() => {
     for (const miejsce of miejscaLayoutData) {
@@ -331,7 +336,7 @@ const UstawieniaPage = () => {
     } catch (error) {
       setLayoutStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Nie udało się pobrać sal.'
+        message: error.response?.data?.message || t('settings.layouts.loadError')
       });
     } finally {
       setIsLoadingLayouts(false);
@@ -341,7 +346,7 @@ const UstawieniaPage = () => {
   const addSeatToSelectedSala = () => {
     if (!selectedSala) return;
     if (selectedSalaSeats.length >= Number(selectedSala.pojemnosc || 0)) {
-      setLayoutStatus({ type: 'error', message: 'Osiągnięto pojemność sali.' });
+      setLayoutStatus({ type: 'error', message: t('settings.layouts.capacityReached') });
       return;
     }
     const maxBaseLabel = selectedSalaSeats.reduce((max, item) => {
@@ -368,7 +373,7 @@ const UstawieniaPage = () => {
     if (!selectedSala) return;
     const nextLabel = rowLabelDraft.trim().toUpperCase();
     if (!/^[A-Z]{1,2}$/.test(nextLabel)) {
-      setLayoutStatus({ type: 'error', message: 'Nazwa rzędu musi mieć 1 lub 2 litery.' });
+      setLayoutStatus({ type: 'error', message: t('settings.layouts.invalidRowName') });
       return;
     }
     const newRow = {
@@ -402,7 +407,7 @@ const UstawieniaPage = () => {
       || rotatedSeat.x + seatSize.width > selectedLayoutWidth
       || rotatedSeat.y + seatSize.height > selectedLayoutHeight
     ) {
-      setLayoutStatus({ type: 'error', message: 'Nie można obrócić miejsca w tej pozycji - wykracza poza obszar.' });
+      setLayoutStatus({ type: 'error', message: t('settings.layouts.rotateOutOfBounds') });
       return;
     }
     updateSelectedSalaPlan(nextSeats);
@@ -428,7 +433,7 @@ const UstawieniaPage = () => {
     });
 
     if (hasOverlaps) {
-      setLayoutStatus({ type: 'error', message: 'Nie można zapisać układu - miejsca nachodzą na siebie.' });
+      setLayoutStatus({ type: 'error', message: t('settings.layouts.overlapError') });
       return;
     }
 
@@ -438,12 +443,12 @@ const UstawieniaPage = () => {
         { layoutWidth: selectedLayoutWidth, layoutHeight: selectedLayoutHeight, seats: selectedSalaElements },
         getRequestConfig()
       );
-      setLayoutStatus({ type: 'success', message: 'Układ sali został zapisany.' });
+      setLayoutStatus({ type: 'success', message: t('settings.layouts.saved') });
       loadLayoutData();
     } catch (error) {
       setLayoutStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Nie udało się zapisać układu sali.'
+        message: error.response?.data?.message || t('settings.layouts.saveError')
       });
     }
   };
@@ -483,15 +488,15 @@ const UstawieniaPage = () => {
         setVerificationCode('');
         setStatus({
           type: 'success',
-          message: 'Zmiany zapisane. Wysłaliśmy kod weryfikacyjny na nowy email. Zweryfikuj adres, aby aktywować zmianę.'
+          message: t('settings.profile.emailChangePending')
         });
       } else {
-        setStatus({ type: 'success', message: 'Zmiany zostały zapisane.' });
+        setStatus({ type: 'success', message: t('settings.profile.saveChangesSuccess') });
       }
     } catch (error) {
       setStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Nie udało się zapisać zmian profilu.'
+        message: error.response?.data?.message || t('settings.profile.saveError')
       });
     } finally {
       setIsSaving(false);
@@ -504,7 +509,7 @@ const UstawieniaPage = () => {
     const emailToVerify = pendingVerificationEmail.trim();
     const codeToVerify = verificationCode.trim();
     if (!emailToVerify || !codeToVerify) {
-      setStatus({ type: 'error', message: 'Podaj kod weryfikacyjny.' });
+      setStatus({ type: 'error', message: t('settings.emailVerification.missingCode') });
       return;
     }
 
@@ -518,18 +523,18 @@ const UstawieniaPage = () => {
       );
       const success = response?.data?.success !== false;
       if (!success) {
-        throw new Error(response?.data?.message || 'Weryfikacja nie powiodła się.');
+        throw new Error(response?.data?.message || t('settings.emailVerification.error'));
       }
 
       setPendingVerificationEmail('');
       setVerificationCode('');
-      setStatus({ type: 'success', message: 'Nowy email został zweryfikowany.' });
+      setStatus({ type: 'success', message: t('settings.emailVerification.success') });
       // aktualizacja kontekstu od razu, aby UI pokazał nowy email bez przeładowania.
       applyAuthenticatedUser({ ...currentUser, email: emailToVerify });
     } catch (error) {
       setStatus({
         type: 'error',
-        message: error.response?.data?.message || error.message || 'Weryfikacja nie powiodła się.'
+        message: error.response?.data?.message || error.message || t('settings.emailVerification.error')
       });
     } finally {
       setIsVerifyingEmail(false);
@@ -546,12 +551,12 @@ const UstawieniaPage = () => {
     const confirmNewPassword = passwordForm.confirmNewPassword.trim();
 
     if (!oldPassword || !newPassword || !confirmNewPassword) {
-      setPasswordStatus({ type: 'error', message: 'Uzupełnij wszystkie pola.' });
+      setPasswordStatus({ type: 'error', message: t('settings.security.password.fillAll') });
       return;
     }
 
     if (newPassword !== confirmNewPassword) {
-      setPasswordStatus({ type: 'error', message: 'Nowe hasło i potwierdzenie muszą być takie same.' });
+      setPasswordStatus({ type: 'error', message: t('settings.security.password.mismatch') });
       return;
     }
 
@@ -566,12 +571,12 @@ const UstawieniaPage = () => {
         },
         getRequestConfig()
       );
-      setPasswordStatus({ type: 'success', message: 'Hasło zostało zmienione.' });
+      setPasswordStatus({ type: 'success', message: t('settings.security.password.changed') });
       setPasswordForm({ oldPassword: '', newPassword: '', confirmNewPassword: '' });
     } catch (error) {
       setPasswordStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Nie udało się zmienić hasła.'
+        message: error.response?.data?.message || t('settings.security.password.changeError')
       });
     } finally {
       setIsSavingPassword(false);
@@ -589,7 +594,7 @@ const UstawieniaPage = () => {
       } catch (error) {
         setTwoFactorStatus({
           type: 'error',
-          message: error.response?.data?.message || 'Nie udało się pobrać statusu 2FA.'
+          message: error.response?.data?.message || t('settings.security.twoFactor.loadError')
         });
       } finally {
         setIsLoadingTwoFactorStatus(false);
@@ -621,7 +626,7 @@ const UstawieniaPage = () => {
           setHasObservedEvents(false);
           setObservedStatus({
             type: 'error',
-            message: error.response?.data?.message || 'Nie udało się pobrać obserwowanych wydarzeń.',
+            message: error.response?.data?.message || t('settings.observed.loadError'),
           });
         }
       } finally {
@@ -683,7 +688,7 @@ const UstawieniaPage = () => {
         if (!cancelled) {
           setNotificationSettingsStatus({
             type: 'error',
-            message: error.response?.data?.message || 'Nie udało się pobrać ustawień powiadomień.',
+            message: error.response?.data?.message || t('settings.notifications.loadError'),
           });
         }
       } finally {
@@ -716,12 +721,12 @@ const UstawieniaPage = () => {
     try {
       const saved = await updateNotificationSettings(authCredentials, { [key]: checked });
       setNotificationSettings(applySavedNotificationSettings(saved));
-      setNotificationSettingsStatus({ type: 'success', message: 'Zapisano ustawienie powiadomień.' });
+      setNotificationSettingsStatus({ type: 'success', message: t('settings.notifications.saved') });
     } catch (error) {
       setNotificationSettings((prev) => ({ ...prev, [key]: previous }));
       setNotificationSettingsStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Nie udało się zapisać ustawienia powiadomień.',
+        message: error.response?.data?.message || t('settings.notifications.saveError'),
       });
     } finally {
       setIsSavingNotificationSettings(false);
@@ -741,6 +746,10 @@ const UstawieniaPage = () => {
       loadLayoutData();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    setLanguageForm(currentUser?.language === 'en' ? 'en' : 'pl');
+  }, [currentUser?.language]);
 
   useEffect(() => {
     if (!dragState || !selectedSala) {
@@ -784,7 +793,7 @@ const UstawieniaPage = () => {
       } catch (error) {
         setLoginHistoryStatus({
           type: 'error',
-          message: error.response?.data?.message || 'Nie udało się pobrać historii logowań.'
+          message: error.response?.data?.message || t('settings.security.loginHistory.loadError')
         });
       } finally {
         setIsLoadingLoginHistory(false);
@@ -794,9 +803,9 @@ const UstawieniaPage = () => {
   }, [activeTab, activeSecurityTab]);
 
   const formatLoginTime = (value) => {
-    if (!value) return 'Brak danych';
+    if (!value) return t('settings.security.loginHistory.missingData');
     const parsedDate = new Date(value);
-    if (Number.isNaN(parsedDate.getTime())) return 'Brak danych';
+    if (Number.isNaN(parsedDate.getTime())) return t('settings.security.loginHistory.missingData');
     return parsedDate.toLocaleString('pl-PL', {
       year: 'numeric',
       month: '2-digit',
@@ -810,15 +819,15 @@ const UstawieniaPage = () => {
     // Mapowanie technicznych statusów backendu na etykiety czytelne dla użytkownika.
     switch (status) {
       case 'SUKCES':
-        return 'Zalogowano';
+        return t('settings.security.loginHistory.status.success');
       case 'NIEUDANE_HASLO_LUB_LOGIN':
-        return 'Nieudane logowanie';
+        return t('settings.security.loginHistory.status.invalidLogin');
       case 'NIEUDANY_2FA':
-        return 'Nieudany kod 2FA';
+        return t('settings.security.loginHistory.status.invalid2fa');
       case 'ZABLOKOWANO_BRAK_WERYFIKACJI_EMAIL':
-        return 'Zablokowano';
+        return t('settings.security.loginHistory.status.blocked');
       default:
-        return 'Nieznany status';
+        return t('settings.security.loginHistory.status.unknown');
     }
   };
 
@@ -836,11 +845,11 @@ const UstawieniaPage = () => {
       const trimmed = reportNote.trim();
       if (trimmed) payload.note = trimmed;
       await apiClient.post('/users/me/security-tickets/report-login', payload, getRequestConfig());
-      setLoginHistoryStatus({ type: 'success', message: 'Zgłoszenie zostało wysłane do skrzynki administratorów.' });
+      setLoginHistoryStatus({ type: 'success', message: t('settings.security.loginHistory.reportSent') });
       setReportLoginLogId(null);
       setReportNote('');
     } catch (error) {
-      const msg = error.response?.data?.message || error.response?.data?.detail || 'Nie udało się wysłać zgłoszenia.';
+      const msg = error.response?.data?.message || error.response?.data?.detail || t('settings.security.loginHistory.reportSendError');
       setLoginHistoryStatus({ type: 'error', message: msg });
     } finally {
       setIsSubmittingReport(false);
@@ -862,7 +871,7 @@ const UstawieniaPage = () => {
         setTwoFactorQrDataUrl(qrDataUrl);
       } catch (error) {
         setTwoFactorQrDataUrl('');
-        setTwoFactorStatus({ type: 'error', message: 'Nie udało się wygenerować kodu QR.' });
+        setTwoFactorStatus({ type: 'error', message: t('settings.security.twoFactor.generateError') });
       }
     };
     buildQr();
@@ -894,7 +903,7 @@ const UstawieniaPage = () => {
       } catch (error) {
         setSessionSettingsStatus({
           type: 'error',
-          message: error.response?.data?.message || 'Nie udało się pobrać ustawień czasu sesji.'
+          message: error.response?.data?.message || t('settings.security.session.loadError')
         });
       } finally {
         setIsLoadingSessionSettings(false);
@@ -917,7 +926,7 @@ const UstawieniaPage = () => {
     } catch (error) {
       setTwoFactorStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Nie udało się rozpocząć konfiguracji 2FA.'
+        message: error.response?.data?.message || t('settings.security.twoFactor.setupError')
       });
     } finally {
       setIsGeneratingTwoFactorSecret(false);
@@ -929,7 +938,7 @@ const UstawieniaPage = () => {
     event.preventDefault();
     setTwoFactorStatus({ type: '', message: '' });
     if (!twoFactorEnableCode.trim()) {
-      setTwoFactorStatus({ type: 'error', message: 'Podaj kod 2FA.' });
+      setTwoFactorStatus({ type: 'error', message: t('settings.security.twoFactor.missingCode') });
       return;
     }
     setIsSavingTwoFactor(true);
@@ -939,11 +948,11 @@ const UstawieniaPage = () => {
       setTwoFactorSetup({ secret: '', otpAuthUrl: '' });
       setTwoFactorEnableCode('');
       setTwoFactorDisableCode('');
-      setTwoFactorStatus({ type: 'success', message: '2FA zostało włączone.' });
+      setTwoFactorStatus({ type: 'success', message: t('settings.security.twoFactor.enabled') });
     } catch (error) {
       setTwoFactorStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Nie udało się włączyć 2FA.'
+        message: error.response?.data?.message || t('settings.security.twoFactor.enableError')
       });
     } finally {
       setIsSavingTwoFactor(false);
@@ -955,7 +964,7 @@ const UstawieniaPage = () => {
     event.preventDefault();
     setTwoFactorStatus({ type: '', message: '' });
     if (!twoFactorDisableCode.trim()) {
-      setTwoFactorStatus({ type: 'error', message: 'Podaj kod 2FA, aby wyłączyć ochronę.' });
+      setTwoFactorStatus({ type: 'error', message: t('settings.security.twoFactor.disableCodeMissing') });
       return;
     }
     setIsSavingTwoFactor(true);
@@ -964,11 +973,11 @@ const UstawieniaPage = () => {
       setTwoFactorEnabled(false);
       setTwoFactorDisableCode('');
       setTwoFactorSetup({ secret: '', otpAuthUrl: '' });
-      setTwoFactorStatus({ type: 'success', message: '2FA zostało wyłączone.' });
+      setTwoFactorStatus({ type: 'success', message: t('settings.security.twoFactor.disabled') });
     } catch (error) {
       setTwoFactorStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Nie udało się wyłączyć 2FA.'
+        message: error.response?.data?.message || t('settings.security.twoFactor.disableError')
       });
     } finally {
       setIsSavingTwoFactor(false);
@@ -1009,22 +1018,55 @@ const UstawieniaPage = () => {
         applySessionSettings(normalized);
         return normalized;
       });
-      setSessionSettingsStatus({ type: 'success', message: 'Ustawienia czasu sesji zostały zapisane.' });
+      setSessionSettingsStatus({ type: 'success', message: t('settings.security.session.saved') });
     } catch (error) {
       setSessionSettingsStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Nie udało się zapisać ustawień czasu sesji.'
+        message: error.response?.data?.message || t('settings.security.session.saveError')
       });
     } finally {
       setIsSavingSessionSettings(false);
     }
   };
 
+  const handleSaveLanguage = async () => {
+    const nextLanguage = languageForm === 'en' ? 'en' : 'pl';
+    setIsSavingLanguage(true);
+    setLanguageStatus({ type: '', message: '' });
+    try {
+      let response;
+      try {
+        response = await apiClient.put('/users/me/language', { language: nextLanguage }, getRequestConfig());
+      } catch (primaryError) {
+        const statusCode = primaryError?.response?.status;
+        if (statusCode !== 404) {
+          throw primaryError;
+        }
+        response = await apiClient.put('/users/me', { language: nextLanguage }, getRequestConfig());
+      }
+      const updatedUser = response?.data || {};
+      applyAuthenticatedUser({
+        ...currentUser,
+        ...updatedUser,
+        language: updatedUser.language === 'en' ? 'en' : nextLanguage
+      });
+      i18n.changeLanguage(updatedUser.language === 'en' ? 'en' : nextLanguage);
+      setLanguageStatus({ type: 'success', message: t('settings.language.saved') });
+    } catch (error) {
+      setLanguageStatus({
+        type: 'error',
+        message: error.response?.data?.message || t('settings.language.error')
+      });
+    } finally {
+      setIsSavingLanguage(false);
+    }
+  };
+
   return (
     <div className="settings-page">
       <aside className="settings-sidebar">
-        <h2>Ustawienia</h2>
-        <nav className="settings-nav" aria-label="Zakładki ustawień">
+        <h2>{t('settings.page.title')}</h2>
+        <nav className="settings-nav" aria-label={t('settings.nav.ariaLabel')}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -1036,6 +1078,7 @@ const UstawieniaPage = () => {
                   setActiveSecurityTab('zmiana-hasla');
                 }
                 setStatus({ type: '', message: '' });
+                setLanguageStatus({ type: '', message: '' });
               }}
             >
               {tab.label}
@@ -1047,8 +1090,8 @@ const UstawieniaPage = () => {
       <section className="settings-content">
         {activeTab === 'profil' ? (
           <div className="settings-panel">
-            <h3>Profil</h3>
-            <p>Dane konta zalogowanego użytkownika.</p>
+            <h3>{t('settings.profile.title')}</h3>
+            <p>{t('settings.profile.subtitle')}</p>
 
             <div className="settings-profile-form">
               {profileFields.map((field) => (
@@ -1077,7 +1120,7 @@ const UstawieniaPage = () => {
             <div className="settings-actions">
               {!isEditingProfile ? (
                 <button type="button" className="btn-new-event" onClick={startEditing}>
-                  Edytuj profil
+                  {t('settings.profile.edit')}
                 </button>
               ) : (
                 <>
@@ -1087,7 +1130,7 @@ const UstawieniaPage = () => {
                     onClick={handleSaveProfile}
                     disabled={isSaving}
                   >
-                    {isSaving ? 'Zapisywanie...' : 'Zapisz zmiany'}
+                    {isSaving ? t('common.saving') : t('settings.profile.saveChanges')}
                   </button>
                   <button
                     type="button"
@@ -1095,7 +1138,7 @@ const UstawieniaPage = () => {
                     onClick={handleCancel}
                     disabled={isSaving}
                   >
-                    Anuluj
+                    {t('common.cancel')}
                   </button>
                 </>
               )}
@@ -1104,17 +1147,17 @@ const UstawieniaPage = () => {
           </div>
         ) : activeTab === 'powiadomienia' ? (
 <div className="settings-panel">
-    <h3>Powiadomienia</h3>
-    <p className="settings-subtitle">Wybierz, które komunikaty chcesz otrzymywać:</p>
+    <h3>{t('settings.notifications.title')}</h3>
+    <p className="settings-subtitle">{t('settings.notifications.subtitle')}</p>
     {isLoadingNotificationSettings && (
-      <p className="settings-subtitle">Ładowanie ustawień powiadomień...</p>
+      <p className="settings-subtitle">{t('settings.notifications.loading')}</p>
     )}
     {/*Sekcja powiadomień tylko dla użytkownika*/}
     {currentUser?.rola === 'USER' && (
       <>
     <div className="settings-list">
       <div className="settings-row">
-        <span>Logowanie administratora do systemu</span>
+        <span>{t('settings.notifications.adminLogin')}</span>
         <label className="switch">
           <input
             type="checkbox"
@@ -1127,7 +1170,7 @@ const UstawieniaPage = () => {
       </div>
 
       <div className="settings-row">
-        <span>Nowe wydarzenie</span>
+        <span>{t('settings.notifications.newEvent')}</span>
         <label className="switch">
           <input
             type="checkbox"
@@ -1140,7 +1183,7 @@ const UstawieniaPage = () => {
       </div>
 
       <div className="settings-row">
-        <span>Logowanie do systemu osoby z listy ulubionych</span>
+        <span>{t('settings.notifications.favoriteLogin')}</span>
         <label className="switch">
           <input
             type="checkbox"
@@ -1153,10 +1196,10 @@ const UstawieniaPage = () => {
       </div>
 
       <div className={`settings-row${observedOnlyNotificationsDisabled ? ' is-disabled' : ''}`}>
-        <span>Zakończenie wydarzenia <small className="badge-beta">
+        <span>{t('settings.notifications.observedEventEnd')} <small className="badge-beta">
         <span 
         className="permission-tooltip has-tooltip" 
-        data-tooltip="Tylko dla obserwowanego wydarzenia!"
+        data-tooltip={t('settings.notifications.observedOnlyTooltip')}
         >
         *
         </span></small></span>
@@ -1172,10 +1215,10 @@ const UstawieniaPage = () => {
       </div>
 
       <div className={`settings-row${observedOnlyNotificationsDisabled ? ' is-disabled' : ''}`}>
-        <span>Zbliżający się start wydarzenia <small className="badge-beta">
+        <span>{t('settings.notifications.observedEventStart')} <small className="badge-beta">
         <span 
         className="permission-tooltip has-tooltip" 
-        data-tooltip="Tylko dla obserwowanego wydarzenia!"
+        data-tooltip={t('settings.notifications.observedOnlyTooltip')}
         >
         *
         </span>
@@ -1192,10 +1235,10 @@ const UstawieniaPage = () => {
       </div>
 
       <div className={`settings-row${observedOnlyNotificationsDisabled ? ' is-disabled' : ''}`}>
-        <span>Zwolnienie się miejsca <small className="badge-beta">
+        <span>{t('settings.notifications.observedSeatFreed')} <small className="badge-beta">
         <span 
         className="permission-tooltip has-tooltip" 
-        data-tooltip="Tylko dla obserwowanego wydarzenia!"
+        data-tooltip={t('settings.notifications.observedOnlyTooltip')}
         >
         *
         </span></small></span>
@@ -1217,7 +1260,7 @@ const UstawieniaPage = () => {
       <>
       <div className="settings-list">
         <div className="settings-row">
-        <span>Nowy wniosek o zwrot pieniędzy za bilet</span>
+        <span>{t('settings.notifications.newRefundRequest')}</span>
         <label className="switch">
           <input
             type="checkbox"
@@ -1230,7 +1273,7 @@ const UstawieniaPage = () => {
         </div>
 
         <div className="settings-row">
-        <span>Nowy wniosek o rolę organizatora</span>
+        <span>{t('settings.notifications.newOrganizerRequest')}</span>
         <label className="switch">
           <input
             type="checkbox"
@@ -1243,7 +1286,7 @@ const UstawieniaPage = () => {
         </div>
 
         <div className="settings-row">
-        <span>Nowe zgłoszenie bezpieczeństwa</span>
+        <span>{t('settings.notifications.newSecurityReport')}</span>
         <label className="switch">
           <input
             type="checkbox"
@@ -1266,21 +1309,28 @@ const UstawieniaPage = () => {
 
         ) : activeTab === 'obserwowane' ? (
           <div className="settings-panel">
-            <h3>Obserwowane</h3>
+            
+            <h3>{t('settings.observed.title')}</h3>
             <p className="settings-subtitle">
-              Wydarzenia, które obserwujesz — aby dostosować powiadomienia do własnych preferencji, przejdź do zakładki <span className="settings-subtitle-no-events-link" onClick={() => setActiveTab('powiadomienia')}>Powiadomienia</span> i zaznacz opcje oznaczone gwiazdką.
+            {t('settings.observed.subtitle.prefix')}{' '}
+  <span className="settings-subtitle-no-events-link" onClick={() => setActiveTab('powiadomienia')}>
+    {t('settings.tabs.powiadomienia')}
+  </span>
+  {' '}
+            
+  {t('settings.observed.subtitle.postfix')}
             </p>
-            {isLoadingObserved && <p className="settings-subtitle">Ładowanie obserwowanych wydarzeń...</p>}
+            {isLoadingObserved && <p className="settings-subtitle">{t('settings.observed.loading')}</p>}
             {!isLoadingObserved && observedEvents.length === 0 ? (
               <div className="settings-subtitle-no-events-centered">
-              <p className="settings-subtitle-no-events">Nie obserwujesz jeszcze żadnych wydarzeń.</p>
+              <p className="settings-subtitle-no-events">{t('settings.observed.empty')}</p>
               <p className="settings-subtitle-no-events-description">
-                Aby to zrobić, przejdź do karty {' '}
+                {t('settings.observed.emptyPrompt')}{' '}
                 <span
                   className="settings-subtitle-no-events-link"
                   onClick={() => navigate('/wydarzenia')}
                 >
-                  Wydarzenia
+                  {t('settings.observed.eventsPage')}
                 </span>
                 .
               </p>
@@ -1291,8 +1341,8 @@ const UstawieniaPage = () => {
                 {observedEvents.map((event) => (
                   <li key={event.id} className="settings-observed-item">
                     <div className="settings-observed-item__main">
-                      <strong>{event.tytul || `Wydarzenie #${event.id}`}</strong>
-                      <span>{event.salaNazwa || 'Sala nieznana'}</span>
+                      <strong>{event.tytul || t('settings.observed.eventTitleFallback', { id: event.id })}</strong>
+                      <span>{event.salaNazwa || t('settings.observed.unknownHall')}</span>
                       <span>{formatObservedEventDate(event.dataRozp)}</span>
                       {event.kategoriaNazwa ? <span>{event.kategoriaNazwa}</span> : null}
                     </div>
@@ -1307,12 +1357,12 @@ const UstawieniaPage = () => {
                         } catch (error) {
                           setObservedStatus({
                             type: 'error',
-                            message: error.response?.data?.message || 'Nie udało się usunąć z obserwowanych.',
+                            message: error.response?.data?.message || t('settings.observed.removeError'),
                           });
                         }
                       }}
                     >
-                      Przestań obserwować
+                      {t('settings.observed.remove')}
                     </button>
                   </li>
                 ))}
@@ -1324,15 +1374,16 @@ const UstawieniaPage = () => {
               </p>
             )}
           </div>
+          
         ) : activeTab === 'bezpieczenstwo' ? (
           <div className="settings-panel">
-            <h3>Bezpieczeństwo</h3>
-            <nav className="settings-subnav" aria-label="Sekcje bezpieczeństwa">
+            <h3>{t('settings.security.title')}</h3>
+            <nav className="settings-subnav" aria-label={t('settings.security.subnavLabel')}>
               {securityTabs.map((tab) => (
                 <span
                   key={tab.id}
                   className={`permission-tooltip ${tab.adminOnly && !isAdminUser ? 'has-tooltip' : ''}`}
-                  data-tooltip={tab.adminOnly && !isAdminUser ? 'Dostępne tylko dla administratora' : ''}
+                  data-tooltip={tab.adminOnly && !isAdminUser ? t('settings.security.adminOnlyTooltip') : ''}
                 >
                   <button
                     type="button"
@@ -1352,10 +1403,10 @@ const UstawieniaPage = () => {
             <div className="settings-subpanel">
               {activeSecurityTab === 'zmiana-hasla' && (
                 <>
-                  <h4>Zmiana hasła</h4>
+                  <h4>{t('settings.security.tabs.changePassword')}</h4>
                   <form className="settings-password-form" onSubmit={handleSavePassword}>
                     <label htmlFor="old-password">
-                      Stare hasło
+                      {t('settings.security.password.old')}
                       <div className="settings-password-input-wrap">
                         <input
                           id="old-password"
@@ -1370,18 +1421,18 @@ const UstawieniaPage = () => {
                           type="button"
                           className="password-visibility-btn"
                           onClick={() => setPasswordVisibility((prev) => ({ ...prev, oldPassword: !prev.oldPassword }))}
-                          aria-label={passwordVisibility.oldPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+                          aria-label={passwordVisibility.oldPassword ? t('settings.security.password.hide') : t('settings.security.password.show')}
                         >
                           <img
                             src={passwordVisibility.oldPassword ? '/icons/eye_open.png' : '/icons/eye_closed.png'}
-                            alt={passwordVisibility.oldPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+                            alt={passwordVisibility.oldPassword ? t('settings.security.password.hide') : t('settings.security.password.show')}
                             className="password-visibility-icon"
                           />
                         </button>
                       </div>
                     </label>
                     <label htmlFor="new-password">
-                      Nowe hasło
+                      {t('settings.security.password.new')}
                       <div className="settings-password-input-wrap">
                         <input
                           id="new-password"
@@ -1396,18 +1447,18 @@ const UstawieniaPage = () => {
                           type="button"
                           className="password-visibility-btn"
                           onClick={() => setPasswordVisibility((prev) => ({ ...prev, newPassword: !prev.newPassword }))}
-                          aria-label={passwordVisibility.newPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+                          aria-label={passwordVisibility.newPassword ? t('settings.security.password.hide') : t('settings.security.password.show')}
                         >
                           <img
                             src={passwordVisibility.newPassword ? '/icons/eye_open.png' : '/icons/eye_closed.png'}
-                            alt={passwordVisibility.newPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+                            alt={passwordVisibility.newPassword ? t('settings.security.password.hide') : t('settings.security.password.show')}
                             className="password-visibility-icon"
                           />
                         </button>
                       </div>
                     </label>
                     <label htmlFor="confirm-new-password">
-                      Potwierdzenie nowego hasła
+                      {t('settings.security.password.confirm')}
                       <div className="settings-password-input-wrap">
                         <input
                           id="confirm-new-password"
@@ -1422,18 +1473,18 @@ const UstawieniaPage = () => {
                           type="button"
                           className="password-visibility-btn"
                           onClick={() => setPasswordVisibility((prev) => ({ ...prev, confirmNewPassword: !prev.confirmNewPassword }))}
-                          aria-label={passwordVisibility.confirmNewPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+                          aria-label={passwordVisibility.confirmNewPassword ? t('settings.security.password.hide') : t('settings.security.password.show')}
                         >
                           <img
                             src={passwordVisibility.confirmNewPassword ? '/icons/eye_open.png' : '/icons/eye_closed.png'}
-                            alt={passwordVisibility.confirmNewPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+                            alt={passwordVisibility.confirmNewPassword ? t('settings.security.password.hide') : t('settings.security.password.show')}
                             className="password-visibility-icon"
                           />
                         </button>
                       </div>
                     </label>
                     <button type="submit" className="btn-new-event settings-password-submit" disabled={isSavingPassword}>
-                      {isSavingPassword ? 'Zapisywanie...' : 'Zapisz'}
+                      {isSavingPassword ? t('settings.security.password.saving') : t('settings.security.password.save')}
                     </button>
                   </form>
                   {passwordStatus.message && (
@@ -1445,19 +1496,19 @@ const UstawieniaPage = () => {
               )}
               {activeSecurityTab === '2fa' && (
                 <>
-                  <h4>2FA</h4>
-                  <p>Tutaj skonfigurujesz uwierzytelnianie dwuskładnikowe dla konta.</p>
-                  <p> Najpopularniejsze aplikacje do 2FA to: <strong>Google Authenticator</strong> oraz <strong>Microsoft Authenticator</strong>.</p>
+                  <h4>{t('settings.security.twoFactor.title')}</h4>
+                  <p>{t('settings.security.twoFactor.description')}</p>
+                  <p>{t('settings.security.twoFactor.apps')}</p>
                   {isLoadingTwoFactorStatus ? (
-                    <p>Ładowanie statusu 2FA...</p>
+                    <p>{t('settings.security.twoFactor.loadingStatus')}</p>
                   ) : twoFactorEnabled ? (
                     <div className="settings-2fa-block">
                       <p>
-                        Status 2FA: <span className="header-accent">włączone</span>
+                        {t('settings.security.twoFactor.status')}: <span className="header-accent">{t('settings.security.twoFactor.statusOn')}</span>
                       </p>
                       <form className="settings-2fa-form" onSubmit={handleDisableTwoFactor}>
                         <label htmlFor="disable-2fa-code">
-                          Kod 2FA
+                          {t('settings.security.twoFactor.code')}
                           <input
                             id="disable-2fa-code"
                             type="text"
@@ -1466,18 +1517,18 @@ const UstawieniaPage = () => {
                             maxLength={6}
                             value={twoFactorDisableCode}
                             onChange={(event) => setTwoFactorDisableCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                            placeholder="Wpisz kod z aplikacji"
+                            placeholder={t('settings.security.twoFactor.codePlaceholder')}
                           />
                         </label>
                         <button type="submit" className="btn-secondary" disabled={isSavingTwoFactor}>
-                          {isSavingTwoFactor ? 'Wyłączanie...' : 'Wyłącz 2FA'}
+                          {isSavingTwoFactor ? t('settings.security.twoFactor.disabling') : t('settings.security.twoFactor.disable')}
                         </button>
                       </form>
                     </div>
                   ) : (
                     <div className="settings-2fa-block">
                       <p>
-                        Status 2FA: <span className="header-accent">wyłączone</span>
+                        {t('settings.security.twoFactor.status')}: <span className="header-accent">{t('settings.security.twoFactor.statusOff')}</span>
                       </p>
                       {!twoFactorSetup.secret ? (
                         <button
@@ -1486,7 +1537,7 @@ const UstawieniaPage = () => {
                           onClick={handleGenerateTwoFactorSecret}
                           disabled={isGeneratingTwoFactorSecret}
                         >
-                          {isGeneratingTwoFactorSecret ? 'Generowanie...' : 'Rozpocznij konfigurację 2FA'}
+                          {isGeneratingTwoFactorSecret ? t('settings.security.twoFactor.generating') : t('settings.security.twoFactor.startSetup')}
                         </button>
                       ) : (
                         <form className="settings-2fa-form" onSubmit={handleEnableTwoFactor}>
@@ -1498,7 +1549,7 @@ const UstawieniaPage = () => {
                             />
                           )}
                           <label htmlFor="enable-2fa-code">
-                            Kod 2FA
+                            {t('settings.security.twoFactor.code')}
                             <input
                               id="enable-2fa-code"
                               type="text"
@@ -1507,11 +1558,11 @@ const UstawieniaPage = () => {
                               maxLength={6}
                               value={twoFactorEnableCode}
                               onChange={(event) => setTwoFactorEnableCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                              placeholder="Wpisz kod z aplikacji"
+                              placeholder={t('settings.security.twoFactor.codePlaceholder')}
                             />
                           </label>
                           <button type="submit" className="btn-new-event settings-password-submit" disabled={isSavingTwoFactor}>
-                            {isSavingTwoFactor ? 'Włączanie...' : 'Włącz 2FA'}
+                            {isSavingTwoFactor ? t('settings.security.twoFactor.enabling') : t('settings.security.twoFactor.enable')}
                           </button>
                         </form>
                       )}
@@ -1526,9 +1577,9 @@ const UstawieniaPage = () => {
               )}
               {activeSecurityTab === 'czas-sesji' && (
                 <>
-                  <h4>Czas sesji</h4>
-                  <p>Skonfiguruj, czy licznik sesji ma być aktywny oraz jak długo sesja może trwać.</p>
-                  {isLoadingSessionSettings && <p>Ładowanie ustawień czasu sesji...</p>}
+                  <h4>{t('settings.security.session.title')}</h4>
+                  <p>{t('settings.security.session.description')}</p>
+                  {isLoadingSessionSettings && <p>{t('settings.security.session.loading')}</p>}
                   <form className="settings-session-form" onSubmit={handleSaveSessionSettings}>
                     <details
                       className="settings-session-accordion"
@@ -1542,9 +1593,9 @@ const UstawieniaPage = () => {
                       }}
                     >
                       {/* Sekcja bazowa: aktywacja licznika, długość sesji i czas ostrzeżenia. */}
-                      <summary>Czas sesji</summary>
+                      <summary>{t('settings.security.session.sectionBase')}</summary>
                       <div className="settings-session-toggle">
-                        <span>Włącz licznik czasu sesji</span>
+                        <span>{t('settings.security.session.enableCounter')}</span>
                         <button
                           id="session-timeout-enabled"
                           type="button"
@@ -1566,7 +1617,7 @@ const UstawieniaPage = () => {
                       </div>
 
                       <label htmlFor="session-duration-minutes">
-                        Czas sesji (minuty)
+                        {t('settings.security.session.durationMinutes')}
                         <input
                           id="session-duration-minutes"
                           type="number"
@@ -1590,7 +1641,7 @@ const UstawieniaPage = () => {
                       </label>
 
                       <label htmlFor="session-warning-minutes">
-                        Czas ostrzeżenia przed końcem sesji (minuty)
+                        {t('settings.security.session.warningMinutes')}
                         <input
                           id="session-warning-minutes"
                           type="number"
@@ -1628,10 +1679,10 @@ const UstawieniaPage = () => {
                       }}
                     >
                       {/* Wybór trybu liczenia: ABSOLUTE bez resetu aktywnością vs RELATIVE z resetem aktywnością. */}
-                      <summary>Sposób liczenia czasu sesji</summary>
-                      <p>Wybierz, czy sesja ma kończyć się po stałym czasie, czy ma być odnawiana aktywnością.</p>
+                      <summary>{t('settings.security.session.sectionCounting')}</summary>
+                      <p>{t('settings.security.session.countingDescription')}</p>
                       <label htmlFor="session-count-mode">
-                        Tryb liczenia
+                        {t('settings.security.session.countMode')}
                         <select
                           id="session-count-mode"
                           value={sessionSettings.countMode}
@@ -1642,8 +1693,8 @@ const UstawieniaPage = () => {
                           }}
                           disabled={!sessionSettings.enabled || isLoadingSessionSettings || isSavingSessionSettings}
                         >
-                          <option value="ABSOLUTE">Stały czas</option>
-                          <option value="RELATIVE">Reset aktywnością</option>
+                          <option value="ABSOLUTE">{t('settings.security.session.countModeAbsolute')}</option>
+                          <option value="RELATIVE">{t('settings.security.session.countModeRelative')}</option>
                         </select>
                       </label>
                     </details>
@@ -1660,10 +1711,10 @@ const UstawieniaPage = () => {
                       }}
                     >
                       {/* Akcja końcowa po wygaśnięciu: blokada ekranu albo pełne wylogowanie. */}
-                      <summary>Po wygaśnięciu sesji</summary>
-                      <p>Wybierz, co aplikacja ma zrobić po upływie czasu sesji.</p>
+                      <summary>{t('settings.security.session.sectionExpiry')}</summary>
+                      <p>{t('settings.security.session.expiryDescription')}</p>
                       <label htmlFor="session-expiry-action">
-                        Akcja po wygaśnięciu
+                        {t('settings.security.session.expiryAction')}
                         <select
                           id="session-expiry-action"
                           value={sessionSettings.expiryAction}
@@ -1674,8 +1725,8 @@ const UstawieniaPage = () => {
                           }}
                           disabled={!sessionSettings.enabled || isLoadingSessionSettings || isSavingSessionSettings}
                         >
-                          <option value="LOCK_SCREEN">Zablokowanie ekranu</option>
-                          <option value="LOGOUT">Całkowite wylogowanie</option>
+                          <option value="LOCK_SCREEN">{t('settings.security.session.expiryLock')}</option>
+                          <option value="LOGOUT">{t('settings.security.session.expiryLogout')}</option>
                         </select>
                       </label>
                     </details>
@@ -1685,7 +1736,7 @@ const UstawieniaPage = () => {
                       className="btn-new-event settings-password-submit"
                       disabled={isLoadingSessionSettings || isSavingSessionSettings}
                     >
-                      {isSavingSessionSettings ? 'Zapisywanie...' : 'Zapisz ustawienia czasu sesji'}
+                      {isSavingSessionSettings ? t('settings.security.session.saving') : t('settings.security.session.save')}
                     </button>
                   </form>
                   {sessionSettingsStatus.message && (
@@ -1697,26 +1748,26 @@ const UstawieniaPage = () => {
               )}
               {activeSecurityTab === 'historia-logowan' && (
                 <>
-                  <h4>Historia logowań</h4>
-                  <p>Przegląd ostatnich prób logowania do konta. Sprawdź, czy wszystkie wpisy są Ci znane.</p>
-                  {isLoadingLoginHistory && <p>Ładowanie historii logowań...</p>}
+                  <h4>{t('settings.security.loginHistory.title')}</h4>
+                  <p>{t('settings.security.loginHistory.description')}</p>
+                  {isLoadingLoginHistory && <p>{t('settings.security.loginHistory.loading')}</p>}
                   {!isLoadingLoginHistory && (
                     <div className="settings-login-history-wrap">
                       <table className="settings-login-history-table">
                         <thead>
                           <tr>
-                            <th>Data i godzina</th>
-                            <th>Urządzenie</th>
-                            <th>Lokalizacja</th>
-                            <th>Status</th>
-                            <th>Akcja</th>
+                            <th>{t('settings.security.loginHistory.col.dateTime')}</th>
+                            <th>{t('settings.security.loginHistory.col.device')}</th>
+                            <th>{t('settings.security.loginHistory.col.location')}</th>
+                            <th>{t('settings.security.loginHistory.col.status')}</th>
+                            <th>{t('settings.security.loginHistory.col.action')}</th>
                           </tr>
                         </thead>
                         <tbody>
                           {loginHistory.length === 0 ? (
                             <tr>
                               <td colSpan={5} className="settings-login-history-empty">
-                                Brak wpisów historii logowań.
+                                {t('settings.security.loginHistory.empty')}
                               </td>
                             </tr>
                           ) : (
@@ -1726,8 +1777,8 @@ const UstawieniaPage = () => {
                               return (
                                 <tr key={entry.id != null ? String(entry.id) : `${entry.loginTime}-${entry.status}`}>
                                   <td>{formatLoginTime(entry.loginTime)}</td>
-                                  <td>{entry.deviceInfo || 'Nieznane urządzenie'}</td>
-                                  <td>{entry.location || 'Nieznana lokalizacja'}</td>
+                                  <td>{entry.deviceInfo || t('settings.security.loginHistory.unknownDevice')}</td>
+                                  <td>{entry.location || t('settings.security.loginHistory.unknownLocation')}</td>
                                   <td>
                                     <span className={`settings-login-status ${isSuccess ? 'is-success' : 'is-warning'}`}>
                                       {statusLabel}
@@ -1751,7 +1802,7 @@ const UstawieniaPage = () => {
                                         setReportNote('');
                                       }}
                                     >
-                                      Zgłoś
+                                      {t('settings.security.loginHistory.report')}
                                     </button>
                                   </td>
                                 </tr>
@@ -1776,23 +1827,22 @@ const UstawieniaPage = () => {
                       onClick={() => !isSubmittingReport && setReportLoginLogId(null)}
                     >
                       <div className="settings-report-dialog" onClick={(e) => e.stopPropagation()}>
-                        <h4 id="settings-report-title">Zgłoś wpis z historii logowań</h4>
-                        <p>Administratorzy zobaczą to zgłoszenie w panelu administratora (ikona w górnym pasku) → Zgłoszenia.</p>
-                        <label htmlFor="settings-report-note">Opcjonalna wiadomość</label>
+                        <h4 id="settings-report-title">{t('settings.security.loginHistory.reportDialogTitle')}</h4>
+                        <p>{t('settings.security.loginHistory.reportDialogDescription')}</p>
                         <textarea
                           id="settings-report-note"
                           rows={4}
                           value={reportNote}
                           onChange={(e) => setReportNote(e.target.value)}
-                          placeholder="Np. nie rozpoznaję tego urządzenia ani miejsca…"
+                          placeholder={t('settings.security.loginHistory.reportNotePlaceholder')}
                           disabled={isSubmittingReport}
                         />
                         <div className="settings-report-actions">
                           <button type="button" className="btn-secondary" onClick={() => !isSubmittingReport && setReportLoginLogId(null)} disabled={isSubmittingReport}>
-                            Anuluj
+                            {t('settings.security.loginHistory.reportCancel')}
                           </button>
                           <button type="button" className="btn-new-event" onClick={handleSubmitLoginReport} disabled={isSubmittingReport}>
-                            {isSubmittingReport ? 'Wysyłanie…' : 'Wyślij zgłoszenie'}
+                            {isSubmittingReport ? t('settings.security.loginHistory.reportSending') : t('settings.security.loginHistory.reportSend')}
                           </button>
                         </div>
                       </div>
@@ -1807,10 +1857,10 @@ const UstawieniaPage = () => {
             <h3>{tabs.find((tab) => tab.id === activeTab)?.label}</h3>
             {activeTab === 'uklady-sal' ? (
               String(currentUser?.rola || '').toUpperCase() !== 'ORG' ? (
-                <p>Tylko organizator może zarządzać układami sal.</p>
+                <p>{t('settings.layouts.onlyOrganizer')}</p>
               ) : (
                 <div className="settings-layouts">
-                  {isLoadingLayouts && <p>Ładowanie sal...</p>}
+                  {isLoadingLayouts && <p>{t('settings.layouts.loading')}</p>}
                   {layoutStatus.message && (
                     <p className={`status-message ${layoutStatus.type === 'error' ? 'status-error' : 'status-success'}`}>
                       {layoutStatus.message}
@@ -1834,16 +1884,16 @@ const UstawieniaPage = () => {
                                 }}
                                 disabled={!sala.maPlan}
                               >
-                                {sala.nazwa} {!sala.maPlan ? '(bez planu)' : ''}
+                                {sala.nazwa} {!sala.maPlan ? t('settings.layouts.noHallPlan') : ''}
                               </button>
                             ))}
                           </div>
                         ) : (
-                          <p>Brak sal dla tego miejsca.</p>
+                          <p>{t('settings.layouts.noHallsForPlace')}</p>
                         )}
                       </div>
                     )) : (
-                      <p>Nie masz jeszcze miejsc ani sal.</p>
+                      <p>{t('settings.layouts.noPlacesOrHalls')}</p>
                     )}
                   </div>
 
@@ -1852,21 +1902,23 @@ const UstawieniaPage = () => {
                       <div className="settings-layout-editor-header">
                         <div>
                           <h4>{selectedSala.nazwa}</h4>
-                          <p>{selectedSala.miejsceNazwa} • pojemność: {selectedSala.pojemnosc || 0}</p>
+                          <p>{t('settings.layouts.capacityLine', { place: selectedSala.miejsceNazwa, count: selectedSala.pojemnosc || 0 })}</p>
                           <div className="settings-layout-editor-dimensions">
                             <label>
-                              Szerokość obszaru
+                              {t('settings.layouts.areaWidth')}
                               <input
                                 type="number"
+                                className="buttonv2"
                                 min="240"
                                 value={selectedLayoutWidth}
                                 onChange={(event) => updateSelectedSalaPlan(selectedSalaElements, Number(event.target.value) || 240, selectedLayoutHeight)}
                               />
                             </label>
                             <label>
-                              Wysokość obszaru
+                              {t('settings.layouts.areaHeight')}
                               <input
                                 type="number"
+                                className="buttonv2"
                                 min="180"
                                 value={selectedLayoutHeight}
                                 onChange={(event) => updateSelectedSalaPlan(selectedSalaElements, selectedLayoutWidth, Number(event.target.value) || 180)}
@@ -1876,24 +1928,24 @@ const UstawieniaPage = () => {
                         </div>
                         <div className="settings-layout-editor-actions">
                           <button type="button" className="btn-secondary" onClick={addSeatToSelectedSala}>
-                            Dodaj miejsce
+                            {t('settings.layouts.addSeat')}
                           </button>
                           <input
                             type="text"
                             maxLength="2"
                             value={rowLabelDraft}
                             onChange={(event) => setRowLabelDraft(event.target.value.replace(/[^a-z]/gi, '').toUpperCase())}
-                            placeholder="Rząd"
-                            className="settings-layout-row-input"
+                            placeholder={t('settings.layouts.rowPlaceholder')}
+                            className="settings-layout-row-input buttonv2"
                           />
                           <button type="button" className="btn-secondary" onClick={addRowToSelectedSala}>
-                            Dodaj rząd
+                            {t('settings.layouts.addRow')}
                           </button>
                           <button type="button" className="btn-secondary" onClick={rotateSelectedSeat} disabled={!selectedElementId}>
-                            Obróć
+                            {t('settings.layouts.rotate')}
                           </button>
                           <button type="button" className="btn-new-event" onClick={saveSelectedSalaPlan}>
-                            Zapisz układ
+                            {t('settings.layouts.save')}
                           </button>
                         </div>
                       </div>
@@ -1903,7 +1955,7 @@ const UstawieniaPage = () => {
                           {selectedSalaRows.filter((item) => item.id === selectedElementId).map((row) => (
                             <React.Fragment key={row.id}>
                               <label>
-                                Szerokość rzędu
+                                {t('settings.layouts.rowWidth')}
                                 <input
                                   type="number"
                                   min="80"
@@ -1912,7 +1964,7 @@ const UstawieniaPage = () => {
                                 />
                               </label>
                               <label>
-                                Wysokość rzędu
+                                {t('settings.layouts.rowHeight')}
                                 <input
                                   type="number"
                                   min="40"
@@ -1947,7 +1999,7 @@ const UstawieniaPage = () => {
                               });
                             }}
                           >
-                            <span>{row.rowLabel || 'RZ'}</span>
+                            <span>{row.rowLabel || t('settings.layouts.rowShort')}</span>
                           </div>
                         ))}
                         {selectedSalaSeats.map((seat) => {
@@ -1985,6 +2037,50 @@ const UstawieniaPage = () => {
                   )}
                 </div>
               )
+            ) : activeTab === 'jezyk' ? (
+              <div className="settings-language">
+                <p>{t('settings.language.title')}</p>
+                <div className="settings-list">
+                  <div className="settings-row">
+                    <span>{t('settings.language.option.pl')}</span>
+                    <label className="switch">
+                      <input
+                        type="radio"
+                        name="settings-language"
+                        value="pl"
+                        checked={languageForm === 'pl'}
+                        onChange={(event) => setLanguageForm(event.target.value)}
+                        disabled={isSavingLanguage}
+                      />
+                      <span className="slider"></span>
+                    </label>
+                  </div>
+                  <div className="settings-row">
+                    <span>{t('settings.language.option.en')}</span>
+                    <label className="switch">
+                      <input
+                        type="radio"
+                        name="settings-language"
+                        value="en"
+                        checked={languageForm === 'en'}
+                        onChange={(event) => setLanguageForm(event.target.value)}
+                        disabled={isSavingLanguage}
+                      />
+                      <span className="slider"></span>
+                    </label>
+                  </div>
+                </div>
+                <button type="button" 
+                style={{ marginTop: '10px' }}
+                className="btn-new-event settings-password-submit" onClick={handleSaveLanguage} disabled={isSavingLanguage}>
+                  {isSavingLanguage ? t('settings.language.saving') : t('settings.language.save')}
+                </button>
+                {languageStatus.message && (
+                  <p className={`status-message ${languageStatus.type === 'error' ? 'status-error' : 'status-success'}`}>
+                    {languageStatus.message}
+                  </p>
+                )}
+              </div>
             ) : (
               <p>Ta sekcja zostanie dodana w kolejnych krokach.</p>
             )}

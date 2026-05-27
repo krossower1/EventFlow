@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../context/AuthContext';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
 
 const UsersPage = () => {
+  const { t } = useTranslation();
   const { currentUser, authCredentials } = useContext(AuthContext);
   const [data, setData] = useState([]);
   const [hideAdmins, setHideAdmins] = useState(false);
@@ -24,18 +26,21 @@ const UsersPage = () => {
       const response = await apiClient.get('/users', getRequestConfig());
       setData(response.data);
     } catch (error) {
-      setStatus({ type: 'error', message: 'Nie udało się pobrać uczestników.' });
+      setStatus({ type: 'error', message: t('participants.status.fetchError') });
     }
-  }, [getRequestConfig]);
+  }, [getRequestConfig, t]);
 
   const fetchFavorites = useCallback(async () => {
     try {
       const response = await apiClient.get('/chat/favorites', getRequestConfig());
       setFavoriteIds((Array.isArray(response.data) ? response.data : []).map((item) => item.id));
     } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udało się pobrać ulubionych.' });
+      setStatus({
+        type: 'error',
+        message: error.response?.data?.message || t('participants.status.favoritesFetchError')
+      });
     }
-  }, [getRequestConfig]);
+  }, [getRequestConfig, t]);
 
   useEffect(() => {
     fetchUsers();
@@ -56,23 +61,26 @@ const UsersPage = () => {
   const onDeactivateUser = async (userId, userLogin) => {
     try {
       await apiClient.put(`/users/${userId}/deactivate`, {}, getRequestConfig());
-      setStatus({ type: 'success', message: `Użytkownik ${userLogin} zablokowany.` });
+      setStatus({
+        type: 'success',
+        message: t('participants.status.deactivateSuccess', { login: userLogin })
+      });
       setConfirmAction(null);
       fetchUsers();
     } catch (error) {
-      setStatus({ type: 'error', message: 'Błąd dezaktywacji.' });
+      setStatus({ type: 'error', message: t('participants.status.deactivateError') });
     }
   };
 
   const onDeleteUser = async (userId, userLogin) => {
     try {
       await apiClient.delete(`/users/${userId}`, getRequestConfig());
-      setStatus({ type: 'success', message: 'Użytkownik usunięty.' });
+      setStatus({ type: 'success', message: t('participants.status.deleteSuccess') });
       setConfirmAction(null);
       fetchUsers();
       setSelectedUser(null);
     } catch (error) {
-      setStatus({ type: 'error', message: 'Błąd usuwania.' });
+      setStatus({ type: 'error', message: t('participants.status.deleteError') });
     }
   };
 
@@ -85,7 +93,10 @@ const UsersPage = () => {
       }
       fetchFavorites();
     } catch (error) {
-      setStatus({ type: 'error', message: error.response?.data?.message || 'Nie udało się zmienić ulubionych.' });
+      setStatus({
+        type: 'error',
+        message: error.response?.data?.message || t('participants.status.favoritesToggleError')
+      });
     }
   };
 
@@ -104,17 +115,21 @@ const UsersPage = () => {
 
   return (
     <div>
-      <h2>Uczestnicy</h2>
+      <h2>{t('participants.page.title')}</h2>
       {status.message && <p className={`status-message ${status.type}`}>{status.message}</p>}
 
       <div className={`events-user-cta participants-admin-cta ${currentUser.rola !== 'ADMIN' ? 'disabled-area' : ''}`}>
-        <p>{currentUser.rola === 'ADMIN' ? 'Zarządzaj rolami i użytkownikami. Wnioski organizatora — w panelu administratora.' : 'Przeglądaj listę uczestników.'}</p>
+        <p>
+          {currentUser.rola === 'ADMIN'
+            ? t('participants.adminCta.adminText')
+            : t('participants.adminCta.userText')}
+        </p>
         <span
           className={`permission-tooltip ${currentUser.rola !== 'ADMIN' ? 'has-tooltip' : ''}`}
-          data-tooltip={currentUser.rola !== 'ADMIN' ? 'Dostępne tylko dla administratora' : ''}
+          data-tooltip={currentUser.rola !== 'ADMIN' ? t('participants.adminCta.onlyAdminTooltip') : ''}
         >
           <button type="button" className="show-admins-toggle" onClick={() => setHideAdmins(!hideAdmins)} disabled={currentUser.rola !== 'ADMIN'}>
-            {hideAdmins ? 'Pokaż adminów' : 'Schowaj adminów'}
+            {hideAdmins ? t('participants.adminCta.showAdmins') : t('participants.adminCta.hideAdmins')}
           </button>
         </span>
       </div>
@@ -122,7 +137,12 @@ const UsersPage = () => {
       <table className="participants-table">
         <thead>
           <tr>
-            <th>ID</th><th>Imię i Nazwisko</th><th>Email</th><th>Login</th><th>Rola</th><th>Akcje</th>
+            <th>{t('participants.table.id')}</th>
+            <th>{t('participants.table.name')}</th>
+            <th>{t('participants.table.email')}</th>
+            <th>{t('participants.table.login')}</th>
+            <th>{t('participants.table.role')}</th>
+            <th>{t('participants.table.actions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -137,11 +157,13 @@ const UsersPage = () => {
                 {user.id !== currentUser.id ? (
                   <>
                     <button type="button" className="buttonv2" onClick={(e) => { e.stopPropagation(); onToggleFavorite(user); }}>
-                      {favoriteIds.includes(user.id) ? 'Usuń z ulub.' : 'Dodaj do ulub.'}
+                      {favoriteIds.includes(user.id)
+                        ? t('participants.actions.removeFavorite')
+                        : t('participants.actions.addFavorite')}
                     </button>
                     <span
                     className={`permission-tooltip ${!favoriteIds.includes(user.id) ? 'has-tooltip' : ''}`}
-                    data-tooltip={!favoriteIds.includes(user.id) ? 'Najpierw dodaj do ulubionych' : ''}
+                    data-tooltip={!favoriteIds.includes(user.id) ? t('participants.actions.chatTooltip') : ''}
                     >
                     <button
                       type="button"
@@ -150,31 +172,31 @@ const UsersPage = () => {
                       disabled={!favoriteIds.includes(user.id)}
                       style={{ marginLeft: '8px' }}
                     >
-                      Czat
+                      {t('participants.actions.chat')}
                     </button>
                     </span>
                   </>
                 ) : (
-                  <span style={{ color: '#666' }}>To Ty</span>
+                  <span style={{ color: '#666' }}>{t('participants.actions.selfLabel')}</span>
                 )}
                 {currentUser.rola === 'ADMIN' && user.login !== currentUser.login && user.rola !== 'ADMIN' && (
                   <>
                     <span className="inline-confirm-anchor" style={{ display: 'inline-block', marginLeft: '8px' }}>
                       {confirmAction?.type === 'deactivate' && confirmAction?.userId === user.id ? (
-                        <span className="inline-confirm-popover" role="group" aria-label="Potwierdź dezaktywację użytkownika">
+                        <span className="inline-confirm-popover" role="group" aria-label={t('participants.confirm.deactivateAria')}>
                           <button
                             type="button"
                             className="btn-new-event inline-confirm-popover-btn"
                             onClick={(e) => { e.stopPropagation(); onDeactivateUser(user.id, user.login); }}
                           >
-                            Tak
+                            {t('participants.confirm.yes')}
                           </button>
                           <button
                             type="button"
                             className="btn-secondary inline-confirm-popover-btn"
                             onClick={(e) => { e.stopPropagation(); setConfirmAction(null); }}
                           >
-                            Nie
+                            {t('participants.confirm.no')}
                           </button>
                         </span>
                       ) : null}
@@ -186,25 +208,25 @@ const UsersPage = () => {
                           setConfirmAction({ type: 'deactivate', userId: user.id });
                         }}
                       >
-                        Dezaktywuj
+                        {t('participants.actions.deactivate')}
                       </button>
                     </span>
                     <span className="inline-confirm-anchor" style={{ display: 'inline-block', marginLeft: '8px' }}>
                       {confirmAction?.type === 'delete' && confirmAction?.userId === user.id ? (
-                        <span className="inline-confirm-popover" role="group" aria-label="Potwierdź usunięcie użytkownika">
+                        <span className="inline-confirm-popover" role="group" aria-label={t('participants.confirm.deleteAria')}>
                           <button
                             type="button"
                             className="btn-new-event inline-confirm-popover-btn"
                             onClick={(e) => { e.stopPropagation(); onDeleteUser(user.id, user.login); }}
                           >
-                            Tak
+                            {t('participants.confirm.yes')}
                           </button>
                           <button
                             type="button"
                             className="btn-secondary inline-confirm-popover-btn"
                             onClick={(e) => { e.stopPropagation(); setConfirmAction(null); }}
                           >
-                            Nie
+                            {t('participants.confirm.no')}
                           </button>
                         </span>
                       ) : null}
@@ -216,7 +238,7 @@ const UsersPage = () => {
                           setConfirmAction({ type: 'delete', userId: user.id });
                         }}
                       >
-                        Usuń
+                        {t('participants.actions.delete')}
                       </button>
                     </span>
                   </>
@@ -231,16 +253,16 @@ const UsersPage = () => {
         <div className="modal-overlay" onClick={() => setSelectedUser(null)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <div className="modal-title">Szczegóły: {selectedUser.login}</div>
+              <div className="modal-title">{t('participants.modal.title', { login: selectedUser.login })}</div>
               <button className="modal-close" onClick={() => setSelectedUser(null)}>×</button>
             </div>
             <div className="modal-grid">
-  <div className="modal-field"><span className="modal-label">ID</span><span className="modal-value">{selectedUser.id}</span></div>
-  <div className="modal-field"><span className="modal-label">Login</span><span className="modal-value">{selectedUser.login || '-'}</span></div>
-  <div className="modal-field"><span className="modal-label">Imię i nazwisko</span><span className="modal-value">{selectedUser.imie || '-'} {selectedUser.nazwisko || '-'}</span></div>
-  <div className="modal-field"><span className="modal-label">Email</span><span className="modal-value">{selectedUser.email || '-'}</span></div>
-  <div className="modal-field"><span className="modal-label">Rola</span><span className="modal-value">{selectedUser.rola || '-'}</span></div>
-  <div className="modal-field"><span className="modal-label">Status konta</span><span className="modal-value">{selectedUser.aktywnosc === false ? 'Zablokowane' : 'Aktywne'}</span></div>
+  <div className="modal-field"><span className="modal-label">{t('participants.modal.id')}</span><span className="modal-value">{selectedUser.id}</span></div>
+  <div className="modal-field"><span className="modal-label">{t('participants.modal.login')}</span><span className="modal-value">{selectedUser.login || '-'}</span></div>
+  <div className="modal-field"><span className="modal-label">{t('participants.modal.name')}</span><span className="modal-value">{selectedUser.imie || '-'} {selectedUser.nazwisko || '-'}</span></div>
+  <div className="modal-field"><span className="modal-label">{t('participants.modal.email')}</span><span className="modal-value">{selectedUser.email || '-'}</span></div>
+  <div className="modal-field"><span className="modal-label">{t('participants.modal.role')}</span><span className="modal-value">{selectedUser.rola || '-'}</span></div>
+  <div className="modal-field"><span className="modal-label">{t('participants.modal.accountStatus')}</span><span className="modal-value">{selectedUser.aktywnosc === false ? t('participants.modal.accountStatusLocked') : t('participants.modal.accountStatusActive')}</span></div>
 </div>
           </div>
         </div>
