@@ -1,11 +1,20 @@
 import React, { useState, useContext, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../context/AuthContext';
 import { authService } from '../services/authService';
 
 const AuthPage = () => {
   const { applyAuthenticatedUser } = useContext(AuthContext);
+  const { t, i18n } = useTranslation();
   const [mode, setMode] = useState('login');
   const[status, setStatus] = useState({ type: '', message: '' });
+  const language = i18n.language === 'en' ? 'en' : 'pl';
+
+  const handleLanguageChange = (nextLanguage) => {
+    const normalized = nextLanguage === 'en' ? 'en' : 'pl';
+    localStorage.setItem('uiLanguage', normalized);
+    i18n.changeLanguage(normalized);
+  };
 
   // Stany formularzy
   const[loginForm, setLoginForm] = useState({ login: '', password: '' });
@@ -45,7 +54,7 @@ const AuthPage = () => {
         setPending2faLogin({ login: loginForm.login, password: loginForm.password });
         setLogin2faCode('');
         setMode('login-2fa');
-        setStatus({ type: 'success', message: 'Podaj kod 2FA z aplikacji uwierzytelniającej.' });
+        setStatus({ type: 'success', message: t('auth.login2fa.pendingMessage') });
         return;
       }
       if (response.success) {
@@ -95,10 +104,10 @@ const AuthPage = () => {
           localStorage.removeItem('rememberedLogin');
         }
       } else {
-        setStatus({ type: 'error', message: response.message || 'Login failed.' });
+        setStatus({ type: 'error', message: response.message || t('auth.login.errorGeneric') });
       }
     } catch (error) {
-      const message = error.response?.data?.message || 'Niepoprawny login lub hasło.';
+      const message = error.response?.data?.message || t('auth.login.errorInvalidCredentials');
       setStatus({ type: 'error', message });
     }
   };
@@ -108,7 +117,7 @@ const AuthPage = () => {
     setStatus({ type: '', message: '' });
 
     if (!pending2faLogin.login || !pending2faLogin.password) {
-      setStatus({ type: 'error', message: 'Sesja logowania wygasła. Zaloguj się ponownie.' });
+      setStatus({ type: 'error', message: t('auth.login2fa.sessionExpired') });
       setMode('login');
       return;
     }
@@ -167,10 +176,10 @@ const AuthPage = () => {
         setPending2faLogin({ login: '', password: '' });
         setLogin2faCode('');
       } else {
-        setStatus({ type: 'error', message: response.message || 'Weryfikacja 2FA nie powiodła się.' });
+        setStatus({ type: 'error', message: response.message || t('auth.login2fa.errorGeneric') });
       }
     } catch (error) {
-      const message = error.response?.data?.message || 'Weryfikacja 2FA nie powiodła się.';
+      const message = error.response?.data?.message || t('auth.login2fa.errorGeneric');
       setStatus({ type: 'error', message });
     }
   };
@@ -183,7 +192,7 @@ const AuthPage = () => {
     const confirmPassword = registerForm.confirmPassword.trim();
 
     if (password !== confirmPassword) {
-      setStatus({ type: 'error', message: 'Hasła muszą być identyczne.' });
+      setStatus({ type: 'error', message: t('auth.register.passwordMismatch') });
       return;
     }
 
@@ -198,15 +207,15 @@ const AuthPage = () => {
         password
       });
       if (response.success) {
-        setStatus({ type: 'success', message: 'Konto utworzone poprawnie.' });
+        setStatus({ type: 'success', message: t('auth.register.success') });
         setPendingVerificationEmail(registerForm.email);
         setMode('login');
         setLoginForm({ login: registerForm.login, password: '' });
       } else {
-        setStatus({ type: 'error', message: response.message || 'Registration failed.' });
+        setStatus({ type: 'error', message: response.message || t('auth.register.errorGeneric') });
       }
     } catch (error) {
-      const message = error.response?.data?.message || 'Registration failed.';
+      const message = error.response?.data?.message || t('auth.register.errorGeneric') ;
       setStatus({ type: 'error', message });
     } finally {
       setRegisterSubmitting(false);
@@ -220,15 +229,15 @@ const AuthPage = () => {
     try {
       const response = await authService.verifyEmail(verificationForm.email, verificationForm.code);
       if (response.success) {
-        setStatus({ type: 'success', message: 'Konto zostało zweryfikowane. Możesz się teraz zalogować.' });
+        setStatus({ type: 'success', message: t('auth.verify.success') });
         setVerificationForm({ email: '', code: '' });
         setPendingVerificationEmail('');
         setMode('login');
       } else {
-        setStatus({ type: 'error', message: response.message || 'Weryfikacja nie powiodła się.' });
+        setStatus({ type: 'error', message: response.message || t('auth.verify.errorGeneric') });
       }
     } catch (error) {
-      const message = error.response?.data?.message || 'Weryfikacja nie powiodła się.';
+      const message = error.response?.data?.message || t('auth.verify.errorGeneric');
       setStatus({ type: 'error', message });
     }
   };
@@ -236,10 +245,31 @@ const AuthPage = () => {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1>
-          <img src="/icons/image(1).ico" alt="EventFlow Icon" className="logo-icon" />
-          EventFlow
-        </h1>
+        <div className="auth-header">
+          <h1>
+            <img src="/icons/image(1).ico" alt="EventFlow Icon" className="logo-icon" />
+            EventFlow
+          </h1>
+          <div className="auth-language" aria-label="Wybór języka">
+            <button
+              type="button"
+              className={`auth-language-btn ${language === 'pl' ? 'is-active' : ''}`}
+              onClick={() => handleLanguageChange('pl')}
+              aria-pressed={language === 'pl'}
+            >
+              PL
+            </button>
+            <span className="auth-language-sep" aria-hidden="true">|</span>
+            <button
+              type="button"
+              className={`auth-language-btn ${language === 'en' ? 'is-active' : ''}`}
+              onClick={() => handleLanguageChange('en')}
+              aria-pressed={language === 'en'}
+            >
+              EN
+            </button>
+          </div>
+        </div>
         {mode !== 'verify' && (
           <div className="auth-tabs">
             <button
@@ -250,7 +280,7 @@ const AuthPage = () => {
                 setStatus({ type: '', message: '' });
               }}
             >
-              Logowanie
+              {t('auth.tabs.login')}
             </button>
             <button
               type="button"
@@ -260,14 +290,14 @@ const AuthPage = () => {
                 setStatus({ type: '', message: '' });
               }}
             >
-              Rejestracja
+              {t('auth.tabs.register')}
             </button>
           </div>
         )}
 
         {mode === 'login' ? (
           <form onSubmit={onLoginSubmit} className="auth-form">
-            <label htmlFor="login-auth">Login</label>
+            <label htmlFor="login-auth">{t('auth.login.loginLabel')}</label>
             <input
               id="login-auth"
               type="text"
@@ -276,7 +306,7 @@ const AuthPage = () => {
               required
             />
 
-            <label htmlFor="password">Hasło</label>
+            <label htmlFor="password">{t('auth.login.passwordLabel')}</label>
             <input
               id="password"
               type="password"
@@ -293,11 +323,11 @@ const AuthPage = () => {
                   checked={rememberMe}
                   onChange={(event) => setRememberMe(event.target.checked)}
                 />
-                <span id="remember-me-text">Zapamiętaj mnie </span>
+                <span id="remember-me-text">{t('auth.login.rememberMe')}</span>
               </label>
             </div>
 
-            <button type="submit">Zaloguj się</button>
+            <button type="submit">{t('auth.login.submit')}</button>
             {pendingVerificationEmail && (
               <div className="verification-note">
                 <button
@@ -309,14 +339,14 @@ const AuthPage = () => {
                     setStatus({ type: '', message: '' });
                   }}
                 >
-                  Naciśnij
-                </button> aby zweryfikować.
+                  {t('auth.verify.promptButton')}
+                </button> {t('auth.verify.promptText')}
               </div>
             )}
           </form>
         ) : mode === 'login-2fa' ? (
           <form onSubmit={onLogin2faSubmit} className="auth-form">
-            <label htmlFor="login-2fa-code">Kod 2FA</label>
+            <label htmlFor="login-2fa-code">{t('auth.login2fa.codeLabel')}</label>
             <input
               id="login-2fa-code"
               type="text"
@@ -327,7 +357,7 @@ const AuthPage = () => {
               onChange={(event) => setLogin2faCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
               required
             />
-            <button type="submit">Zweryfikuj i zaloguj</button>
+            <button type="submit">{t('auth.login2fa.submit')}</button>
             <button
               type="button"
               className="btn-secondary"
@@ -338,12 +368,12 @@ const AuthPage = () => {
                 setStatus({ type: '', message: '' });
               }}
             >
-              Powrót do logowania
+              {t('auth.login2fa.backToLogin')}
             </button>
           </form>
         ) : mode === 'register' ? (
           <form onSubmit={onRegisterSubmit} className="auth-form">
-            <label htmlFor="imie">Imię</label>
+            <label htmlFor="imie">{t('auth.register.firstName')}</label>
             <input
               id="imie"
               type="text"
@@ -352,7 +382,7 @@ const AuthPage = () => {
               required
             />
 
-            <label htmlFor="nazwisko">Nazwisko</label>
+            <label htmlFor="nazwisko">{t('auth.register.lastName')}</label>
             <input
               id="nazwisko"
               type="text"
@@ -361,7 +391,7 @@ const AuthPage = () => {
               required
             />
 
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">{t('auth.register.emailLabel')}</label>
             <input
               id="email"
               type="email"
@@ -370,7 +400,7 @@ const AuthPage = () => {
               required
             />
 
-            <label htmlFor="login">Login</label>
+            <label htmlFor="login">{t('auth.register.loginLabel')}</label>
             <input
               id="login"
               type="text"
@@ -379,7 +409,7 @@ const AuthPage = () => {
               required
             />
 
-            <label htmlFor="new-password">Hasło</label>
+            <label htmlFor="new-password">{t('auth.register.passwordLabel')}</label>
             <input
               id="new-password"
               type="password"
@@ -389,7 +419,7 @@ const AuthPage = () => {
               required
             />
 
-            <label htmlFor="confirm-password">Powtórz hasło</label>
+            <label htmlFor="confirm-password">{t('auth.register.confirmPasswordLabel')}</label>
             <input
               id="confirm-password"
               type="password"
@@ -400,12 +430,12 @@ const AuthPage = () => {
             />
 
             <button type="submit" disabled={registerSubmitting} className={registerSubmitting ? 'auth-submit-loading' : ''}>
-              {registerSubmitting ? 'Tworzenie konta...' : 'Utwórz konto'}
+              {registerSubmitting ? t('auth.register.submitting') : t('auth.register.submit')}
             </button>
           </form>
         ) : (
           <form onSubmit={onVerifySubmit} className="auth-form">
-            <label htmlFor="verify-email">Email</label>
+            <label htmlFor="verify-email">{t('auth.verify.emailLabel')}</label>
             <input
               id="verify-email"
               type="email"
@@ -414,7 +444,7 @@ const AuthPage = () => {
               required
             />
 
-            <label htmlFor="verify-code">Kod weryfikacyjny</label>
+            <label htmlFor="verify-code">{t('auth.verify.codeLabel')}</label>
             <input
               id="verify-code"
               type="text"
@@ -423,7 +453,7 @@ const AuthPage = () => {
               required
             />
 
-            <button type="submit">Zweryfikuj konto</button>
+            <button type="submit">{t('auth.verify.submit')}</button>
             <button
               type="button"
               className="btn-secondary"
@@ -432,7 +462,7 @@ const AuthPage = () => {
                 setStatus({ type: '', message: '' });
               }}
             >
-              Powrót do logowania
+              {t('auth.verify.backToLogin')}
             </button>
           </form>
         )}

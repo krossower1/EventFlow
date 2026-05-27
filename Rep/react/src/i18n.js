@@ -1,6 +1,14 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+const UI_LANGUAGE_STORAGE_KEY = 'uiLanguage';
+
+const getInitialLanguage = () => {
+  if (typeof window === 'undefined') return 'pl';
+  const saved = window.localStorage.getItem(UI_LANGUAGE_STORAGE_KEY);
+  return saved === 'en' ? 'en' : 'pl';
+};
+
 const resources = {
   pl: {
     common: {
@@ -704,6 +712,45 @@ const resources = {
       'securityInbox.delete.error': 'Nie udało się usunąć zgłoszenia.',
       'securityInbox.delete.confirmTitle': 'Czy chcesz usunąć zgłoszenie?',
       'securityInbox.delete.deleting': 'Usuwanie…',
+
+      // Auth - login/register
+      'auth.tabs.login': 'Logowanie',
+      'auth.tabs.register': 'Rejestracja',
+
+      'auth.login.loginLabel': 'Login',
+      'auth.login.passwordLabel': 'Hasło',
+      'auth.login.rememberMe': 'Zapamiętaj mnie',
+      'auth.login.submit': 'Zaloguj się',
+      'auth.login.errorGeneric': 'Logowanie nie powiodło się.',
+      'auth.login.errorInvalidCredentials': 'Niepoprawny login lub hasło.',
+
+      'auth.login2fa.pendingMessage': 'Podaj kod 2FA z aplikacji uwierzytelniającej.',
+      'auth.login2fa.codeLabel': 'Kod 2FA',
+      'auth.login2fa.submit': 'Zweryfikuj i zaloguj',
+      'auth.login2fa.backToLogin': 'Powrót do logowania',
+      'auth.login2fa.sessionExpired': 'Sesja logowania wygasła. Zaloguj się ponownie.',
+      'auth.login2fa.errorGeneric': 'Weryfikacja 2FA nie powiodła się.',
+
+      'auth.register.firstName': 'Imię',
+      'auth.register.lastName': 'Nazwisko',
+      'auth.register.emailLabel': 'Email',
+      'auth.register.loginLabel': 'Login',
+      'auth.register.passwordLabel': 'Hasło',
+      'auth.register.confirmPasswordLabel': 'Powtórz hasło',
+      'auth.register.passwordMismatch': 'Hasła muszą być identyczne.',
+      'auth.register.submitting': 'Tworzenie konta...',
+      'auth.register.submit': 'Utwórz konto',
+      'auth.register.success': 'Konto utworzone poprawnie.',
+      'auth.register.errorGeneric': 'Rejestracja nie powiodła się.',
+
+      'auth.verify.emailLabel': 'Email',
+      'auth.verify.codeLabel': 'Kod weryfikacyjny',
+      'auth.verify.promptButton': 'Naciśnij',
+      'auth.verify.promptText': 'aby zweryfikować.',
+      'auth.verify.submit': 'Zweryfikuj konto',
+      'auth.verify.backToLogin': 'Powrót do logowania',
+      'auth.verify.success': 'Konto zostało zweryfikowane. Możesz się teraz zalogować.',
+      'auth.verify.errorGeneric': 'Weryfikacja nie powiodła się.',
 
       // Chat widget
       'chat.title.favorites': 'Ulubieni',
@@ -1420,6 +1467,45 @@ const resources = {
       'securityInbox.delete.confirmTitle': 'Do you want to delete this report?',
       'securityInbox.delete.deleting': 'Deleting…',
 
+      // Auth - login/register
+      'auth.tabs.login': 'Login',
+      'auth.tabs.register': 'Registration',
+
+      'auth.login.loginLabel': 'Login',
+      'auth.login.passwordLabel': 'Password',
+      'auth.login.rememberMe': 'Remember me',
+      'auth.login.submit': 'Log in',
+      'auth.login.errorGeneric': 'Login failed.',
+      'auth.login.errorInvalidCredentials': 'Invalid login or password.',
+
+      'auth.login2fa.pendingMessage': 'Enter the 2FA code from your authenticator app.',
+      'auth.login2fa.codeLabel': '2FA code',
+      'auth.login2fa.submit': 'Verify and log in',
+      'auth.login2fa.backToLogin': 'Back to login',
+      'auth.login2fa.sessionExpired': 'Login session expired. Log in again.',
+      'auth.login2fa.errorGeneric': '2FA verification failed.',
+
+      'auth.register.firstName': 'First name',
+      'auth.register.lastName': 'Last name',
+      'auth.register.emailLabel': 'Email',
+      'auth.register.loginLabel': 'Login',
+      'auth.register.passwordLabel': 'Password',
+      'auth.register.confirmPasswordLabel': 'Repeat password',
+      'auth.register.passwordMismatch': 'Passwords must match.',
+      'auth.register.submitting': 'Creating account...',
+      'auth.register.submit': 'Create account',
+      'auth.register.success': 'Account created successfully.',
+      'auth.register.errorGeneric': 'Registration failed.',
+
+      'auth.verify.emailLabel': 'Email',
+      'auth.verify.codeLabel': 'Verification code',
+      'auth.verify.promptButton': 'Press',
+      'auth.verify.promptText': 'to verify.',
+      'auth.verify.submit': 'Verify account',
+      'auth.verify.backToLogin': 'Back to login',
+      'auth.verify.success': 'Account verified. You can now log in.',
+      'auth.verify.errorGeneric': 'Verification failed.',
+
       // Chat widget
       'chat.title.favorites': 'Favorites',
       'chat.empty.addFavorites': 'Add users to favorites.',
@@ -1436,7 +1522,7 @@ const resources = {
 
 i18n.use(initReactI18next).init({
   resources,
-  lng: 'pl',
+  lng: getInitialLanguage(),
   fallbackLng: 'pl',
   defaultNS: 'common',
   interpolation: {
