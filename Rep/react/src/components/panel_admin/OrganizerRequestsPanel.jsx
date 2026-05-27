@@ -7,6 +7,7 @@ const OrganizerRequestsPanel = () => {
   const [organizerRequests, setOrganizerRequests] = useState([]);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
+  const [deleteConfirmRequestId, setDeleteConfirmRequestId] = useState(null);
 
   const getRequestConfig = useCallback(() => {
     const config = { withCredentials: true };
@@ -32,6 +33,17 @@ const OrganizerRequestsPanel = () => {
     fetchOrganizerRequests();
   }, [fetchOrganizerRequests]);
 
+  useEffect(() => {
+    if (deleteConfirmRequestId == null) return undefined;
+    const handleClickOutsideConfirm = (event) => {
+      if (!event.target.closest('.inline-confirm-anchor')) {
+        setDeleteConfirmRequestId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideConfirm);
+    return () => document.removeEventListener('mousedown', handleClickOutsideConfirm);
+  }, [deleteConfirmRequestId]);
+
   const onApproveOrganizer = async (id) => {
     try {
       await apiClient.post(`/organizator/${id}/approve`, {}, getRequestConfig());
@@ -53,10 +65,10 @@ const OrganizerRequestsPanel = () => {
   };
 
   const onDeleteOrganizerRequest = async (id) => {
-    if (!window.confirm('Czy na pewno chcesz trwale usunąć ten wniosek z bazy?')) return;
     try {
       await apiClient.delete(`/organizator/${id}`, getRequestConfig());
       setStatus({ type: 'success', message: 'Wniosek usunięty z bazy.' });
+      setDeleteConfirmRequestId(null);
       fetchOrganizerRequests();
     } catch (error) {
       setStatus({ type: 'error', message: 'Nie udało się usunąć wniosku.' });
@@ -98,14 +110,38 @@ const OrganizerRequestsPanel = () => {
               <td>
                 {!item.zweryfikow ? (
                   <>
-                    <button type="button" onClick={() => onApproveOrganizer(item.id)}>Zatwierdź</button>
-                    <button type="button" onClick={() => onRejectOrganizer(item.id)} style={{ marginLeft: '8px' }}>Odrzuć</button>
-                    <button type="button" onClick={() => onDeleteOrganizerRequest(item.id)} style={{ marginLeft: '8px' }}>Usuń z DB</button>
+                    <button type="button" className="buttonv2" onClick={() => onApproveOrganizer(item.id)}>Zatwierdź</button>
+                    <button type="button" className="buttonv2" onClick={() => onRejectOrganizer(item.id)} style={{ marginLeft: '8px' }}>Odrzuć</button>
+                    <span className="inline-confirm-anchor" style={{ display: 'inline-block', marginLeft: '8px' }}>
+                      {deleteConfirmRequestId === item.id ? (
+                        <span className="inline-confirm-popover" role="group" aria-label="Potwierdź usunięcie wniosku">
+                          <button type="button" className="btn-new-event inline-confirm-popover-btn" onClick={() => onDeleteOrganizerRequest(item.id)}>
+                            Tak
+                          </button>
+                          <button type="button" className="btn-secondary inline-confirm-popover-btn" onClick={() => setDeleteConfirmRequestId(null)}>
+                            Nie
+                          </button>
+                        </span>
+                      ) : null}
+                      <button type="button" className="buttonv2" onClick={() => setDeleteConfirmRequestId(item.id)}>Usuń z DB</button>
+                    </span>
                   </>
                 ) : (
                   <>
                     <span>Zatwierdzono</span>
-                    <button type="button" onClick={() => onDeleteOrganizerRequest(item.id)} style={{ marginLeft: '8px' }}>Usuń z DB</button>
+                    <span className="inline-confirm-anchor" style={{ display: 'inline-block', marginLeft: '8px' }}>
+                      {deleteConfirmRequestId === item.id ? (
+                        <span className="inline-confirm-popover" role="group" aria-label="Potwierdź usunięcie wniosku">
+                          <button type="button" className="btn-new-event inline-confirm-popover-btn" onClick={() => onDeleteOrganizerRequest(item.id)}>
+                            Tak
+                          </button>
+                          <button type="button" className="btn-secondary inline-confirm-popover-btn" onClick={() => setDeleteConfirmRequestId(null)}>
+                            Nie
+                          </button>
+                        </span>
+                      ) : null}
+                      <button type="button" className="buttonv2" onClick={() => setDeleteConfirmRequestId(item.id)}>Usuń z DB</button>
+                    </span>
                   </>
                 )}
               </td>

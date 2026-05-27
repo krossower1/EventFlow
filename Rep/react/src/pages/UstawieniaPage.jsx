@@ -42,8 +42,7 @@ const tabs = [
   { id: 'bezpieczenstwo', label: 'Bezpieczeństwo' },
   { id: 'uklady-sal', label: 'Układy sal' },
   { id: 'wyglad', label: 'Wygląd' },
-  { id: 'jezyk-region', label: 'Język i region' },
-  { id: 'platnosci', label: 'Płatności' }
+  { id: 'jezyk-region', label: 'Język i region' }
 ];
 
 const UstawieniaPage = () => {

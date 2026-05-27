@@ -9,6 +9,7 @@ const UsersPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [favoriteIds, setFavoriteIds] = useState([]);
   const [status, setStatus] = useState({ type: '', message: '' });
+  const [confirmAction, setConfirmAction] = useState(null);
 
   const getRequestConfig = useCallback(() => {
     const config = { withCredentials: true };
@@ -41,11 +42,22 @@ const UsersPage = () => {
     fetchFavorites();
   }, [fetchUsers, fetchFavorites]);
 
+  useEffect(() => {
+    if (!confirmAction) return undefined;
+    const handleClickOutsideConfirm = (event) => {
+      if (!event.target.closest('.inline-confirm-anchor')) {
+        setConfirmAction(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideConfirm);
+    return () => document.removeEventListener('mousedown', handleClickOutsideConfirm);
+  }, [confirmAction]);
+
   const onDeactivateUser = async (userId, userLogin) => {
-    if (!window.confirm(`Czy na pewno chcesz dezaktywować użytkownika ${userLogin}?`)) return;
     try {
       await apiClient.put(`/users/${userId}/deactivate`, {}, getRequestConfig());
       setStatus({ type: 'success', message: `Użytkownik ${userLogin} zablokowany.` });
+      setConfirmAction(null);
       fetchUsers();
     } catch (error) {
       setStatus({ type: 'error', message: 'Błąd dezaktywacji.' });
@@ -53,10 +65,10 @@ const UsersPage = () => {
   };
 
   const onDeleteUser = async (userId, userLogin) => {
-    if (!window.confirm(`Czy na pewno chcesz usunąć użytkownika ${userLogin}?`)) return;
     try {
       await apiClient.delete(`/users/${userId}`, getRequestConfig());
       setStatus({ type: 'success', message: 'Użytkownik usunięty.' });
+      setConfirmAction(null);
       fetchUsers();
       setSelectedUser(null);
     } catch (error) {
@@ -124,25 +136,89 @@ const UsersPage = () => {
               <td>
                 {user.id !== currentUser.id ? (
                   <>
-                    <button type="button" onClick={(e) => { e.stopPropagation(); onToggleFavorite(user); }}>
-                      {favoriteIds.includes(user.id) ? 'Usuń z ulub.' : 'Do ulub.'}
+                    <button type="button" className="buttonv2" onClick={(e) => { e.stopPropagation(); onToggleFavorite(user); }}>
+                      {favoriteIds.includes(user.id) ? 'Usuń z ulub.' : 'Dodaj do ulub.'}
                     </button>
+                    <span
+                    className={`permission-tooltip ${!favoriteIds.includes(user.id) ? 'has-tooltip' : ''}`}
+                    data-tooltip={!favoriteIds.includes(user.id) ? 'Najpierw dodaj do ulubionych' : ''}
+                    >
                     <button
                       type="button"
+                      className="buttonv2"
                       onClick={(e) => { e.stopPropagation(); onOpenChat(user); }}
                       disabled={!favoriteIds.includes(user.id)}
                       style={{ marginLeft: '8px' }}
                     >
                       Czat
                     </button>
+                    </span>
                   </>
                 ) : (
                   <span style={{ color: '#666' }}>To Ty</span>
                 )}
                 {currentUser.rola === 'ADMIN' && user.login !== currentUser.login && user.rola !== 'ADMIN' && (
                   <>
-                    <button type="button" className="btn-delete" onClick={(e) => { e.stopPropagation(); onDeactivateUser(user.id, user.login); }} style={{ marginLeft: '8px' }}>Dezaktywuj</button>
-                    <button type="button" className="btn-delete" onClick={(e) => { e.stopPropagation(); onDeleteUser(user.id, user.login); }} style={{ marginLeft: '8px' }}>Usuń</button>
+                    <span className="inline-confirm-anchor" style={{ display: 'inline-block', marginLeft: '8px' }}>
+                      {confirmAction?.type === 'deactivate' && confirmAction?.userId === user.id ? (
+                        <span className="inline-confirm-popover" role="group" aria-label="Potwierdź dezaktywację użytkownika">
+                          <button
+                            type="button"
+                            className="btn-new-event inline-confirm-popover-btn"
+                            onClick={(e) => { e.stopPropagation(); onDeactivateUser(user.id, user.login); }}
+                          >
+                            Tak
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary inline-confirm-popover-btn"
+                            onClick={(e) => { e.stopPropagation(); setConfirmAction(null); }}
+                          >
+                            Nie
+                          </button>
+                        </span>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="btn-delete"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmAction({ type: 'deactivate', userId: user.id });
+                        }}
+                      >
+                        Dezaktywuj
+                      </button>
+                    </span>
+                    <span className="inline-confirm-anchor" style={{ display: 'inline-block', marginLeft: '8px' }}>
+                      {confirmAction?.type === 'delete' && confirmAction?.userId === user.id ? (
+                        <span className="inline-confirm-popover" role="group" aria-label="Potwierdź usunięcie użytkownika">
+                          <button
+                            type="button"
+                            className="btn-new-event inline-confirm-popover-btn"
+                            onClick={(e) => { e.stopPropagation(); onDeleteUser(user.id, user.login); }}
+                          >
+                            Tak
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary inline-confirm-popover-btn"
+                            onClick={(e) => { e.stopPropagation(); setConfirmAction(null); }}
+                          >
+                            Nie
+                          </button>
+                        </span>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="btn-delete"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmAction({ type: 'delete', userId: user.id });
+                        }}
+                      >
+                        Usuń
+                      </button>
+                    </span>
                   </>
                 )}
               </td>
@@ -159,9 +235,13 @@ const UsersPage = () => {
               <button className="modal-close" onClick={() => setSelectedUser(null)}>×</button>
             </div>
             <div className="modal-grid">
-              <div className="modal-field"><span className="modal-label">Email</span><span className="modal-value">{selectedUser.email}</span></div>
-              <div className="modal-field"><span className="modal-label">Rola</span><span className="modal-value">{selectedUser.rola}</span></div>
-            </div>
+  <div className="modal-field"><span className="modal-label">ID</span><span className="modal-value">{selectedUser.id}</span></div>
+  <div className="modal-field"><span className="modal-label">Login</span><span className="modal-value">{selectedUser.login || '-'}</span></div>
+  <div className="modal-field"><span className="modal-label">Imię i nazwisko</span><span className="modal-value">{selectedUser.imie || '-'} {selectedUser.nazwisko || '-'}</span></div>
+  <div className="modal-field"><span className="modal-label">Email</span><span className="modal-value">{selectedUser.email || '-'}</span></div>
+  <div className="modal-field"><span className="modal-label">Rola</span><span className="modal-value">{selectedUser.rola || '-'}</span></div>
+  <div className="modal-field"><span className="modal-label">Status konta</span><span className="modal-value">{selectedUser.aktywnosc === false ? 'Zablokowane' : 'Aktywne'}</span></div>
+</div>
           </div>
         </div>
       )}

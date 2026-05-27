@@ -208,8 +208,6 @@ background:
   border-radius: 8px;
   padding: 10px 12px;
   cursor: var(--cursor-pointer);
-  margin-left: 10px;
-  margin-top: 10px;
 }
 
 .btn-secondary:hover {
@@ -850,6 +848,7 @@ background:
   gap: 12px;
   padding: 14px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: visible;
 }
 
 .notification-panel-header h4 {
@@ -878,6 +877,33 @@ background:
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+}
+
+.inline-confirm-anchor {
+  position: relative;
+}
+
+.inline-confirm-popover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(15, 23, 42, 0.98);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+}
+
+.inline-confirm-popover-btn {
+  margin: 0;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  min-width: 52px;
 }
 
 .notification-panel-icon-btn {
@@ -1023,6 +1049,7 @@ background:
   transform: translateY(-10px);
   transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
   z-index: 10;
+  overflow: visible;
 }
 
 .account-menu.open {
@@ -1052,6 +1079,22 @@ background:
 
 .account-menu-item--danger:hover {
   background: rgba(248, 113, 113, 0.12);
+}
+
+.account-menu-item-wrap {
+  position: relative;
+  overflow: visible;
+}
+
+.account-menu .inline-confirm-popover {
+  right: 12px;
+}
+
+.account-menu-delete-error {
+  padding: 0 16px 10px;
+  margin: 0;
+  font-size: 0.82rem;
+  color: #f87171;
 }
 
 .ticket-progress-list {
@@ -1742,7 +1785,17 @@ background:
   cursor: var(--cursor-pointer);
   color: #fff;
   background: linear-gradient(90deg, #09d5ff 0%, #78283e 100%);
+}
 
+.btn-new-event:hover {
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: var(--cursor-pointer);
+  color: #fff;
+  background: linear-gradient(90deg, #0b92ad 0%, #5f2130 100%);
 }
 
 .btn-new-event:disabled {
@@ -2833,7 +2886,17 @@ background:
   min-width: 0;
 }
 
-.security-inbox-actions-row--reset-line .security-inbox-delete-bin {
+.security-inbox-actions-row--status-line {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.security-inbox-actions-row--status-line .security-inbox-status-menu {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.security-inbox-actions-row--status-line .security-inbox-delete-bin {
   flex: 0 0 auto;
 }
 
@@ -3400,6 +3463,40 @@ input:checked + .slider:before {
   transform: translateX(20px);
 }
 
+/* styl przycisku */
+.buttonv2 {
+  background: linear-gradient(135deg, #02041a 0%, #151a23 100%);
+  color: #ffffff;
+  border: 1px solid #d7e1e2;
+  border-radius: 8px;
+  padding: 3px 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: var(--cursor-pointer);
+}
+
+.buttonv2:hover {
+  background: linear-gradient(135deg, #02041a 0%, #2e3b53 100%);
+  color: #ffffff;
+  border: 1px solid #d7e1e2;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: var(--cursor-pointer);
+}
+
+.buttonv2:disabled {
+  background: #1c2333;
+  color: #64748b;
+  border: 1px solid #334155; 
+  opacity: 0.6;
+  cursor: var(--cursor-not-allowed);
+}
+
+.participants-row,
+.participants-row td {
+  cursor: var(--cursor-pointer);
+}
 
 /* Custom cursors – Bootstrap i dzieci wewnątrz przycisków/linków */
 body a,

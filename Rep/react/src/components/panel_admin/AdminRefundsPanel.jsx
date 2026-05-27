@@ -72,7 +72,7 @@ const AdminRefundsPanel = () => {
               <td>{z.powod}</td>
               <td>{z.stan}</td>
               <td>
-                <button type="button" onClick={() => handleApprove(z.id)}>Akceptuj</button>
+                <button type="button" className="buttonv2" onClick={() => handleApprove(z.id)}>Akceptuj</button>
               </td>
             </tr>
           )) : (

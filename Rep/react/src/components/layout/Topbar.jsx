@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -6,7 +6,57 @@ import NotificationBell from './NotificationBell';
 const Topbar = () => {
   const { currentUser, handleLogout, handleDeleteOwnAccount } = useContext(AuthContext);
   const navigate = useNavigate();
+  const accountMenuWrapperRef = useRef(null);
+  const deleteAccountConfirmRef = useRef(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState('');
+
+  useEffect(() => {
+    if (!accountMenuOpen) {
+      setShowDeleteAccountConfirm(false);
+      setDeleteAccountError('');
+      return undefined;
+    }
+    const handleClickOutside = (event) => {
+      if (accountMenuWrapperRef.current && !accountMenuWrapperRef.current.contains(event.target)) {
+        setAccountMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [accountMenuOpen]);
+
+  useEffect(() => {
+    if (!showDeleteAccountConfirm) return undefined;
+    const handleClickOutsideConfirm = (event) => {
+      if (deleteAccountConfirmRef.current && !deleteAccountConfirmRef.current.contains(event.target)) {
+        setShowDeleteAccountConfirm(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideConfirm);
+    return () => document.removeEventListener('mousedown', handleClickOutsideConfirm);
+  }, [showDeleteAccountConfirm]);
+
+  const handleToggleDeleteAccountConfirm = (event) => {
+    event.stopPropagation();
+    setDeleteAccountError('');
+    setShowDeleteAccountConfirm((open) => !open);
+  };
+
+  const handleConfirmDeleteAccount = async (event) => {
+    event.stopPropagation();
+    setIsDeletingAccount(true);
+    setDeleteAccountError('');
+    try {
+      await handleDeleteOwnAccount();
+    } catch (error) {
+      setDeleteAccountError(error.response?.data?.message || 'Nie udało się usunąć konta.');
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
 
   return (
     <header className="topbar">
@@ -42,14 +92,14 @@ const Topbar = () => {
               Twoja rola: <span className="header-accent">{currentUser.rola}</span>
             </div>
             <div className="header-user-line">
-              Zalogowany jako: <span className="header-accent">{currentUser.imie} {currentUser.nazwisko}</span>
+              Zalogowany jako: <span className="header-accent">{currentUser.imie} {currentUser.nazwisko} ({currentUser.login})</span>
             </div>
           </div>
         </div>
       </div>
       <div className="topbar-right">
         <NotificationBell />
-        <div className="account-menu-wrapper">
+        <div className="account-menu-wrapper" ref={accountMenuWrapperRef}>
           <button
             type="button"
             className="btn-icon"
@@ -59,24 +109,51 @@ const Topbar = () => {
           </button>
 
           <div className={`account-menu ${accountMenuOpen ? 'open' : ''}`}>
-            <button type="button" className="account-menu-item" onClick={handleLogout}>
-              Wyloguj
-            </button>
             <button
               type="button"
-              className="account-menu-item account-menu-item--danger"
-              onClick={async () => {
-                if (!window.confirm('Czy na pewno chcesz usunąć własne konto?')) return;
-                try {
-                  await handleDeleteOwnAccount();
-                } catch (error) {
-                  // eslint-disable-next-line no-alert
-                  window.alert(error.response?.data?.message || 'Nie udało się usunąć konta.');
-                }
+              className="account-menu-item"
+              onClick={() => {
+                setAccountMenuOpen(false);
+                handleLogout();
               }}
             >
-              Usuń konto
+              Wyloguj
             </button>
+            <div ref={deleteAccountConfirmRef} className="account-menu-item-wrap">
+              {showDeleteAccountConfirm ? (
+                <div className="inline-confirm-popover" role="group" aria-label="Potwierdź usunięcie konta">
+                  <button
+                    type="button"
+                    className="btn-new-event inline-confirm-popover-btn"
+                    onClick={handleConfirmDeleteAccount}
+                    disabled={isDeletingAccount}
+                  >
+                    {isDeletingAccount ? '…' : 'Tak'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary inline-confirm-popover-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDeleteAccountConfirm(false);
+                    }}
+                    disabled={isDeletingAccount}
+                  >
+                    Nie
+                  </button>
+                </div>
+              ) : null}
+              <button
+                type="button"
+                className="account-menu-item account-menu-item--danger"
+                onClick={handleToggleDeleteAccountConfirm}
+              >
+                Usuń konto
+              </button>
+            </div>
+            {deleteAccountError ? (
+              <p className="account-menu-delete-error" role="alert">{deleteAccountError}</p>
+            ) : null}
           </div>
         </div>
       </div>

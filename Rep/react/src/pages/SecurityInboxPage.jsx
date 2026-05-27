@@ -381,7 +381,7 @@ const SecurityInboxPage = ({ embedded = false }) => {
                       </td>
                       <td className="security-inbox-actions">
                         <div className="security-inbox-actions-stack">
-                          <div className="security-inbox-actions-row">
+                          <div className="security-inbox-actions-row security-inbox-actions-row--status-line">
                             <select
                               className="security-inbox-status-menu"
                               aria-label="Szybka zmiana statusu zgłoszenia"
@@ -395,6 +395,17 @@ const SecurityInboxPage = ({ embedded = false }) => {
                               <option value="RESOLVED">Rozwiązane</option>
                               <option value="DISMISS">Odrzuć</option>
                             </select>
+                            <button
+                              type="button"
+                              className="security-inbox-delete-bin"
+                              onClick={() => setDeleteConfirmTicketId(row.id)}
+                              aria-label="Usuń zgłoszenie"
+                              title="Usuń zgłoszenie"
+                            >
+                              <img src="/icons/bin.png" alt="" width={22} height={22} />
+                            </button>
+                          </div>
+                          <div className="security-inbox-actions-row security-inbox-actions-row--reset-line">
                             {row.affectedUserActive === false ? (
                               <button type="button" className="btn-secondary" onClick={() => quickAction(row.id, 'quick-unblock')}>
                                 Odblokuj konto
@@ -404,19 +415,8 @@ const SecurityInboxPage = ({ embedded = false }) => {
                                 Zablokuj konto
                               </button>
                             )}
-                          </div>
-                          <div className="security-inbox-actions-row security-inbox-actions-row--reset-line">
                             <button type="button" className="btn-secondary" onClick={() => quickAction(row.id, 'quick-force-password-reset')}>
                               Wymuś reset hasła
-                            </button>
-                            <button
-                              type="button"
-                              className="security-inbox-delete-bin"
-                              onClick={() => setDeleteConfirmTicketId(row.id)}
-                              aria-label="Usuń zgłoszenie"
-                              title="Usuń zgłoszenie"
-                            >
-                              <img src="/icons/bin.png" alt="" width={22} height={22} />
                             </button>
                           </div>
                         </div>

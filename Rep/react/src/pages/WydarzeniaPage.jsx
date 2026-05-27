@@ -39,6 +39,7 @@ const WydarzeniaPage = () => {
   const [zakupForm, setZakupForm] = useState({ biletId: '', ilosc: '1', potwierdzPlatnosc: false, seatId: '' });
   const [selectedInfoEvent, setSelectedInfoEvent] = useState(null);
   const [selectedPersonelEvent, setSelectedPersonelEvent] = useState(null);
+  const [confirmEndEventId, setConfirmEndEventId] = useState(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const [opiniaForm, setOpiniaForm] = useState({ ocena: '5', opis: '' });
   const [organizerRequestOpen, setOrganizerRequestOpen] = useState(false);
@@ -85,13 +86,22 @@ const WydarzeniaPage = () => {
     }
   }, [getRequestConfig]);
 
+  useEffect(() => {
+    if (confirmEndEventId == null) return undefined;
+    const handleClickOutsideConfirm = (event) => {
+      if (!event.target.closest('.inline-confirm-anchor')) {
+        setConfirmEndEventId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideConfirm);
+    return () => document.removeEventListener('mousedown', handleClickOutsideConfirm);
+  }, [confirmEndEventId]);
+
   const handleEndEventAsAdmin = async (eventId) => {
-    if (!window.confirm('Ustawić status wydarzenia na NIEAKTYWNY? Obserwujący otrzymają powiadomienie.')) {
-      return;
-    }
     try {
       await apiClient.put(`/wydarzenia/${eventId}/status`, { status: 'NIEAKTYWNY' }, getRequestConfig());
       await fetchMyWydarzenia();
+      setConfirmEndEventId(null);
       setStatus({ type: 'success', message: 'Wydarzenie zostało zakończone (NIEAKTYWNY).' });
     } catch (error) {
       setStatus({
@@ -694,13 +704,33 @@ const WydarzeniaPage = () => {
 
                 {currentUser?.rola === 'ADMIN' && String(item.status || '').toUpperCase() === 'AKTYWNY' ? (
                   <div style={{ marginTop: '12px' }}>
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={() => handleEndEventAsAdmin(item.id)}
-                    >
-                      Zakończ wydarzenie
-                    </button>
+                    <span className="inline-confirm-anchor" style={{ display: 'inline-block' }}>
+                      {confirmEndEventId === item.id ? (
+                        <span className="inline-confirm-popover" role="group" aria-label="Potwierdź zakończenie wydarzenia">
+                          <button
+                            type="button"
+                            className="btn-new-event inline-confirm-popover-btn"
+                            onClick={() => handleEndEventAsAdmin(item.id)}
+                          >
+                            Tak
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary inline-confirm-popover-btn"
+                            onClick={() => setConfirmEndEventId(null)}
+                          >
+                            Nie
+                          </button>
+                        </span>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => setConfirmEndEventId(item.id)}
+                      >
+                        Zakończ wydarzenie
+                      </button>
+                    </span>
                   </div>
                 ) : null}
 

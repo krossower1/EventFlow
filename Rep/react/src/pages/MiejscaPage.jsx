@@ -20,6 +20,7 @@ const MiejscaPage = () => {
   });
   const [salaForms, setSalaForms] = useState({});
   const [increaseForms, setIncreaseForms] = useState({});
+  const [confirmIncreaseMiejsceId, setConfirmIncreaseMiejsceId] = useState(null);
 
   const getRequestConfig = useCallback(() => {
     const config = { withCredentials: true };
@@ -49,6 +50,17 @@ const MiejscaPage = () => {
       setMiejsca([]);
     }
   }, [currentUser, fetchMyMiejsca]);
+
+  useEffect(() => {
+    if (confirmIncreaseMiejsceId == null) return undefined;
+    const handleClickOutsideConfirm = (event) => {
+      if (!event.target.closest('.inline-confirm-anchor')) {
+        setConfirmIncreaseMiejsceId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideConfirm);
+    return () => document.removeEventListener('mousedown', handleClickOutsideConfirm);
+  }, [confirmIncreaseMiejsceId]);
 
   const onMiejsceSubmit = async (event) => {
     event.preventDefault();
@@ -100,18 +112,11 @@ const MiejscaPage = () => {
     setIncreaseForms(prev => ({ ...prev, [miejsceId]: value }));
   };
 
-  const onIncreaseIloscSal = async (event, miejsce) => {
-    event.preventDefault();
+  const onIncreaseIloscSal = async (miejsce) => {
     const rawValue = increaseForms[miejsce.id];
     const nowaIloscSal = Number(rawValue);
     if (!rawValue || Number.isNaN(nowaIloscSal) || nowaIloscSal <= 0) {
       setStatus({ type: 'error', message: 'Podaj poprawną nową ilość sal.' });
-      return;
-    }
-
-    const potwierdzenie = window.confirm(`Potwierdź zwiększenie ilości sal dla "${miejsce.nazwa}" do ${nowaIloscSal}.`);
-    if (!potwierdzenie) {
-      setStatus({ type: 'error', message: 'Anulowano zwiększenie ilości sal.' });
       return;
     }
 
@@ -122,6 +127,7 @@ const MiejscaPage = () => {
       }, getRequestConfig());
       setStatus({ type: 'success', message: 'Ilość sal została zwiększona.' });
       setIncreaseForms(prev => ({ ...prev, [miejsce.id]: '' }));
+      setConfirmIncreaseMiejsceId(null);
       fetchMyMiejsca();
     } catch (error) {
       setStatus({ type: 'error', message: error?.response?.data?.message || 'Nie udało się zwiększyć ilości sal.' });
@@ -232,7 +238,7 @@ const MiejscaPage = () => {
               {currentUser?.rola === 'ORG' && (
                 <div style={{ marginTop: '12px', padding: '12px', border: '1px dashed #666', borderRadius: '6px' }}>
                   <h5 style={{ marginTop: 0 }}>Zwiększ ilość sal (wymagane potwierdzenie)</h5>
-                  <form onSubmit={(e) => onIncreaseIloscSal(e, miejsce)} style={{ display: 'flex', gap: '10px', alignItems: 'end' }}>
+                  <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', gap: '10px', alignItems: 'end' }}>
                     <div>
                       <label style={{fontSize: '12px'}}>Nowa ilość sal</label>
                       <input
@@ -243,7 +249,33 @@ const MiejscaPage = () => {
                         required
                       />
                     </div>
-                    <button type="submit" style={{ padding: '8px 15px' }}>Zwiększ</button>
+                    <span className="inline-confirm-anchor" style={{ display: 'inline-block' }}>
+                      {confirmIncreaseMiejsceId === miejsce.id ? (
+                        <span className="inline-confirm-popover" role="group" aria-label="Potwierdź zwiększenie ilości sal">
+                          <button
+                            type="button"
+                            className="btn-new-event inline-confirm-popover-btn"
+                            onClick={() => onIncreaseIloscSal(miejsce)}
+                          >
+                            Tak
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary inline-confirm-popover-btn"
+                            onClick={() => setConfirmIncreaseMiejsceId(null)}
+                          >
+                            Nie
+                          </button>
+                        </span>
+                      ) : null}
+                      <button
+                        type="button"
+                        style={{ padding: '8px 15px' }}
+                        onClick={() => setConfirmIncreaseMiejsceId(miejsce.id)}
+                      >
+                        Zwiększ
+                      </button>
+                    </span>
                   </form>
                 </div>
               )}

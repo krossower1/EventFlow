@@ -34,7 +34,6 @@ const formatNotificationTime = (value) => {
 };
 
 const getTypeLabel = (type) => NOTIFICATION_TYPE_LABELS[type] || type || 'Powiadomienie';
-
 const POLL_INTERVAL_MS = 8000;
 const TOAST_AUTO_HIDE_MS = 5000;
 
@@ -42,6 +41,7 @@ const NotificationBell = () => {
   const { authCredentials } = useContext(AuthContext);
   const navigate = useNavigate();
   const wrapperRef = useRef(null);
+  const deleteAllConfirmRef = useRef(null);
   const prevUnreadRef = useRef(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -49,6 +49,8 @@ const NotificationBell = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   const refreshUnreadCount = useCallback(async () => {
     try {
@@ -115,6 +117,21 @@ const NotificationBell = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [panelOpen]);
 
+  useEffect(() => {
+    if (!panelOpen) setShowDeleteAllConfirm(false);
+  }, [panelOpen]);
+
+  useEffect(() => {
+    if (!showDeleteAllConfirm) return undefined;
+    const handleClickOutsideConfirm = (event) => {
+      if (deleteAllConfirmRef.current && !deleteAllConfirmRef.current.contains(event.target)) {
+        setShowDeleteAllConfirm(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideConfirm);
+    return () => document.removeEventListener('mousedown', handleClickOutsideConfirm);
+  }, [showDeleteAllConfirm]);
+
   const handleTogglePanel = () => {
     setPanelOpen((open) => !open);
   };
@@ -162,17 +179,25 @@ const NotificationBell = () => {
     }
   };
 
-  const handleDeleteAll = async () => {
+  const handleOpenDeleteAllConfirm = (event) => {
+    event?.stopPropagation();
     if (notifications.length === 0) return;
-    if (!window.confirm('Usunąć wszystkie powiadomienia?')) return;
+    setShowDeleteAllConfirm((open) => !open);
+  };
+
+  const handleConfirmDeleteAll = async () => {
+    setIsDeletingAll(true);
     try {
       await deleteAllNotifications(authCredentials);
       setNotifications([]);
       setUnreadCount(0);
       prevUnreadRef.current = 0;
       setStatus('');
+      setShowDeleteAllConfirm(false);
     } catch (error) {
       setStatus(error.response?.data?.message || 'Nie udało się usunąć powiadomień.');
+    } finally {
+      setIsDeletingAll(false);
     }
   };
 
@@ -233,13 +258,44 @@ const NotificationBell = () => {
                 <img src="/icons/check-mark.png" alt="" width={22} height={22} onClick={handleMarkAllRead} style={{ cursor: 'var(--cursor-pointer)' }} />
               </span>
             ) : null}
-            {notifications.length > 0 ? (
-              <span 
-                className="permission-tooltip has-tooltip" 
+            {notifications.length >= 0 ? (
+              <span
+                ref={deleteAllConfirmRef}
+                className={`inline-confirm-anchor permission-tooltip${showDeleteAllConfirm ? '' : ' has-tooltip'}`}
                 data-tooltip="Usuń wszystkie powiadomienia"
                 style={{ cursor: 'var(--cursor-pointer)', display: 'inline-block' }}
               >
-                <img src="/icons/paper-bucket.png" alt="" width={22} height={22} onClick={handleDeleteAll} style={{ cursor: 'var(--cursor-pointer)' }} />
+                {showDeleteAllConfirm ? (
+                  <div className="inline-confirm-popover" role="group" aria-label="Potwierdź usunięcie wszystkich powiadomień">
+                    <button
+                      type="button"
+                      className="btn-new-event inline-confirm-popover-btn"
+                      onClick={handleConfirmDeleteAll}
+                      disabled={isDeletingAll}
+                    >
+                      {isDeletingAll ? '…' : 'Tak'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary inline-confirm-popover-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDeleteAllConfirm(false);
+                      }}
+                      disabled={isDeletingAll}
+                    >
+                      Nie
+                    </button>
+                  </div>
+                ) : null}
+                <img
+                  src="/icons/paper-bucket.png"
+                  alt=""
+                  width={22}
+                  height={22}
+                  onClick={handleOpenDeleteAllConfirm}
+                  style={{ cursor: 'var(--cursor-pointer)' }}
+                />
               </span>
             ) : null}
           </div>
