@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import TicketProgress from './TicketProgress';
 import { getEventHeroImageUrl } from '../hash_zdjec/eventHeroImage';
 import { AuthContext } from '../context/AuthContext';
@@ -40,6 +41,7 @@ const ObserveStarIcon = ({ filled }) => (
 );
 
 const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurchase }) => {
+  const { t } = useTranslation();
   const { currentUser, authCredentials } = useContext(AuthContext);
   const heroImageUrl = useMemo(
     () => getEventHeroImageUrl(item.id ?? item.tytul),
@@ -80,12 +82,12 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
 
   const observeDisabled = !isUser || !isActive || isObserved || isObserving;
   const observeTooltip = !isUser
-    ? 'Dostępne tylko dla użytkownika'
+    ? t('events.tooltip.onlyUser')
     : !isActive
-      ? 'Dostępne tylko dla wydarzeń o statusie aktywnym'
+      ? t('eventsCard.observe.onlyActive')
       : isObserved
-        ? 'Wydarzenie jest już obserwowane'
-        : 'Dodaj do obserwowanych';
+        ? t('eventsCard.observe.alreadyObserved')
+        : t('eventsCard.observe.add');
 
   /** POST /api/obserwowane/{id} — tylko USER i wydarzenie AKTYWNE (warunki w observeDisabled). */
   const handleObserve = async () => {
@@ -103,9 +105,9 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
 
   const zakupDisabled = !isUser || !item.maDostepneBilety;
   const zakupTooltip = !isUser
-    ? 'Dostępne tylko dla użytkownika'
+    ? t('events.tooltip.onlyUser')
     : !item.maDostepneBilety
-      ? 'Brak dostępnych biletów'
+      ? t('eventsCard.purchase.noTickets')
       : '';
 
   return (
@@ -135,31 +137,31 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
         <div className="event-card-column event-card-column--labels">
           <div className="event-card-row">
             <img src="/icons/location.png" alt="" width={22} height={22} />
-            <strong>Sala:</strong>
+            <strong>{t('eventsCard.labels.hall')}</strong>
           </div>
           <div className="event-card-row">
             <img src="/icons/building.png" alt="" width={22} height={22} />
-            <strong>Miejsce:</strong>
+            <strong>{t('eventsCard.labels.place')}</strong>
           </div>
           <div className="event-card-row">
             <img src="/icons/map.png" alt="" width={22} height={22} />
-            <strong>Adres:</strong>
+            <strong>{t('eventsCard.labels.address')}</strong>
           </div>
           <div className="event-card-row">
             <img src="/icons/calendar (1).png" alt="" width={22} height={22} />
-            <strong>Data:</strong>
+            <strong>{t('eventsCard.labels.date')}</strong>
           </div>
           <div className="event-card-row">
             <img src="/icons/clock.png" alt="" width={22} height={22} />
-            <strong>Czas:</strong>
+            <strong>{t('eventsCard.labels.time')}</strong>
           </div>
           <div className="event-card-row">
             <img src="/icons/user.png" alt="" width={22} height={22} />
-            <strong>Twórca:</strong>
+            <strong>{t('eventsCard.labels.creator')}</strong>
           </div>
           <div className="event-card-row">
             <img src="/icons/menu.png" alt="" width={22} height={22} />
-            <strong>Kategoria:</strong>
+            <strong>{t('eventsCard.labels.category')}</strong>
           </div>
         </div>
         <div className="event-card-column event-card-column--values">
@@ -179,12 +181,12 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
           className="btn-secondary"
           onClick={() => onMoreInfo(item.id)}
         >
-          Więcej informacji
+          {t('eventsCard.actions.moreInfo')}
         </button>
         {onPersonel ? (
           <span
             className={`permission-tooltip ${currentUserRole !== 'ORG' ? 'has-tooltip' : ''}`}
-            data-tooltip={currentUserRole !== 'ORG' ? 'Dostępne tylko dla organizatora' : ''}
+            data-tooltip={currentUserRole !== 'ORG' ? t('events.tooltip.onlyOrganizer') : ''}
           >
             <button
               type="button"
@@ -192,7 +194,7 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
               disabled={currentUserRole !== 'ORG'}
               onClick={() => onPersonel(item.id)}
             >
-              Personel
+              {t('eventsCard.actions.personnel')}
             </button>
           </span>
         ) : null}
@@ -206,7 +208,7 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
             disabled={zakupDisabled}
             onClick={() => onPurchase(item)}
           >
-            Zakup
+            {t('eventsCard.actions.purchase')}
           </button>
         </span>
       </div>

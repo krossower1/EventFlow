@@ -1,9 +1,11 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../../context/AuthContext';
 import NotificationBell from './NotificationBell';
 
 const Topbar = () => {
+  const { t } = useTranslation();
   const { currentUser, handleLogout, handleDeleteOwnAccount } = useContext(AuthContext);
   const navigate = useNavigate();
   const accountMenuWrapperRef = useRef(null);
@@ -52,7 +54,7 @@ const Topbar = () => {
     try {
       await handleDeleteOwnAccount();
     } catch (error) {
-      setDeleteAccountError(error.response?.data?.message || 'Nie udało się usunąć konta.');
+      setDeleteAccountError(error.response?.data?.message || t('topbar.delete.error'));
     } finally {
       setIsDeletingAccount(false);
     }
@@ -65,12 +67,12 @@ const Topbar = () => {
           <div className="panel-admin">
             <span
               className={`permission-tooltip ${currentUser?.rola !== 'ADMIN' ? 'has-tooltip' : ''}`}
-              data-tooltip={currentUser?.rola !== 'ADMIN' ? 'Dostępne tylko dla administratora' : ''}
+              data-tooltip={currentUser?.rola !== 'ADMIN' ? t('topbar.adminOnly') : ''}
             >
               <button
                 type="button"
                 className="btn-icon"
-                aria-label="Panel admina"
+                aria-label={t('topbar.adminPanel')}
                 onClick={() => {
                   if (currentUser?.rola !== 'ADMIN') return;
                   navigate('/admin');
@@ -80,19 +82,19 @@ const Topbar = () => {
                 <img src="/icons/panel_admin.png" alt="" />
               </button>
             </span>
-              <button type="button" className="btn-icon" aria-label="Odśwież" onClick={() => window.location.reload()} style={{ cursor: 'var(--cursor-pointer)', marginLeft: '10px' }}>
+              <button type="button" className="btn-icon" aria-label={t('topbar.refresh')} onClick={() => window.location.reload()} style={{ cursor: 'var(--cursor-pointer)', marginLeft: '10px' }}>
                 <img src="/icons/refresh.png" alt="" width={22} height={22} />
               </button>
           </div>
           <button type="button" className="btn-back-tab" onClick={() => navigate(-1)}>
-            Wstecz
+            {t('topbar.back')}
           </button>
           <div className="header-user-meta">
             <div className="header-user-line">
-              Twoja rola: <span className="header-accent">{currentUser.rola}</span>
+              {t('topbar.yourRole')} <span className="header-accent">{currentUser.rola}</span>
             </div>
             <div className="header-user-line">
-              Zalogowany jako: <span className="header-accent">{currentUser.imie} {currentUser.nazwisko} ({currentUser.login})</span>
+              {t('topbar.loggedAs')} <span className="header-accent">{currentUser.imie} {currentUser.nazwisko} ({currentUser.login})</span>
             </div>
           </div>
         </div>
@@ -105,7 +107,7 @@ const Topbar = () => {
             className="btn-icon"
             onClick={() => setAccountMenuOpen((open) => !open)}
           >
-            <img src="/icons/account.png" alt="Konto" />
+            <img src="/icons/account.png" alt={t('topbar.account')} />
           </button>
 
           <div className={`account-menu ${accountMenuOpen ? 'open' : ''}`}>
@@ -117,18 +119,18 @@ const Topbar = () => {
                 handleLogout();
               }}
             >
-              Wyloguj
+              {t('topbar.logout')}
             </button>
             <div ref={deleteAccountConfirmRef} className="account-menu-item-wrap">
               {showDeleteAccountConfirm ? (
-                <div className="inline-confirm-popover" role="group" aria-label="Potwierdź usunięcie konta">
+                <div className="inline-confirm-popover" role="group" aria-label={t('topbar.delete.confirmAria')}>
                   <button
                     type="button"
                     className="btn-new-event inline-confirm-popover-btn"
                     onClick={handleConfirmDeleteAccount}
                     disabled={isDeletingAccount}
                   >
-                    {isDeletingAccount ? '…' : 'Tak'}
+                    {isDeletingAccount ? t('topbar.delete.deleting') : t('topbar.common.yes')}
                   </button>
                   <button
                     type="button"
@@ -139,7 +141,7 @@ const Topbar = () => {
                     }}
                     disabled={isDeletingAccount}
                   >
-                    Nie
+                    {t('topbar.common.no')}
                   </button>
                 </div>
               ) : null}
@@ -148,7 +150,7 @@ const Topbar = () => {
                 className="account-menu-item account-menu-item--danger"
                 onClick={handleToggleDeleteAccountConfirm}
               >
-                Usuń konto
+                {t('topbar.delete.account')}
               </button>
             </div>
             {deleteAccountError ? (

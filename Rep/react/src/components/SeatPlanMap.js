@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const CANVAS_WIDTH = 720;
 const CANVAS_HEIGHT = 420;
@@ -89,6 +90,7 @@ const SeatPlanMap = ({
   onSeatClick,
   showLegend = false
 }) => {
+  const { t } = useTranslation();
   const normalizedSeats = normalizeSeats(seats);
 
   const getSeatDisplayLabel = (seat) => {
@@ -165,10 +167,10 @@ const SeatPlanMap = ({
       </div>
       {showLegend && (
         <div className="seat-plan-legend">
-          <div><span className="seat-plan-legend-swatch is-occupied" /> Zajęte</div>
-          <div><span className="seat-plan-legend-swatch is-vip" /> VIP</div>
-          <div><span className="seat-plan-legend-swatch is-standard" /> Standard</div>
-          <div><span className="seat-plan-legend-swatch is-other" /> Inne</div>
+          <div><span className="seat-plan-legend-swatch is-occupied" /> {t('seatPlan.legend.occupied')}</div>
+          <div><span className="seat-plan-legend-swatch is-vip" /> {t('seatPlan.legend.vip')}</div>
+          <div><span className="seat-plan-legend-swatch is-standard" /> {t('seatPlan.legend.standard')}</div>
+          <div><span className="seat-plan-legend-swatch is-other" /> {t('seatPlan.legend.other')}</div>
         </div>
       )}
     </div>

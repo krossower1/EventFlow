@@ -1,6 +1,7 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../../context/AuthContext';
 import {
   deleteAllNotifications,
@@ -10,18 +11,6 @@ import {
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from '../../services/powiadomieniaService';
-
-const NOTIFICATION_TYPE_LABELS = {
-  ADMIN_LOGIN: 'Logowanie administratora',
-  NEW_EVENT: 'Nowe wydarzenie',
-  FAVORITE_LOGIN: 'Logowanie z ulubionych',
-  OBSERVED_EVENT_END: 'Zakończenie wydarzenia',
-  OBSERVED_EVENT_START: 'Zbliżający się start',
-  OBSERVED_SEAT_FREED: 'Zwolnienie miejsca',
-  NEW_REFUND_REQUEST: 'Nowy wniosek o zwrot',
-  NEW_ORGANIZER_REQUEST: 'Nowy wniosek o rolę organizatora',
-  NEW_SECURITY_REPORT: 'Nowe zgłoszenie bezpieczeństwa',
-};
 
 const formatNotificationTime = (value) => {
   if (!value) return '';
@@ -36,11 +25,11 @@ const formatNotificationTime = (value) => {
   });
 };
 
-const getTypeLabel = (type) => NOTIFICATION_TYPE_LABELS[type] || type || 'Powiadomienie';
 const POLL_INTERVAL_MS = 8000;
 const TOAST_AUTO_HIDE_MS = 5000;
 
 const NotificationBell = () => {
+  const { t } = useTranslation();
   const { authCredentials } = useContext(AuthContext);
   const navigate = useNavigate();
   const wrapperRef = useRef(null);
@@ -54,6 +43,18 @@ const NotificationBell = () => {
   const [showToast, setShowToast] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const notificationTypeLabels = {
+    ADMIN_LOGIN: t('notifications.types.ADMIN_LOGIN'),
+    NEW_EVENT: t('notifications.types.NEW_EVENT'),
+    FAVORITE_LOGIN: t('notifications.types.FAVORITE_LOGIN'),
+    OBSERVED_EVENT_END: t('notifications.types.OBSERVED_EVENT_END'),
+    OBSERVED_EVENT_START: t('notifications.types.OBSERVED_EVENT_START'),
+    OBSERVED_SEAT_FREED: t('notifications.types.OBSERVED_SEAT_FREED'),
+    NEW_REFUND_REQUEST: t('notifications.types.NEW_REFUND_REQUEST'),
+    NEW_ORGANIZER_REQUEST: t('notifications.types.NEW_ORGANIZER_REQUEST'),
+    NEW_SECURITY_REPORT: t('notifications.types.NEW_SECURITY_REPORT'),
+  };
+  const getTypeLabel = (type) => notificationTypeLabels[type] || type || t('notifications.types.default');
 
   const refreshUnreadCount = useCallback(async () => {
     try {
@@ -78,11 +79,11 @@ const NotificationBell = () => {
       setNotifications(Array.isArray(list) ? list : []);
       await refreshUnreadCount();
     } catch (error) {
-      setStatus(error.response?.data?.message || 'Nie udało się pobrać powiadomień.');
+      setStatus(error.response?.data?.message || t('notifications.status.loadError'));
     } finally {
       setIsLoading(false);
     }
-  }, [authCredentials, refreshUnreadCount]);
+  }, [authCredentials, refreshUnreadCount, t]);
 
   useEffect(() => {
     refreshUnreadCount();
@@ -152,7 +153,7 @@ const NotificationBell = () => {
           return next;
         });
       } catch (error) {
-        setStatus(error.response?.data?.message || 'Nie udało się oznaczyć jako przeczytane.');
+        setStatus(error.response?.data?.message || t('notifications.status.markReadError'));
       }
     }
   };
@@ -165,7 +166,7 @@ const NotificationBell = () => {
       prevUnreadRef.current = 0;
       setStatus('');
     } catch (error) {
-      setStatus(error.response?.data?.message || 'Nie udało się oznaczyć wszystkich jako przeczytane.');
+      setStatus(error.response?.data?.message || t('notifications.status.markAllReadError'));
     }
   };
 
@@ -178,7 +179,7 @@ const NotificationBell = () => {
       await refreshUnreadCount();
       setStatus('');
     } catch (error) {
-      setStatus(error.response?.data?.message || 'Nie udało się usunąć powiadomienia.');
+      setStatus(error.response?.data?.message || t('notifications.status.deleteOneError'));
     }
   };
 
@@ -198,7 +199,7 @@ const NotificationBell = () => {
       setStatus('');
       setShowDeleteAllConfirm(false);
     } catch (error) {
-      setStatus(error.response?.data?.message || 'Nie udało się usunąć powiadomień.');
+      setStatus(error.response?.data?.message || t('notifications.status.deleteAllError'));
     } finally {
       setIsDeletingAll(false);
     }
@@ -214,14 +215,14 @@ const NotificationBell = () => {
   const toastPortal = showToast
     ? createPortal(
       <div className="notification-toast" role="status" aria-live="polite">
-        <span className="notification-toast-text">Masz nową wiadomość</span>
+        <span className="notification-toast-text">{t('notifications.toast.newMessage')}</span>
         <button type="button" className="notification-toast-action" onClick={handleOpenFromToast}>
-          Zobacz
+          {t('notifications.toast.view')}
         </button>
         <button
           type="button"
           className="notification-toast-close"
-          aria-label="Zamknij"
+          aria-label={t('notifications.common.close')}
           onClick={() => setShowToast(false)}
         >
           ×
@@ -238,24 +239,24 @@ const NotificationBell = () => {
       <button
         type="button"
         className="btn-icon"
-        aria-label="Powiadomienia"
+        aria-label={t('notifications.button.ariaLabel')}
         aria-expanded={panelOpen}
         onClick={handleTogglePanel}
       >
-        <img src="/icons/school-bell.png" alt="Powiadomienia" style={{ width: '24px', height: '24px' }} />
+        <img src="/icons/school-bell.png" alt={t('notifications.button.ariaLabel')} style={{ width: '24px', height: '24px' }} />
         {unreadCount > 0 ? (
           <span className="notification-bell-badge" aria-hidden="true">{badgeLabel}</span>
         ) : null}
       </button>
 
-      <div className={`notification-panel ${panelOpen ? 'open' : ''}`} role="dialog" aria-label="Lista powiadomień">
+      <div className={`notification-panel ${panelOpen ? 'open' : ''}`} role="dialog" aria-label={t('notifications.panel.ariaLabel')}>
         <div className="notification-panel-header">
-          <h4>Powiadomienia</h4>
+          <h4>{t('notifications.panel.title')}</h4>
           <div className="notification-panel-actions">
             {unreadCount >= 0 ? (
               <span 
                 className="permission-tooltip has-tooltip" 
-                data-tooltip="Oznacz wszystkie jako przeczytane"
+                data-tooltip={t('notifications.panel.markAllTooltip')}
                 style={{ cursor: 'var(--cursor-pointer)', display: 'inline-block' }}
               >
                 <img src="/icons/check-mark.png" alt="" width={22} height={22} onClick={handleMarkAllRead} style={{ cursor: 'var(--cursor-pointer)' }} />
@@ -265,18 +266,18 @@ const NotificationBell = () => {
               <span
                 ref={deleteAllConfirmRef}
                 className={`inline-confirm-anchor permission-tooltip${showDeleteAllConfirm ? '' : ' has-tooltip'}`}
-                data-tooltip="Usuń wszystkie powiadomienia"
+                data-tooltip={t('notifications.panel.deleteAllTooltip')}
                 style={{ cursor: 'var(--cursor-pointer)', display: 'inline-block' }}
               >
                 {showDeleteAllConfirm ? (
-                  <div className="inline-confirm-popover" role="group" aria-label="Potwierdź usunięcie wszystkich powiadomień">
+                  <div className="inline-confirm-popover" role="group" aria-label={t('notifications.panel.confirmDeleteAllAria')}>
                     <button
                       type="button"
                       className="btn-new-event inline-confirm-popover-btn"
                       onClick={handleConfirmDeleteAll}
                       disabled={isDeletingAll}
                     >
-                      {isDeletingAll ? '…' : 'Tak'}
+                      {isDeletingAll ? t('notifications.common.deleting') : t('notifications.common.yes')}
                     </button>
                     <button
                       type="button"
@@ -287,7 +288,7 @@ const NotificationBell = () => {
                       }}
                       disabled={isDeletingAll}
                     >
-                      Nie
+                      {t('notifications.common.no')}
                     </button>
                   </div>
                 ) : null}
@@ -306,10 +307,10 @@ const NotificationBell = () => {
 
         <div className="notification-panel-list">
           {isLoading && notifications.length === 0 ? (
-            <p className="notification-panel-empty">Ładowanie...</p>
+            <p className="notification-panel-empty">{t('notifications.panel.loading')}</p>
           ) : null}
           {!isLoading && notifications.length === 0 ? (
-            <p className="notification-panel-empty">Brak powiadomień.</p>
+            <p className="notification-panel-empty">{t('notifications.panel.empty')}</p>
           ) : null}
           {notifications.map((notification) => (
             <div
@@ -339,7 +340,7 @@ const NotificationBell = () => {
             navigate('/ustawienia', { state: { settingsTab: 'powiadomienia' } });
           }}
         >
-          Ustawienia powiadomień
+          {t('notifications.panel.settingsLink')}
         </button>
       </div>
     </div>

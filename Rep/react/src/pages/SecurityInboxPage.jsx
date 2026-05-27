@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../api/apiClient';
 import { AuthContext } from '../context/AuthContext';
 
@@ -9,20 +10,6 @@ import { AuthContext } from '../context/AuthContext';
  * wykonywać szybkie akcje (blokada, reset hasła, odrzucenie), usuwać zgłoszenie oraz podglądać
  * opis + audyt (osobne GET .../audit po rozwinięciu wiersza).
  */
-
-/** Mapowanie kodów statusu z API na etykiety polskie w tabeli. */
-const STATUS_LABELS = {
-  NEW: 'Nowe',
-  IN_PROGRESS: 'W trakcie',
-  RESOLVED: 'Rozwiązane',
-  DISMISSED: 'Fałszywy alarm'
-};
-
-/** Mapowanie kategorii z API; nieznany kod pokazujemy surowo (fallback w JSX). */
-const CATEGORY_LABELS = {
-  USER_FLAGGED_LOG: 'Zgłoszenie użytkownika (historia)',
-  OTHER: 'Inne'
-};
 
 /**
  * Konfiguracja axios: sesja cookie + opcjonalnie Basic Auth z kontekstu (zgodnie z resztą aplikacji).
@@ -37,8 +24,19 @@ const buildAuthConfig = (authCredentials) => {
 };
 
 const SecurityInboxPage = ({ embedded = false }) => {
+  const { t } = useTranslation();
   const { authCredentials, currentUser } = useContext(AuthContext);
   const getRequestConfig = useCallback(() => buildAuthConfig(authCredentials), [authCredentials]);
+  const statusLabels = {
+    NEW: t('securityInbox.statusLabels.NEW'),
+    IN_PROGRESS: t('securityInbox.statusLabels.IN_PROGRESS'),
+    RESOLVED: t('securityInbox.statusLabels.RESOLVED'),
+    DISMISSED: t('securityInbox.statusLabels.DISMISSED')
+  };
+  const categoryLabels = {
+    USER_FLAGGED_LOG: t('securityInbox.categoryLabels.USER_FLAGGED_LOG'),
+    OTHER: t('securityInbox.categoryLabels.OTHER')
+  };
 
   const isAdmin = String(currentUser?.rola || '').toUpperCase() === 'ADMIN';
 
@@ -81,11 +79,11 @@ const SecurityInboxPage = ({ embedded = false }) => {
       const response = await apiClient.get(url, getRequestConfig());
       setTickets(Array.isArray(response?.data) ? response.data : []);
     } catch (e) {
-      setError(e.response?.data?.message || 'Nie udało się pobrać zgłoszeń.');
+      setError(e.response?.data?.message || t('securityInbox.status.fetchError'));
     } finally {
       setLoading(false);
     }
-  }, [filterStatus, filterCategory, filterAffectedId, getRequestConfig, isAdmin]);
+  }, [filterStatus, filterCategory, filterAffectedId, getRequestConfig, isAdmin, t]);
 
   /**
    * Lista administratorów do przypisania — endpoint ogólny GET /users (jak w innych miejscach projektu).
@@ -162,10 +160,10 @@ const SecurityInboxPage = ({ embedded = false }) => {
     setActionNotice({ type: '', message: '' });
     try {
       await apiClient.put(`/admin/security-tickets/${ticketId}/status`, { status }, getRequestConfig());
-      setActionNotice({ type: 'success', message: 'Status zapisany.' });
+      setActionNotice({ type: 'success', message: t('securityInbox.status.saved') });
       await loadTickets();
     } catch (e) {
-      setActionNotice({ type: 'error', message: e.response?.data?.message || 'Nie udało się zmienić statusu.' });
+      setActionNotice({ type: 'error', message: e.response?.data?.message || t('securityInbox.status.saveError') });
     }
   };
 
@@ -178,10 +176,10 @@ const SecurityInboxPage = ({ embedded = false }) => {
         { assignedAdminId: assignedAdminId === '' ? null : Number(assignedAdminId) },
         getRequestConfig()
       );
-      setActionNotice({ type: 'success', message: 'Przypisanie zapisane.' });
+      setActionNotice({ type: 'success', message: t('securityInbox.assign.saved') });
       await loadTickets();
     } catch (e) {
-      setActionNotice({ type: 'error', message: e.response?.data?.message || 'Nie udało się przypisać.' });
+      setActionNotice({ type: 'error', message: e.response?.data?.message || t('securityInbox.assign.error') });
     }
   };
 
@@ -193,10 +191,10 @@ const SecurityInboxPage = ({ embedded = false }) => {
     setActionNotice({ type: '', message: '' });
     try {
       await apiClient.post(`/admin/security-tickets/${ticketId}/${path}`, {}, getRequestConfig());
-      setActionNotice({ type: 'success', message: 'Akcja wykonana.' });
+      setActionNotice({ type: 'success', message: t('securityInbox.actions.done') });
       await loadTickets();
     } catch (e) {
-      setActionNotice({ type: 'error', message: e.response?.data?.message || 'Akcja nie powiodła się.' });
+      setActionNotice({ type: 'error', message: e.response?.data?.message || t('securityInbox.actions.error') });
     }
   };
 
@@ -224,7 +222,7 @@ const SecurityInboxPage = ({ embedded = false }) => {
     setActionNotice({ type: '', message: '' });
     try {
       await apiClient.delete(`/admin/security-tickets/${deleteConfirmTicketId}`, getRequestConfig());
-      setActionNotice({ type: 'success', message: 'Zgłoszenie zostało usunięte.' });
+      setActionNotice({ type: 'success', message: t('securityInbox.delete.success') });
       if (expandedId === deleteConfirmTicketId) {
         setExpandedId(null);
       }
@@ -236,7 +234,7 @@ const SecurityInboxPage = ({ embedded = false }) => {
       setDeleteConfirmTicketId(null);
       await loadTickets();
     } catch (e) {
-      setActionNotice({ type: 'error', message: e.response?.data?.message || 'Nie udało się usunąć zgłoszenia.' });
+      setActionNotice({ type: 'error', message: e.response?.data?.message || t('securityInbox.delete.error') });
     } finally {
       setIsDeletingTicket(false);
     }
@@ -261,7 +259,7 @@ const SecurityInboxPage = ({ embedded = false }) => {
   if (!isAdmin) {
     return (
       <div className={rootClass}>
-        <p className="status-message status-error">Ta sekcja jest dostępna tylko dla administratorów.</p>
+        <p className="status-message status-error">{t('securityInbox.onlyAdmin')}</p>
       </div>
     );
   }
@@ -270,36 +268,34 @@ const SecurityInboxPage = ({ embedded = false }) => {
     <div className={rootClass}>
       {!embedded && (
         <div className="security-inbox-header">
-          <h2>Skrzynka zgłoszeń bezpieczeństwa</h2>
-          <p className="security-inbox-lede">
-            Lista zgłoszeń użytkowników z historii logowań. Odświeżanie listy co minutę.
-          </p>
+          <h2>{t('securityInbox.title')}</h2>
+          <p className="security-inbox-lede">{t('securityInbox.subtitle')}</p>
         </div>
       )}
 
       <div className="security-inbox-filters">
         <label>
-          Status
+          {t('securityInbox.filters.status')}
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-            <option value="">Wszystkie</option>
-            <option value="NEW">Nowe</option>
-            <option value="IN_PROGRESS">W trakcie</option>
-            <option value="RESOLVED">Rozwiązane</option>
-            <option value="DISMISSED">Fałszywy alarm</option>
+            <option value="">{t('securityInbox.filters.all')}</option>
+            <option value="NEW">{t('securityInbox.statusLabels.NEW')}</option>
+            <option value="IN_PROGRESS">{t('securityInbox.statusLabels.IN_PROGRESS')}</option>
+            <option value="RESOLVED">{t('securityInbox.statusLabels.RESOLVED')}</option>
+            <option value="DISMISSED">{t('securityInbox.statusLabels.DISMISSED')}</option>
           </select>
         </label>
         <label>
-          Kategoria
+          {t('securityInbox.filters.category')}
           <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-            <option value="">Wszystkie</option>
-            <option value="USER_FLAGGED_LOG">Zgłoszenie z historii</option>
-            <option value="OTHER">Inne</option>
+            <option value="">{t('securityInbox.filters.all')}</option>
+            <option value="USER_FLAGGED_LOG">{t('securityInbox.filters.categoryLog')}</option>
+            <option value="OTHER">{t('securityInbox.categoryLabels.OTHER')}</option>
           </select>
         </label>
         <label>
-          Konto (ofiary)
+          {t('securityInbox.filters.affectedAccount')}
           <select value={filterAffectedId} onChange={(e) => setFilterAffectedId(e.target.value)}>
-            <option value="">Wszystkie</option>
+            <option value="">{t('securityInbox.filters.all')}</option>
             {affectedOptions.map(([id, login]) => (
               <option key={id} value={id}>
                 {login} (#{id})
@@ -314,8 +310,8 @@ const SecurityInboxPage = ({ embedded = false }) => {
             setLoading(true);
             loadTickets();
           }}
-          aria-label="Odśwież listę"
-          title="Odśwież listę"
+          aria-label={t('securityInbox.refresh')}
+          title={t('securityInbox.refresh')}
         >
           <img src="/icons/refresh.png" alt="" width={22} height={22} style={{ width: '22px', height: '22px' }} />
         </button>
@@ -327,28 +323,28 @@ const SecurityInboxPage = ({ embedded = false }) => {
         </p>
       )}
       {error && <p className="status-message status-error">{error}</p>}
-      {loading && <p>Ładowanie…</p>}
+      {loading && <p>{t('securityInbox.loading')}</p>}
 
       {!loading && (
         <div className="security-inbox-table-wrap">
           <table className="security-inbox-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Utworzono</th>
-                <th>Status</th>
-                <th>Kategoria</th>
-                <th>Konto</th>
-                <th>Zgłaszający</th>
-                <th>Przypisano</th>
-                <th>Akcje</th>
+                <th>{t('securityInbox.table.id')}</th>
+                <th>{t('securityInbox.table.createdAt')}</th>
+                <th>{t('securityInbox.table.status')}</th>
+                <th>{t('securityInbox.table.category')}</th>
+                <th>{t('securityInbox.table.account')}</th>
+                <th>{t('securityInbox.table.reporter')}</th>
+                <th>{t('securityInbox.table.assigned')}</th>
+                <th>{t('securityInbox.table.actions')}</th>
               </tr>
             </thead>
             <tbody>
               {tickets.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="security-inbox-empty">
-                    Brak zgłoszeń dla wybranych filtrów.
+                    {t('securityInbox.empty')}
                   </td>
                 </tr>
               ) : (
@@ -361,17 +357,17 @@ const SecurityInboxPage = ({ embedded = false }) => {
                         </button>
                       </td>
                       <td>{row.createdAt ? new Date(row.createdAt).toLocaleString('pl-PL') : '—'}</td>
-                      <td>{STATUS_LABELS[row.status] || row.status}</td>
-                      <td>{CATEGORY_LABELS[row.category] || row.category}</td>
+                      <td>{statusLabels[row.status] || row.status}</td>
+                      <td>{categoryLabels[row.category] || row.category}</td>
                       <td>{row.affectedLogin || row.affectedUserId}</td>
-                      <td>{row.reporterLogin || '—'}</td>
+                      <td>{row.reporterLogin || t('securityInbox.common.missing')}</td>
                       <td>
                         <select
                           className="security-inbox-assign"
                           value={row.assignedAdminId ?? ''}
                           onChange={(e) => assignTicket(row.id, e.target.value)}
                         >
-                          <option value="">(nie przypisano)</option>
+                          <option value="">{t('securityInbox.assign.unassigned')}</option>
                           {admins.map((a) => (
                             <option key={a.id} value={a.id}>
                               {a.login}
@@ -384,23 +380,23 @@ const SecurityInboxPage = ({ embedded = false }) => {
                           <div className="security-inbox-actions-row security-inbox-actions-row--status-line">
                             <select
                               className="security-inbox-status-menu"
-                              aria-label="Szybka zmiana statusu zgłoszenia"
+                              aria-label={t('securityInbox.actions.quickStatusAria')}
                               defaultValue=""
                               onChange={(e) => {
                                 void handleStatusActionMenuChange(row.id, e);
                               }}
                             >
-                              <option value="">Status zgłoszenia…</option>
-                              <option value="IN_PROGRESS">Oznacz w trakcie</option>
-                              <option value="RESOLVED">Rozwiązane</option>
-                              <option value="DISMISS">Odrzuć</option>
+                              <option value="">{t('securityInbox.actions.statusMenu')}</option>
+                              <option value="IN_PROGRESS">{t('securityInbox.actions.markInProgress')}</option>
+                              <option value="RESOLVED">{t('securityInbox.actions.markResolved')}</option>
+                              <option value="DISMISS">{t('securityInbox.actions.dismiss')}</option>
                             </select>
                             <button
                               type="button"
                               className="security-inbox-delete-bin"
                               onClick={() => setDeleteConfirmTicketId(row.id)}
-                              aria-label="Usuń zgłoszenie"
-                              title="Usuń zgłoszenie"
+                              aria-label={t('securityInbox.actions.deleteTicket')}
+                              title={t('securityInbox.actions.deleteTicket')}
                             >
                               <img src="/icons/bin.png" alt="" width={22} height={22} />
                             </button>
@@ -408,15 +404,15 @@ const SecurityInboxPage = ({ embedded = false }) => {
                           <div className="security-inbox-actions-row security-inbox-actions-row--reset-line">
                             {row.affectedUserActive === false ? (
                               <button type="button" className="btn-secondary" onClick={() => quickAction(row.id, 'quick-unblock')}>
-                                Odblokuj konto
+                                {t('securityInbox.actions.unblock')}
                               </button>
                             ) : (
                               <button type="button" className="btn-secondary security-inbox-danger" onClick={() => quickAction(row.id, 'quick-block')}>
-                                Zablokuj konto
+                                {t('securityInbox.actions.block')}
                               </button>
                             )}
                             <button type="button" className="btn-secondary" onClick={() => quickAction(row.id, 'quick-force-password-reset')}>
-                              Wymuś reset hasła
+                              {t('securityInbox.actions.forcePasswordReset')}
                             </button>
                           </div>
                         </div>
@@ -426,16 +422,16 @@ const SecurityInboxPage = ({ embedded = false }) => {
                       <tr className="security-inbox-detail-row">
                         <td colSpan={8}>
                           <div className="security-inbox-detail">
-                            <h4>Opis</h4>
+                            <h4>{t('securityInbox.details.description')}</h4>
                             <pre className="security-inbox-description">{row.description}</pre>
-                            <h4>Log audytowy</h4>
-                            {loadingAudits && !auditsByTicket[row.id] && <p>Ładowanie audytu…</p>}
+                            <h4>{t('securityInbox.details.auditLog')}</h4>
+                            {loadingAudits && !auditsByTicket[row.id] && <p>{t('securityInbox.details.loadingAudit')}</p>}
                             <ul className="security-inbox-audit-list">
                               {(auditsByTicket[row.id] || []).map((a) => (
                                 <li key={a.id}>
                                   <time dateTime={a.createdAt}>{a.createdAt ? new Date(a.createdAt).toLocaleString('pl-PL') : ''}</time>
                                   {' — '}
-                                  {a.actorLogin ? `${a.actorLogin}: ` : 'System: '}
+                                  {a.actorLogin ? `${a.actorLogin}: ` : `${t('securityInbox.details.system')}: `}
                                   {a.message}
                                 </li>
                               ))}
@@ -460,7 +456,7 @@ const SecurityInboxPage = ({ embedded = false }) => {
           onClick={() => !isDeletingTicket && setDeleteConfirmTicketId(null)}
         >
           <div className="settings-report-dialog" onClick={(e) => e.stopPropagation()}>
-            <h4 id="security-delete-title">Czy chcesz usunąć zgłoszenie?</h4>
+            <h4 id="security-delete-title">{t('securityInbox.delete.confirmTitle')}</h4>
             <div className="settings-report-actions">
               <button
                 type="button"
@@ -468,10 +464,10 @@ const SecurityInboxPage = ({ embedded = false }) => {
                 onClick={() => !isDeletingTicket && setDeleteConfirmTicketId(null)}
                 disabled={isDeletingTicket}
               >
-                Nie
+                {t('securityInbox.common.no')}
               </button>
               <button type="button" className="btn-new-event" onClick={confirmDeleteTicket} disabled={isDeletingTicket}>
-                {isDeletingTicket ? 'Usuwanie…' : 'Tak'}
+                {isDeletingTicket ? t('securityInbox.delete.deleting') : t('securityInbox.common.yes')}
               </button>
             </div>
           </div>

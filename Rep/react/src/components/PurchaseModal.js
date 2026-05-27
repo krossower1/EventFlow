@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import SeatPlanMap from './SeatPlanMap';
 
 const PurchaseModal = ({
@@ -11,6 +12,7 @@ const PurchaseModal = ({
   onSubmit,
   loading
 }) => {
+  const { t } = useTranslation();
   if (!isOpen || !selectedEvent) return null;
 
   const selectedBilet = dostepneBilety.find((bilet) => String(bilet.biletId) === String(zakupForm.biletId));
@@ -37,27 +39,27 @@ const PurchaseModal = ({
       <div className="modal-card modal-card--w600">
         <div className="modal-header">
           <div className="modal-title">
-            Zakup biletów: <span className="header-accent">{selectedEvent.tytul}</span>
+            {t('purchase.modalTitle')} <span className="header-accent">{selectedEvent.tytul}</span>
           </div>
           <button
             type="button"
             className="modal-close"
             onClick={onClose}
-            aria-label="Zamknij"
+            aria-label={t('events.common.close')}
           >
             ×
           </button>
         </div>
 
         <form onSubmit={onSubmit} className="auth-form organizer-form">
-          <label htmlFor="zakup-bilet">Klasa biletu</label>
+          <label htmlFor="zakup-bilet">{t('purchase.ticketClass')}</label>
           <select
             id="zakup-bilet"
             value={zakupForm.biletId}
             onChange={(event) => setZakupForm((prev) => ({ ...prev, biletId: event.target.value, seatId: '' }))}
             required
           >
-            <option value="">Wybierz klasę biletu</option>
+            <option value="">{t('purchase.ticketClassSelect')}</option>
             {dostepneBilety.map((bilet) => (
               <option key={bilet.biletId} value={bilet.biletId}>
                 {bilet.klasa} - {bilet.cena} {bilet.waluta} - dostępne: {bilet.ilosc || bilet.dostepnaIlosc}
@@ -65,7 +67,7 @@ const PurchaseModal = ({
             ))}
           </select>
 
-          <label htmlFor="zakup-ilosc">Ilość</label>
+          <label htmlFor="zakup-ilosc">{t('purchase.quantity')}</label>
           <input
             id="zakup-ilosc"
             type="number"
@@ -78,7 +80,7 @@ const PurchaseModal = ({
 
           {selectedBilet?.requiresSeatSelection && (selectedBilet.kategoriaBiletu || 'miejscówka') === 'miejscówka' && (
             <>
-              <p>Wybierz wolne miejsce przypisane do tej klasy biletu.</p>
+              <p>{t('purchase.seatPickHint')}</p>
               <SeatPlanMap
                 seats={seats}
                 rows={rows}
@@ -100,11 +102,11 @@ const PurchaseModal = ({
               checked={zakupForm.potwierdzPlatnosc}
               onChange={(event) => setZakupForm((prev) => ({ ...prev, potwierdzPlatnosc: event.target.checked }))}
             />
-            Potwierdzam płatność testową
+            {t('purchase.confirmTestPayment')}
           </label>
 
           <button type="submit" disabled={loading || dostepneBilety.length === 0 || (selectedBilet?.requiresSeatSelection && (selectedBilet.kategoriaBiletu || 'miejscówka') === 'miejscówka' && !zakupForm.seatId)}>
-            Finalizuj zakup
+            {t('purchase.submit')}
           </button>
         </form>
       </div>

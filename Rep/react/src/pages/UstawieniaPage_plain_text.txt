@@ -1,0 +1,206 @@
+UstawieniaPage.jsx - plain text (manual translation source)
+
+[Klucze i18n użyte bezpośrednio]
+settings.page.title
+settings.profile.title
+settings.profile.subtitle
+settings.profile.edit
+settings.profile.saveChanges
+settings.notifications.title
+settings.notifications.subtitle
+settings.notifications.loading
+settings.language.title
+settings.language.option.pl
+settings.language.option.en
+settings.language.save
+settings.language.saving
+settings.language.saved
+settings.language.error
+common.saving
+common.cancel
+
+[Nazwy pol i etykiety profilu]
+Imie
+Nazwisko
+Email
+Telefon
+
+[Zakladki / podzakladki]
+Zmiana hasla
+2FA
+Czas sesji
+Historia logowan
+
+[Komunikaty statusu i bledow]
+Nie udalo sie pobrac sal.
+Osiagnieto pojemnosc sali.
+Nazwa rzedu musi miec 1 lub 2 litery.
+Nie mozna obrocic miejsca w tej pozycji - wykracza poza obszar.
+Nie mozna zapisac ukladu - miejsca nachodza na siebie.
+Uklad sali zostal zapisany.
+Nie udalo sie zapisac ukladu sali.
+Zmiany zapisane. Wyslalismy kod weryfikacyjny na nowy email. Zweryfikuj adres, aby aktywowac zmiane.
+Zmiany zostaly zapisane.
+Nie udalo sie zapisac zmian profilu.
+Podaj kod weryfikacyjny.
+Weryfikacja nie powiodla sie.
+Nowy email zostal zweryfikowany.
+Uzupelnij wszystkie pola.
+Nowe haslo i potwierdzenie musza byc takie same.
+Haslo zostalo zmienione.
+Nie udalo sie zmienic hasla.
+Nie udalo sie pobrac statusu 2FA.
+Nie udalo sie pobrac obserwowanych wydarzen.
+Nie udalo sie pobrac ustawien powiadomien.
+Zapisano ustawienie powiadomien.
+Nie udalo sie zapisac ustawienia powiadomien.
+Nie udalo sie pobrac historii logowan.
+Brak danych
+Zalogowano
+Nieudane logowanie
+Nieudany kod 2FA
+Zablokowano
+Nieznany status
+Zgloszenie zostalo wyslane do skrzynki administratorow.
+Nie udalo sie wyslac zgloszenia.
+Nie udalo sie wygenerowac kodu QR.
+Nie udalo sie pobrac ustawien czasu sesji.
+Nie udalo sie rozpoczac konfiguracji 2FA.
+Podaj kod 2FA.
+2FA zostalo wlaczone.
+Nie udalo sie wlaczyc 2FA.
+Podaj kod 2FA, aby wylaczyc ochrone.
+2FA zostalo wylaczone.
+Nie udalo sie wylaczyc 2FA.
+Ustawienia czasu sesji zostaly zapisane.
+Nie udalo sie zapisac ustawien czasu sesji.
+Ta sekcja zostanie dodana w kolejnych krokach.
+Wpisz kod weryfikacyjny
+Weryfikowanie...
+Zatwierdz
+
+[Powiadomienia - sekcja USER]
+Logowanie administratora do systemu
+Nowe wydarzenie
+Logowanie do systemu osoby z listy ulubionych
+Zakonczenie wydarzenia
+Tylko dla obserwowanego wydarzenia!
+Zblizajacy sie start wydarzenia
+Zwolnienie sie miejsca
+
+[Powiadomienia - sekcja ADMIN]
+Nowy wniosek o zwrot pieniedzy za bilet
+Nowy wniosek o role organizatora
+Nowe zgloszenie bezpieczenstwa
+
+[Obserwowane]
+Obserwowane
+Wydarzenia, ktore obserwujesz - aby dostosowac powiadomienia do wlasnych preferencji, przejdz do zakladki Powiadomienia i zaznacz opcje oznaczone gwiazdka.
+Ladowanie obserwowanych wydarzen...
+Nie obserwujesz jeszcze zadnych wydarzen.
+Aby to zrobic, przejdz do karty
+Wydarzenia
+Sala nieznana
+Nie udalo sie usunac z obserwowanych.
+Przestan obserwowac
+
+[Bezpieczenstwo - teksty glownych sekcji]
+Bezpieczenstwo
+Sekcje bezpieczenstwa
+Dostepne tylko dla administratora
+Zmiana hasla
+Stare haslo
+Pokaz haslo
+Ukryj haslo
+Nowe haslo
+Potwierdzenie nowego hasla
+Zapisz
+2FA
+Tutaj skonfigurujesz uwierzytelnianie dwuskladnikowe dla konta.
+Najpopularniejsze aplikacje do 2FA to: Google Authenticator oraz Microsoft Authenticator.
+Ladowanie statusu 2FA...
+Status 2FA:
+wlaczone
+wylaczone
+Kod 2FA
+Wpisz kod z aplikacji
+Wylaczanie...
+Wylacz 2FA
+Generowanie...
+Rozpocznij konfiguracje 2FA
+Kod QR konfiguracji 2FA
+Wlaczanie...
+Wlacz 2FA
+
+[Czas sesji]
+Czas sesji
+Skonfiguruj, czy licznik sesji ma byc aktywny oraz jak dlugo sesja moze trwac.
+Ladowanie ustawien czasu sesji...
+Wlacz licznik czasu sesji
+Wlacz lub wylacz licznik czasu sesji
+ON
+OFF
+Czas sesji (minuty)
+Czas ostrzezenia przed koncem sesji (minuty)
+Sposob liczenia czasu sesji
+Wybierz, czy sesja ma konczyc sie po stalym czasie, czy ma byc odnawiana aktywnoscia.
+Tryb liczenia
+Staly czas
+Reset aktywnoscia
+Po wygasnieciu sesji
+Wybierz, co aplikacja ma zrobic po uplywie czasu sesji.
+Akcja po wygasnieciu
+Zablokowanie ekranu
+Calkowite wylogowanie
+Zapisz ustawienia czasu sesji
+
+[Historia logowan]
+Przeglad ostatnich prob logowania do konta. Sprawdz, czy wszystkie wpisy sa Ci znane.
+Ladowanie historii logowan...
+Data i godzina
+Urzadzenie
+Lokalizacja
+Status
+Akcja
+Brak wpisow historii logowan.
+Nieznane urzadzenie
+Nieznana lokalizacja
+Administrator nie zglasza logowan z tego poziomu.
+Brak identyfikatora wpisu - odswiez strone.
+Wyslij zgloszenie do administratorow
+Zglos
+Zglos wpis z historii logowan
+Administratorzy zobacza to zgloszenie w panelu administratora (ikona w gornym pasku) -> Zgloszenia.
+Opcjonalna wiadomosc
+Np. nie rozpoznaje tego urzadzenia ani miejsca...
+Anuluj
+Wysylanie...
+Wyslij zgloszenie
+
+[Uklady sal]
+Tylko organizator moze zarzadzac ukladami sal.
+Ladowanie sal...
+(bez planu)
+Brak sal dla tego miejsca.
+Nie masz jeszcze miejsc ani sal.
+pojemnosc:
+Szerokosc obszaru
+Wysokosc obszaru
+Dodaj miejsce
+Rzad
+Dodaj rzad
+Obroc
+Zapisz uklad
+Szerokosc rzedu
+Wysokosc rzedu
+RZ
+
+[Wartosci techniczne / stale widoczne w kodzie]
+LOCK_SCREEN
+LOGOUT
+ABSOLUTE
+RELATIVE
+SUKCES
+NIEUDANE_HASLO_LUB_LOGIN
+NIEUDANY_2FA
+ZABLOKOWANO_BRAK_WERYFIKACJI_EMAIL

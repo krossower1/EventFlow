@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authService } from '../services/authService';
 import { ensureObservedLoaded, invalidateObservedCache } from '../utils/obserwowaneWydarzenia';
+import i18n from '../i18n';
 
 export const AuthContext = createContext();
 const DEFAULT_SESSION_TIMEOUT_MINUTES = 10;
@@ -8,11 +9,37 @@ const DEFAULT_SESSION_TIMEOUT_SECONDS = DEFAULT_SESSION_TIMEOUT_MINUTES * 60;
 const DEFAULT_SESSION_WARNING_MINUTES = 1;
 const DEFAULT_SESSION_EXPIRY_ACTION = 'LOGOUT';
 const DEFAULT_SESSION_COUNT_MODE = 'RELATIVE';
+const DEFAULT_LANGUAGE = 'pl';
+const LANGUAGE_STORAGE_KEY = 'appLanguage';
 const MIN_SESSION_TIMEOUT_MINUTES = 1;
 const MAX_SESSION_TIMEOUT_MINUTES = 1440;
 const SESSION_SETTINGS_STORAGE_KEY = 'sessionSettingsCache';
 
 export const AuthProvider = ({ children }) => {
+  const getCachedLanguage = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+      return raw === 'en' ? 'en' : DEFAULT_LANGUAGE;
+    } catch (error) {
+      return DEFAULT_LANGUAGE;
+    }
+  }, []);
+
+  const resolveLanguage = useCallback((language) => {
+    if (language === 'en' || language === 'pl') {
+      return language;
+    }
+    return getCachedLanguage();
+  }, [getCachedLanguage]);
+
+  const applyLanguagePreference = useCallback((language) => {
+    const resolvedLanguage = resolveLanguage(language);
+    i18n.changeLanguage(resolvedLanguage);
+    document.documentElement.lang = resolvedLanguage;
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, resolvedLanguage);
+    return resolvedLanguage;
+  }, [resolveLanguage]);
+
   // Stan autoryzacji
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
@@ -25,7 +52,8 @@ export const AuthProvider = ({ children }) => {
     imie: '',
     nazwisko: '',
     email: '',
-    telefon: ''
+    telefon: '',
+    language: DEFAULT_LANGUAGE
   });
   
   // Poświadczenia potrzebne do Basic Auth w innych zapytaniach
@@ -117,7 +145,8 @@ export const AuthProvider = ({ children }) => {
       imie: userSource.imie || '',
       nazwisko: userSource.nazwisko || '',
       email: userSource.email || userSource.mail || userSource.e_mail || '',
-      telefon: userSource.telefon || userSource.phone || userSource.nrTelefonu || ''
+      telefon: userSource.telefon || userSource.phone || userSource.nrTelefonu || '',
+      language: applyLanguagePreference(userSource.language)
     };
     setCurrentUser({
       ...normalizedUser
@@ -125,7 +154,7 @@ export const AuthProvider = ({ children }) => {
     if (String(normalizedUser.rola || '').toUpperCase() === 'USER' && normalizedUser.id != null) {
       ensureObservedLoaded(credentials, normalizedUser.id).catch(() => {});
     }
-  },[]);
+  }, [applyLanguagePreference]);
 
   // Sprawdzanie sesji przy starcie
   const checkExistingSession = useCallback(async () => {
@@ -208,7 +237,8 @@ export const AuthProvider = ({ children }) => {
       // Inny użytkownik po ponownym logowaniu nie powinien widzieć poprzedniej listy obserwowanych z cache.
       invalidateObservedCache();
       setIsLoggedIn(false);
-      setCurrentUser({ id: null, login: '', rola: '', imie: '', nazwisko: '', email: '', telefon: '' });
+      setCurrentUser({ id: null, login: '', rola: '', imie: '', nazwisko: '', email: '', telefon: '', language: DEFAULT_LANGUAGE });
+      applyLanguagePreference(DEFAULT_LANGUAGE);
       setAuthCredentials({ login: '', password: '' });
       setSessionTimeoutEnabled(true);
       setSessionTimeoutMinutes(DEFAULT_SESSION_TIMEOUT_MINUTES);
@@ -224,7 +254,7 @@ export const AuthProvider = ({ children }) => {
       setUnlockError('');
       document.cookie = "JSESSIONID=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     }
-  }, []);
+  }, [applyLanguagePreference]);
 
   const handleDeleteOwnAccount = useCallback(async () => {
     await authService.deleteOwnAccount();

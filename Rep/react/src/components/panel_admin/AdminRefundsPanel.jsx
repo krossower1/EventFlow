@@ -1,9 +1,11 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../../context/AuthContext';
 import { API_BASE_URL, getAuthHeaders } from '../../api/apiClient';
 
 const AdminRefundsPanel = () => {
+  const { t } = useTranslation();
   const { authCredentials, isLoggedIn } = useContext(AuthContext);
   const [zwroty, setZwroty] = useState([]);
   const [status, setStatus] = useState({ type: '', message: '' });
@@ -23,11 +25,11 @@ const AdminRefundsPanel = () => {
       const response = await axios.get(`${API_BASE_URL}/zwroty`, getRequestConfig());
       setZwroty(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
-      setStatus({ type: 'error', message: 'Nie udało się pobrać próśb o zwrot.' });
+      setStatus({ type: 'error', message: t('adminRefunds.status.fetchError') });
     } finally {
       setLoading(false);
     }
-  }, [getRequestConfig]);
+  }, [getRequestConfig, t]);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -37,28 +39,28 @@ const AdminRefundsPanel = () => {
   const handleApprove = async (id) => {
     try {
       await axios.post(`${API_BASE_URL}/zwroty/${id}/approve`, {}, getRequestConfig());
-      setStatus({ type: 'success', message: 'Zwrot zaakceptowany.' });
+      setStatus({ type: 'success', message: t('adminRefunds.status.approveSuccess') });
       fetchZwroty();
     } catch (error) {
-      setStatus({ type: 'error', message: 'Nie udało się zaakceptować zwrotu.' });
+      setStatus({ type: 'error', message: t('adminRefunds.status.approveError') });
     }
   };
 
   return (
     <div className="admin-panel-section">
       {status.message && <p className={`status-message ${status.type}`}>{status.message}</p>}
-      {loading && <p>Ładowanie próśb o zwrot...</p>}
+      {loading && <p>{t('adminRefunds.loading')}</p>}
       <table className="participants-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Użytkownik</th>
-            <th>Wydarzenie</th>
-            <th>Klasa</th>
-            <th>Kwota</th>
-            <th>Powód</th>
-            <th>Stan</th>
-            <th>Akcje</th>
+            <th>{t('adminRefunds.table.id')}</th>
+            <th>{t('adminRefunds.table.user')}</th>
+            <th>{t('adminRefunds.table.event')}</th>
+            <th>{t('adminRefunds.table.class')}</th>
+            <th>{t('adminRefunds.table.amount')}</th>
+            <th>{t('adminRefunds.table.reason')}</th>
+            <th>{t('adminRefunds.table.state')}</th>
+            <th>{t('adminRefunds.table.actions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -72,12 +74,12 @@ const AdminRefundsPanel = () => {
               <td>{z.powod}</td>
               <td>{z.stan}</td>
               <td>
-                <button type="button" className="buttonv2" onClick={() => handleApprove(z.id)}>Akceptuj</button>
+                <button type="button" className="buttonv2" onClick={() => handleApprove(z.id)}>{t('adminRefunds.actions.approve')}</button>
               </td>
             </tr>
           )) : (
             <tr>
-              <td colSpan={8}>Brak próśb o zwrot.</td>
+              <td colSpan={8}>{t('adminRefunds.empty')}</td>
             </tr>
           )}
         </tbody>
