@@ -97,5 +97,17 @@ public class User {
 	@Column(name = "notify_observed_seat_freed", nullable = false)
 	private Boolean notifyObservedSeatFreed = true;
 
+	/** Powiadomienie ADMIN: nowy wniosek o zwrot biletu. */
+	@Column(name = "notify_new_refund_request", nullable = false)
+	private Boolean notifyNewRefundRequest = true;
+
+	/** Powiadomienie ADMIN: nowy wniosek o rolę organizatora. */
+	@Column(name = "notify_new_organizer_request", nullable = false)
+	private Boolean notifyNewOrganizerRequest = true;
+
+	/** Powiadomienie ADMIN: nowe zgłoszenie bezpieczeństwa w skrzynce. */
+	@Column(name = "notify_new_security_report", nullable = false)
+	private Boolean notifyNewSecurityReport = true;
+
 	private Boolean aktywnosc;
 }

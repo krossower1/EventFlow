@@ -6,6 +6,7 @@ import com.eventflow.com.model.Organizator;
 import com.eventflow.com.model.User;
 import com.eventflow.com.repository.OrganizatorRepository;
 import com.eventflow.com.repository.UserRepository;
+import com.eventflow.com.service.NotificationService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -24,10 +25,16 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 public class OrganizatorController {
 	private final OrganizatorRepository organizatorRepository;
 	private final UserRepository userRepository;
+	private final NotificationService notificationService;
 
-	public OrganizatorController(OrganizatorRepository organizatorRepository, UserRepository userRepository) {
+	public OrganizatorController(
+		OrganizatorRepository organizatorRepository,
+		UserRepository userRepository,
+		NotificationService notificationService
+	) {
 		this.organizatorRepository = organizatorRepository;
 		this.userRepository = userRepository;
+		this.notificationService = notificationService;
 	}
 
 	@PostMapping("/request")
@@ -52,7 +59,8 @@ public class OrganizatorController {
 		organizator.setStrona(request.strona());
 		organizator.setZweryfikow(false);
 		organizator.setDataUtw(LocalDateTime.now());
-		organizatorRepository.save(organizator);
+		Organizator saved = organizatorRepository.save(organizator);
+		notificationService.notifyNewOrganizerRequest(saved, currentUser);
 
 		return ResponseEntity.ok("Wniosek organizatora zostal zapisany.");
 	}
