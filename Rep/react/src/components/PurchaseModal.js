@@ -10,7 +10,8 @@ const PurchaseModal = ({
   zakupForm,
   setZakupForm,
   onSubmit,
-  loading
+  loading,
+  walletBalance
 }) => {
   const { t } = useTranslation();
   if (!isOpen || !selectedEvent) return null;
@@ -26,6 +27,10 @@ const PurchaseModal = ({
     return acc;
   }, {});
   const selectableSeatIds = new Set(selectedBilet?.assignedSeatIds || []);
+
+  const totalPrice = selectedBilet ? (selectedBilet.cena * (zakupForm.ilosc || 1)) : 0;
+  const balanceAfterPurchase = walletBalance !== null ? (walletBalance - totalPrice) : null;
+  const canAfford = walletBalance !== null && walletBalance >= totalPrice;
 
   return (
     <div
@@ -98,6 +103,30 @@ const PurchaseModal = ({
             </>
           )}
 
+          <div className="wallet-info-section">
+            <div className="wallet-balance-display">
+              <span>Stan portfela: </span>
+              <span className="wallet-balance-amount">{walletBalance !== null ? walletBalance.toFixed(2) + ' PLN' : 'Ładowanie...'}</span>
+            </div>
+            {selectedBilet && (
+              <div className="wallet-purchase-info">
+                <div className="wallet-total-price">
+                  <span>Kwota zakupu: </span>
+                  <span className="wallet-price-amount">{totalPrice.toFixed(2)} PLN</span>
+                </div>
+                {walletBalance !== null && (
+                  <div className={`wallet-balance-after ${canAfford ? 'is-sufficient' : 'is-insufficient'}`}>
+                    <span>Stan po zakupie: </span>
+                    <span className="wallet-balance-after-amount">{balanceAfterPurchase.toFixed(2)} PLN</span>
+                  </div>
+                )}
+                {!canAfford && walletBalance !== null && (
+                  <p className="wallet-insufficient-funds">Niewystarczające środki w portfelu!</p>
+                )}
+              </div>
+            )}
+          </div>
+
           <label htmlFor="zakup-potwierdzenie">
             <input
               id="zakup-potwierdzenie"
@@ -108,7 +137,7 @@ const PurchaseModal = ({
             {t('purchase.confirmTestPayment')}
           </label>
 
-          <button type="submit" disabled={loading || dostepneBilety.length === 0 || (selectedBilet?.requiresSeatSelection && (selectedBilet.kategoriaBiletu || 'miejscówka') === 'miejscówka' && !zakupForm.seatId)}>
+          <button type="submit" disabled={loading || dostepneBilety.length === 0 || (selectedBilet?.requiresSeatSelection && (selectedBilet.kategoriaBiletu || 'miejscówka') === 'miejscówka' && !zakupForm.seatId) || !canAfford}>
             {t('purchase.submit')}
           </button>
         </form>

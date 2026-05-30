@@ -73,6 +73,12 @@ public class User {
 	@Column(columnDefinition = "TEXT")
 	private String platnosc;
 
+	@Column(name = "wallet_balance")
+	private java.math.BigDecimal walletBalance = java.math.BigDecimal.ZERO;
+
+	@Column(name = "bank_account_number", length = 32)
+	private String bankAccountNumber;
+
 	private String rola;
 
 	@Column(name = "data_utw")
