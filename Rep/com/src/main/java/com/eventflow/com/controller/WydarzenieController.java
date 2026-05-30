@@ -205,7 +205,8 @@ public class WydarzenieController {
 		LocalDateTime now = LocalDateTime.now();
 
 		List<Wydarzenie> wydarzeniaDoPokazania = new ArrayList<>(
-			wydarzenieRepository.findByDataZamkAfterOrderByDataRozpAsc(now).stream()
+			wydarzenieRepository.findAll().stream()
+				.filter(w -> w.getDataZamk() != null && w.getDataZamk().isAfter(now))
 				.filter(w -> STATUS_AKTYWNY.equals(normalizeStatus(w.getStatus())))
 				.toList()
 		);

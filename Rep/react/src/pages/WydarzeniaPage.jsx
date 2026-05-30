@@ -8,6 +8,10 @@ import PurchaseModal from '../components/PurchaseModal';
 import SeatPlanMap from '../components/SeatPlanMap';
 import { ensureObservedLoaded, getObservedEvents, OBSERVED_EVENTS_CHANGED } from '../utils/obserwowaneWydarzenia';
 
+const TICKET_CATEGORY_SEAT = 'MIEJSCOWKA';
+const isSeatTicketCategory = (value) => !String(value || TICKET_CATEGORY_SEAT).trim().toLowerCase().startsWith('wej');
+const isSeatPlanElement = (item) => String(item?.type || 'SEAT').toUpperCase() !== 'ROW';
+
 const WydarzeniaPage = () => {
   const { t } = useTranslation();
   const { currentUser, authCredentials } = useContext(AuthContext);
@@ -30,7 +34,7 @@ const WydarzeniaPage = () => {
     createNowaKategoria: false,
     nowaKategoriaNazwa: '',
     nowaKategoriaOpis: '',
-    bilety: [{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [] }]
+    bilety: [{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [], kategoriaBiletu: 'miejscówka' }]
   });
   const [status, setStatus] = useState({ type: '', message: '' });
   const [ticketForms, setTicketForms] = useState({});
@@ -59,7 +63,11 @@ const WydarzeniaPage = () => {
     () => Array.isArray(selectedSala?.seats) ? selectedSala.seats : [],
     [selectedSala]
   );
-  const hasSelectedSalaPlan = Boolean(selectedSala?.maPlan && selectedSalaSeats.length > 0);
+  const selectedSalaSeatPlaces = useMemo(
+    () => selectedSalaSeats.filter(isSeatPlanElement),
+    [selectedSalaSeats]
+  );
+  const hasSelectedSalaPlan = Boolean(selectedSala?.maPlan) || selectedSalaSeatPlaces.length > 0;
 
   const getRequestConfig = useCallback(() => {
     const config = { withCredentials: true };
@@ -73,7 +81,28 @@ const WydarzeniaPage = () => {
     setWydarzenieLoading(true);
     try {
       const response = await apiClient.get('/wydarzenia/options', getRequestConfig());
-      setWydarzenieOptions(response.data);
+      const miejscaResponse = await apiClient.get('/miejsca/my', getRequestConfig());
+      const saleById = new Map(
+        (Array.isArray(miejscaResponse.data) ? miejscaResponse.data : [])
+          .flatMap((miejsce) => miejsce.sale || [])
+          .map((sala) => [String(sala.id), sala])
+      );
+      const options = response.data || {};
+      setWydarzenieOptions({
+        ...options,
+        sale: (options.sale || []).map((sala) => {
+          const fullSala = saleById.get(String(sala.id));
+          if (!fullSala) return sala;
+          const seats = Array.isArray(sala.seats) && sala.seats.length > 0 ? sala.seats : (fullSala.seats || []);
+          return {
+            ...sala,
+            maPlan: sala.maPlan ?? fullSala.maPlan,
+            layoutWidth: fullSala.layoutWidth,
+            layoutHeight: fullSala.layoutHeight,
+            seats
+          };
+        })
+      });
     } catch (error) {
       setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.optionsFetchError') });
     } finally {
@@ -166,7 +195,7 @@ const WydarzeniaPage = () => {
       wydarzenieForm.bilety.flatMap((bilet, biletIndex) => (biletIndex === index ? [] : (bilet.seatIds || [])))
     );
     return new Set(
-      selectedSalaSeats
+      selectedSalaSeatPlaces
         .map((seat) => seat.id)
         .filter((seatId) => !blocked.has(seatId) || currentSeatIds.includes(seatId))
     );
@@ -217,7 +246,8 @@ const WydarzeniaPage = () => {
             ilosc: Number(b.ilosc),
             startSprzedazy: b.start_sprzedazy || null,
             koniecSprzedazy: b.koniec_sprzedazy || null,
-            seatIds: b.seatIds || []
+            seatIds: b.seatIds || [],
+            kategoriaBiletu: b.kategoriaBiletu || 'miejscówka'
           }))
         },
         getRequestConfig()
@@ -229,7 +259,7 @@ const WydarzeniaPage = () => {
         salaId: '', tytul: '', opis: '', kategoriaId: '', status: '',
         dataRozp: '', dataZamk: '', createNowaKategoria: false,
         nowaKategoriaNazwa: '', nowaKategoriaOpis: '',
-        bilety: [{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [] }]
+        bilety: [{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [], kategoriaBiletu: 'miejscówka' }]
       });
       fetchWydarzeniaOptions();
       fetchMyWydarzenia();
@@ -684,7 +714,7 @@ const WydarzeniaPage = () => {
                           <input id={`bilet-cena-${index}`} type="number" step="0.01" placeholder={t('events.tickets.price')} value={bilet.cena} onChange={(e) => updateBiletInForm(index, 'cena', e.target.value)} required />
 
                           <label htmlFor={`bilet-ilosc-${index}`}>{t('events.tickets.quantity')}</label>
-                          <input id={`bilet-ilosc-${index}`} type="number" placeholder={t('events.tickets.quantity')} value={bilet.ilosc} onChange={(e) => updateBiletInForm(index, 'ilosc', e.target.value)} disabled={hasSelectedSalaPlan && (bilet.kategoriaBiletu || 'miejscówka') === 'miejscówka'} required />
+                          <input id={`bilet-ilosc-${index}`} type="number" placeholder={t('events.tickets.quantity')} value={bilet.ilosc} onChange={(e) => updateBiletInForm(index, 'ilosc', e.target.value)} disabled={hasSelectedSalaPlan && isSeatTicketCategory(bilet.kategoriaBiletu)} required />
 
                           <label htmlFor={`bilet-waluta-${index}`}>{t('events.tickets.currency')}</label>
                           <select id={`bilet-waluta-${index}`} value={bilet.waluta} onChange={(e) => updateBiletInForm(index, 'waluta', e.target.value)} required>
@@ -699,18 +729,22 @@ const WydarzeniaPage = () => {
                           <label htmlFor={`bilet-koniec-${index}`}>{t('events.tickets.salesEnd')}</label>
                           <input id={`bilet-koniec-${index}`} type="datetime-local" value={bilet.koniec_sprzedazy} onChange={(e) => updateBiletInForm(index, 'koniec_sprzedazy', e.target.value)} />
 
-                          {hasSelectedSalaPlan && (bilet.kategoriaBiletu || 'miejscówka') === 'miejscówka' && (
+                          {hasSelectedSalaPlan && isSeatTicketCategory(bilet.kategoriaBiletu) && (
                             <>
                               <p style={{ margin: '8px 0 0', color: '#cbd5e1' }}>{t('events.tickets.seatHint')}</p>
-                              <SeatPlanMap
-                                seats={selectedSalaSeats}
-                                rows={selectedSalaSeats.filter((item) => (item.type || 'SEAT') === 'ROW')}
-                                seatClassById={getSeatClassById()}
-                                selectedSeatIds={bilet.seatIds || []}
-                                selectableSeatIds={getSelectableSeatIds(index)}
-                                onSeatClick={(seatId) => toggleBiletSeat(index, seatId)}
-                                showLegend
-                              />
+                              {selectedSalaSeatPlaces.length > 0 ? (
+                                <SeatPlanMap
+                                  seats={selectedSalaSeats}
+                                  rows={selectedSalaSeats.filter((item) => String(item?.type || '').toUpperCase() === 'ROW')}
+                                  seatClassById={getSeatClassById()}
+                                  selectedSeatIds={bilet.seatIds || []}
+                                  selectableSeatIds={getSelectableSeatIds(index)}
+                                  onSeatClick={(seatId) => toggleBiletSeat(index, seatId)}
+                                  showLegend
+                                />
+                              ) : (
+                                <p className="status-message error">Nie udało się pobrać miejsc dla wybranej sali.</p>
+                              )}
                             </>
                           )}
 

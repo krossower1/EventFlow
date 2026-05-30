@@ -90,6 +90,9 @@ const PurchaseModal = ({
                 selectableSeatIds={selectableSeatIds}
                 onSeatClick={(seatId) => setZakupForm((prev) => ({ ...prev, seatId, ilosc: '1' }))}
                 showLegend
+                width={500}
+                height={292}
+                baseScale={0.69}
               />
               <input type="hidden" name="seatId" value={zakupForm.seatId || ''} />
             </>

@@ -1,9 +1,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-const CANVAS_WIDTH = 720;
-const CANVAS_HEIGHT = 420;
-const PADDING = 24;
+const DEFAULT_CANVAS_WIDTH = 540;
+const DEFAULT_CANVAS_HEIGHT = 315;
+const PADDING = 12;
+const DEFAULT_BASE_SCALE = 0.75;
 
 const getSeatTone = (seatClass) => {
   const normalized = String(seatClass || '').trim().toLowerCase();
@@ -24,13 +25,18 @@ const getSeatSize = (seat) => {
   }
 };
 
-const normalizeSeats = (seats) => {
+const isSeatElement = (seat) => String(seat?.type || 'SEAT').toUpperCase() !== 'ROW';
+
+const normalizeSeats = (seats, canvasWidth, canvasHeight, baseScale) => {
   if (!Array.isArray(seats) || seats.length === 0) {
     return [];
   }
 
   // Filter out rows (groups) - only show seats
-  const seatsOnly = seats.filter((seat) => (seat.type || 'SEAT') === 'SEAT');
+  const seatsOnly = seats.filter(isSeatElement);
+  if (seatsOnly.length === 0) {
+    return [];
+  }
 
   const bounds = seatsOnly.reduce((acc, seat) => {
     const size = getSeatSize(seat);
@@ -50,20 +56,17 @@ const normalizeSeats = (seats) => {
     maxY: Number.NEGATIVE_INFINITY
   });
 
-  const contentWidth = bounds.maxX - bounds.minX;
-  const contentHeight = bounds.maxY - bounds.minY;
+  const contentWidth = Math.max(1, bounds.maxX - bounds.minX);
+  const contentHeight = Math.max(1, bounds.maxY - bounds.minY);
   
-  // Calculate scale to fit within canvas with padding
+  // Move the top-left seat close to the canvas border and keep the whole layout together.
   const scale = Math.min(
-    (CANVAS_WIDTH - PADDING * 2) / contentWidth,
-    (CANVAS_HEIGHT - PADDING * 2) / contentHeight
+    baseScale,
+    (canvasWidth - PADDING * 2) / contentWidth,
+    (canvasHeight - PADDING * 2) / contentHeight
   );
-  
-  // Center the content in the canvas
-  const scaledWidth = contentWidth * scale;
-  const scaledHeight = contentHeight * scale;
-  const offsetX = (CANVAS_WIDTH - scaledWidth) / 2 - bounds.minX * scale;
-  const offsetY = (CANVAS_HEIGHT - scaledHeight) / 2 - bounds.minY * scale;
+  const offsetX = PADDING - bounds.minX * scale;
+  const offsetY = PADDING - bounds.minY * scale;
 
   return seatsOnly.map((seat) => {
     const size = getSeatSize(seat);
@@ -88,10 +91,13 @@ const SeatPlanMap = ({
   activeSeatId = '',
   selectableSeatIds = null,
   onSeatClick,
-  showLegend = false
+  showLegend = false,
+  width = DEFAULT_CANVAS_WIDTH,
+  height = DEFAULT_CANVAS_HEIGHT,
+  baseScale = DEFAULT_BASE_SCALE
 }) => {
   const { t } = useTranslation();
-  const normalizedSeats = normalizeSeats(seats);
+  const normalizedSeats = normalizeSeats(seats, width, height, baseScale);
 
   const getSeatDisplayLabel = (seat) => {
     const fallbackLabel = (() => {
@@ -121,7 +127,7 @@ const SeatPlanMap = ({
     // Find all seats in this row
     const seatsInRow = seats
       .filter((item) => {
-        if ((item.type || 'SEAT') !== 'SEAT') return false;
+        if (!isSeatElement(item)) return false;
         const centerX = item.x + 18;
         const centerY = item.y + 18;
         const rowWidth = Number(row.width) || 200;
@@ -139,7 +145,7 @@ const SeatPlanMap = ({
 
   return (
     <div className="seat-plan-layout">
-      <div className="purchase-seat-map">
+      <div className="purchase-seat-map" style={{ width, height }}>
         {normalizedSeats.map((seat, index) => {
           const occupied = occupiedSeatIds.includes(seat.id);
           const selected = activeSeatId === seat.id || selectedSeatIds.includes(seat.id);
