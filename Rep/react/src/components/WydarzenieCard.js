@@ -9,6 +9,7 @@ import {
   isEventObserved,
   isEventStatusActive,
   OBSERVED_EVENTS_CHANGED,
+  removeObservedEvent,
 } from '../utils/obserwowaneWydarzenia';
 
 const formatEventDate = (value) => {
@@ -80,13 +81,13 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
     return () => window.removeEventListener(OBSERVED_EVENTS_CHANGED, syncObserved);
   }, [currentUser?.id, item.id]);
 
-  const observeDisabled = !isUser || !isActive || isObserved || isObserving;
+  const observeDisabled = !isUser || !isActive || isObserving;
   const observeTooltip = !isUser
     ? t('events.tooltip.onlyUser')
     : !isActive
       ? t('eventsCard.observe.onlyActive')
       : isObserved
-        ? t('eventsCard.observe.alreadyObserved')
+        ? 'Przestań obserwować'
         : t('eventsCard.observe.add');
 
   /** POST /api/obserwowane/{id} — tylko USER i wydarzenie AKTYWNE (warunki w observeDisabled). */
@@ -94,8 +95,13 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
     if (observeDisabled || !currentUser?.id) return;
     setIsObserving(true);
     try {
-      const added = await addObservedEvent(authCredentials, currentUser.id, item);
-      if (added) setIsObserved(true);
+      if (isObserved) {
+        await removeObservedEvent(authCredentials, currentUser.id, item.id);
+        setIsObserved(false);
+      } else {
+        const added = await addObservedEvent(authCredentials, currentUser.id, item);
+        if (added) setIsObserved(true);
+      }
     } catch {
       // Stan pozostaje bez zmian; użytkownik może spróbować ponownie.
     } finally {

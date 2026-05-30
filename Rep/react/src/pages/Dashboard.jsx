@@ -8,55 +8,42 @@ import PurchaseModal from '../components/PurchaseModal';
 const Dashboard = () => {
   const { currentUser, authCredentials } = useContext(AuthContext);
   const navigate = useNavigate();
-  const[openWydarzenia, setOpenWydarzenia] = useState([]);
+  const [openWydarzenia, setOpenWydarzenia] = useState([]);
   const [status, setStatus] = useState({ type: '', message: '' });
-
-  // Stany dla formularza zakupu
-  const[zakupFormOpen, setZakupFormOpen] = useState(false);
+  const [zakupFormOpen, setZakupFormOpen] = useState(false);
   const [selectedZakupEvent, setSelectedZakupEvent] = useState(null);
   const [dostepneBilety, setDostepneBilety] = useState([]);
   const [zakupLoading, setZakupLoading] = useState(false);
-  const[zakupForm, setZakupForm] = useState({ biletId: '', ilosc: '1', potwierdzPlatnosc: false, seatId: '' });
+  const [zakupForm, setZakupForm] = useState({ biletId: '', ilosc: '1', potwierdzPlatnosc: false, seatId: '' });
 
-  // Pobieranie aktywnych wydarzeń
+  const getRequestConfig = useCallback(() => {
+    const config = { withCredentials: true };
+    if (authCredentials.login && authCredentials.password) {
+      config.headers = getAuthHeaders(authCredentials.login, authCredentials.password);
+    }
+    return config;
+  }, [authCredentials]);
+
   const fetchOpenWydarzenia = useCallback(async () => {
-    const getRequestConfig = () => {
-      const config = { withCredentials: true };
-      if (authCredentials.login && authCredentials.password) {
-        config.headers = getAuthHeaders(authCredentials.login, authCredentials.password);
-      }
-      return config;
-    };
-
     try {
       const response = await apiClient.get('/wydarzenia/open', getRequestConfig());
       setOpenWydarzenia(response.data);
     } catch (error) {
       setStatus({ type: 'error', message: 'Nie udało się pobrać aktualnych wydarzeń.' });
     }
-  }, [authCredentials]);
+  }, [getRequestConfig]);
 
   useEffect(() => {
     fetchOpenWydarzenia();
   }, [fetchOpenWydarzenia]);
 
-  // Akcja "Więcej informacji"
   const handleMoreInfo = (wydarzenieId) => {
-    navigate(`/wydarzenia/${wydarzenieId}`); // Przekierowanie do ścieżki szczegółów (zrobimy ją w kolejnym kroku)
+    navigate(`/wydarzenia/${wydarzenieId}`);
   };
 
-  // Obsługa zakupu
   const openZakupForm = async (eventItem) => {
     setZakupLoading(true);
     setStatus({ type: '', message: '' });
-
-    const getRequestConfig = () => {
-      const config = { withCredentials: true };
-      if (authCredentials.login && authCredentials.password) {
-        config.headers = getAuthHeaders(authCredentials.login, authCredentials.password);
-      }
-      return config;
-    };
 
     try {
       const response = await apiClient.get(`/zakupy/wydarzenia/${eventItem.id}/bilety`, getRequestConfig());
@@ -80,14 +67,6 @@ const Dashboard = () => {
     e.preventDefault();
     setZakupLoading(true);
 
-    const getRequestConfig = () => {
-      const config = { withCredentials: true };
-      if (authCredentials.login && authCredentials.password) {
-        config.headers = getAuthHeaders(authCredentials.login, authCredentials.password);
-      }
-      return config;
-    };
-
     try {
       await apiClient.post(`/zakupy/wydarzenia/${selectedZakupEvent.id}`, {
         biletId: Number(zakupForm.biletId),
@@ -97,7 +76,7 @@ const Dashboard = () => {
       }, getRequestConfig());
       setStatus({ type: 'success', message: 'Zakup zakończony pomyślnie.' });
       setZakupFormOpen(false);
-      fetchOpenWydarzenia(); // Odśwież postęp biletów
+      fetchOpenWydarzenia();
     } catch (error) {
       setStatus({ type: 'error', message: 'Nie udało się zakończyć zakupu.' });
     } finally {
@@ -105,12 +84,33 @@ const Dashboard = () => {
     }
   };
 
-  /*
   return (
-    <div>
-      <h2>Panel główny</h2>
-      <p>Witaj w dashboardzie EventFlow! Wybierz zakładkę, aby zarządzać różnymi aspektami aplikacji.</p>
-      
+    <div className="dashboard-home">
+      <section className="dashboard-intro">
+        <p className="dashboard-kicker">EventFlow</p>
+        <h2>Panel główny</h2>
+        <p>
+          EventFlow pomaga organizować wydarzenia, zarządzać salami, biletami,
+          personelem, opiniami i zgłoszeniami w jednym miejscu.
+        </p>
+        <div className="dashboard-tabs-guide">
+          <span><strong>Wydarzenia</strong> - przegląd aktywnych wydarzeń, zakup biletów i szczegóły.</span>
+          <span><strong>Bilety</strong> - zakupione bilety oraz prośby o zwrot.</span>
+          <span><strong>Ustawienia</strong> - konto, sale i układy miejsc dla organizatorów.</span>
+          <span><strong>Panel admina</strong> - moderacja zwrotów, zgłoszeń i danych systemowych.</span>
+        </div>
+      </section>
+
+      <section className="dashboard-patch-notes">
+        <h3>Notatki ze zmian</h3>
+        <ul>
+          <li>Nieaktywne i zakończone wydarzenia są ukryte na liście wydarzeń.</li>
+          <li>Obserwowane wydarzenia pojawiają się wyżej i można je odobserwować.</li>
+          <li>Po zaakceptowaniu zwrotu bilet znika z listy biletów użytkownika.</li>
+          <li>Panel główny dostał krótki przewodnik po najważniejszych zakładkach.</li>
+        </ul>
+      </section>
+
       {status.message && <p className={`status-message ${status.type}`}>{status.message}</p>}
 
       <div className="dashboard-events">
@@ -118,12 +118,12 @@ const Dashboard = () => {
         <div className="events-grid">
           {openWydarzenia.length > 0 ? (
             openWydarzenia.slice(0, 3).map((item) => (
-              <WydarzenieCard 
-                key={item.id} 
-                item={item} 
-                currentUserRole={currentUser.rola} 
-                onMoreInfo={handleMoreInfo} 
-                onPurchase={openZakupForm} 
+              <WydarzenieCard
+                key={item.id}
+                item={item}
+                currentUserRole={currentUser?.rola}
+                onMoreInfo={handleMoreInfo}
+                onPurchase={openZakupForm}
               />
             ))
           ) : (
@@ -144,7 +144,6 @@ const Dashboard = () => {
       />
     </div>
   );
-  */
 };
 
 export default Dashboard;

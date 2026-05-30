@@ -85,6 +85,7 @@ public class BiletController {
 		).stream().collect(Collectors.toMap(Wydarzenie::getId, Function.identity()));
 
 		List<UserBiletDto> result = wystBilety.stream()
+			.filter(wystBilet -> !"zwrocony".equalsIgnoreCase(String.valueOf(wystBilet.getStan())))
 			.sorted(Comparator.comparing(WystBilet::getWydanyData, Comparator.nullsLast(Comparator.reverseOrder())))
 			.map(wystBilet -> {
 				Zamowienie zamowienie = zamowienieById.get(wystBilet.getZamId());
