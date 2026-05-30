@@ -6,6 +6,7 @@ import { AuthContext } from '../context/AuthContext';
 import WydarzenieCard from '../components/WydarzenieCard';
 import PurchaseModal from '../components/PurchaseModal';
 import SeatPlanMap from '../components/SeatPlanMap';
+import { ensureObservedLoaded, getObservedEvents, OBSERVED_EVENTS_CHANGED } from '../utils/obserwowaneWydarzenia';
 
 const WydarzeniaPage = () => {
   const { t } = useTranslation();
@@ -37,6 +38,7 @@ const WydarzeniaPage = () => {
   const [zakupFormOpen, setZakupFormOpen] = useState(false);
   const [selectedZakupEvent, setSelectedZakupEvent] = useState(null);
   const [dostepneBilety, setDostepneBilety] = useState([]);
+  const [observedEventIds, setObservedEventIds] = useState(new Set());
   const [zakupLoading, setZakupLoading] = useState(false);
   const [zakupForm, setZakupForm] = useState({ biletId: '', ilosc: '1', potwierdzPlatnosc: false, seatId: '' });
   const [selectedInfoEvent, setSelectedInfoEvent] = useState(null);
@@ -81,7 +83,7 @@ const WydarzeniaPage = () => {
 
   const fetchMyWydarzenia = useCallback(async () => {
     try {
-      const response = await apiClient.get('/wydarzenia', getRequestConfig());
+      const response = await apiClient.get('/wydarzenia/open', getRequestConfig());
       setMyWydarzenia(response.data);
     } catch (error) {
       setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.listFetchError') });
@@ -444,6 +446,32 @@ const WydarzeniaPage = () => {
     }
   }, [currentUser, fetchWydarzeniaOptions, fetchMyWydarzenia]);
 
+  useEffect(() => {
+    if (currentUser?.rola !== 'USER' || !currentUser?.id) {
+      setObservedEventIds(new Set());
+      return undefined;
+    }
+
+    let cancelled = false;
+    const syncObservedIds = () => {
+      if (!cancelled) {
+        setObservedEventIds(new Set(getObservedEvents().map((event) => event.id)));
+      }
+    };
+
+    ensureObservedLoaded(authCredentials, currentUser.id)
+      .then(syncObservedIds)
+      .catch(() => {
+        if (!cancelled) setObservedEventIds(new Set());
+      });
+    window.addEventListener(OBSERVED_EVENTS_CHANGED, syncObservedIds);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener(OBSERVED_EVENTS_CHANGED, syncObservedIds);
+    };
+  }, [authCredentials, currentUser?.id, currentUser?.rola]);
+
   const filteredWydarzenia = myWydarzenia.filter((item) => {
     const matchesText = !wydarzeniaSearch
       || (item.tytul || "").toLowerCase().includes(wydarzeniaSearch.toLowerCase())
@@ -451,6 +479,11 @@ const WydarzeniaPage = () => {
     const matchesStatus = wydarzeniaStatusFilter === 'ALL'
       || (item.status || '').toUpperCase() === wydarzeniaStatusFilter;
     return matchesText && matchesStatus;
+  }).sort((a, b) => {
+    const aObserved = observedEventIds.has(a.id) ? 1 : 0;
+    const bObserved = observedEventIds.has(b.id) ? 1 : 0;
+    if (aObserved !== bObserved) return bObserved - aObserved;
+    return new Date(a.dataRozp || 0) - new Date(b.dataRozp || 0);
   });
 
   return (

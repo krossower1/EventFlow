@@ -64,20 +64,26 @@ const AdminRefundsPanel = () => {
           </tr>
         </thead>
         <tbody>
-          {zwroty.length > 0 ? zwroty.map((z) => (
-            <tr key={z.id}>
-              <td>{z.id}</td>
-              <td>{z.userLogin}</td>
-              <td>{z.wydarzenieTytul}</td>
-              <td>{z.klasa}</td>
-              <td>{z.kwota} {z.waluta}</td>
-              <td>{z.powod}</td>
-              <td>{z.stan}</td>
-              <td>
-                <button type="button" className="buttonv2" onClick={() => handleApprove(z.id)}>{t('adminRefunds.actions.approve')}</button>
-              </td>
-            </tr>
-          )) : (
+          {zwroty.length > 0 ? zwroty.map((z) => {
+            const approved = z.przyznany === true || String(z.stan || '').toLowerCase() === 'zaakceptowana';
+            return (
+              <tr key={z.id}>
+                <td>{z.id}</td>
+                <td>{z.userLogin}</td>
+                <td>{z.wydarzenieTytul}</td>
+                <td>{z.klasa}</td>
+                <td>{z.kwota} {z.waluta}</td>
+                <td>{z.powod}</td>
+                <td>{z.stan}</td>
+                <td>
+                  {!approved && (
+                    <button type="button" className="buttonv2" onClick={() => handleApprove(z.id)}>{t('adminRefunds.actions.approve')}</button>
+                  )}
+                  {approved && <span>Zaakceptowano</span>}
+                </td>
+              </tr>
+            );
+          }) : (
             <tr>
               <td colSpan={8}>{t('adminRefunds.empty')}</td>
             </tr>
