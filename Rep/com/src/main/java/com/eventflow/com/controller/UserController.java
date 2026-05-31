@@ -12,6 +12,9 @@ import com.eventflow.com.controller.dto.UnreadNotificationsCountResponse;
 import com.eventflow.com.controller.dto.UpdateNotificationSettingsRequest;
 import com.eventflow.com.controller.dto.UpdateSessionSettingsRequest;
 import com.eventflow.com.controller.dto.UserNotificationResponse;
+import com.eventflow.com.controller.dto.WalletDto;
+import com.eventflow.com.controller.dto.AddFundsRequestDto;
+import com.eventflow.com.controller.dto.UpdatePaymentMethodDto;
 import com.eventflow.com.auth.AuthService;
 import com.eventflow.com.model.LoginLog;
 import com.eventflow.com.model.User;
@@ -25,7 +28,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -536,6 +541,81 @@ public class UserController {
             resolveNotifyNewRefundRequest(user.getNotifyNewRefundRequest()),
             resolveNotifyNewOrganizerRequest(user.getNotifyNewOrganizerRequest()),
             resolveNotifyNewSecurityReport(user.getNotifyNewSecurityReport())
+        );
+    }
+
+    @GetMapping("/me/wallet")
+    public WalletDto getWallet(Authentication authentication) {
+        String login = authentication.getName();
+        User user = userRepository.findByLogin(login)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nie znaleziono użytkownika."));
+        return new WalletDto(
+            user.getWalletBalance() != null ? user.getWalletBalance() : BigDecimal.ZERO,
+            user.getBankAccountNumber(),
+            user.getPlatnosc()
+        );
+    }
+
+    @PutMapping("/me/wallet/payment-method")
+    public WalletDto updatePaymentMethod(
+        Authentication authentication,
+        @RequestBody UpdatePaymentMethodDto request
+    ) {
+        String login = authentication.getName();
+        User user = userRepository.findByLogin(login)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nie znaleziono użytkownika."));
+        user.setPlatnosc(request.paymentMethod());
+        user.setBankAccountNumber(request.bankAccountNumber());
+        userRepository.save(user);
+        return new WalletDto(
+            user.getWalletBalance() != null ? user.getWalletBalance() : BigDecimal.ZERO,
+            user.getBankAccountNumber(),
+            user.getPlatnosc()
+        );
+    }
+
+    @PostMapping("/me/wallet/add-funds")
+    public WalletDto addFunds(
+        Authentication authentication,
+        @RequestBody AddFundsRequestDto request
+    ) {
+        String login = authentication.getName();
+        User user = userRepository.findByLogin(login)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nie znaleziono użytkownika."));
+        if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kwota musi być większa od zera.");
+        }
+        BigDecimal currentBalance = user.getWalletBalance() != null ? user.getWalletBalance() : BigDecimal.ZERO;
+        user.setWalletBalance(currentBalance.add(request.amount()));
+        userRepository.save(user);
+        return new WalletDto(
+            user.getWalletBalance(),
+            user.getBankAccountNumber(),
+            user.getPlatnosc()
+        );
+    }
+
+    @PostMapping("/me/wallet/deduct-funds")
+    public WalletDto deductFunds(
+        Authentication authentication,
+        @RequestBody AddFundsRequestDto request
+    ) {
+        String login = authentication.getName();
+        User user = userRepository.findByLogin(login)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Nie znaleziono użytkownika."));
+        if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Kwota musi być większa od zera.");
+        }
+        BigDecimal currentBalance = user.getWalletBalance() != null ? user.getWalletBalance() : BigDecimal.ZERO;
+        if (currentBalance.compareTo(request.amount()) < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Niewystarczające środki w portfelu.");
+        }
+        user.setWalletBalance(currentBalance.subtract(request.amount()));
+        userRepository.save(user);
+        return new WalletDto(
+            user.getWalletBalance(),
+            user.getBankAccountNumber(),
+            user.getPlatnosc()
         );
     }
 }

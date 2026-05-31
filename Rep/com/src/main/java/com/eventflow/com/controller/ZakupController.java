@@ -156,8 +156,15 @@ public class ZakupController {
 			}
 		}
 
+		// Check wallet balance
+		java.math.BigDecimal totalPrice = pozZam.getCena().multiply(java.math.BigDecimal.valueOf(request.ilosc()));
+		java.math.BigDecimal currentBalance = user.getWalletBalance() != null ? user.getWalletBalance() : java.math.BigDecimal.ZERO;
+		if (currentBalance.compareTo(totalPrice) < 0) {
+			throw new ResponseStatusException(BAD_REQUEST, "Niewystarczające środki w portfelu. Aktualny stan: " + currentBalance + " PLN, wymagane: " + totalPrice + " PLN.");
+		}
+
 		Platnosc platnosc = new Platnosc();
-		platnosc.setMetoda("CHECKBOX");
+		platnosc.setMetoda("PORTFEL");
 		platnosc.setData(now);
 		platnosc.setZgodnosc(true);
 		platnosc.setStan("zakonczona");
@@ -177,6 +184,10 @@ public class ZakupController {
 		pozZam.setIlosc(pozZam.getIlosc() - request.ilosc());
 		pozZamRepository.save(pozZam);
 
+		// Deduct funds from wallet
+		user.setWalletBalance(currentBalance.subtract(totalPrice));
+		userRepository.save(user);
+
 		for (int i = 0; i < request.ilosc(); i++) {
 			WystBilet wystBilet = new WystBilet();
 			wystBilet.setZamId(savedZamowienie.getId());
@@ -191,7 +202,8 @@ public class ZakupController {
 			wystBiletRepository.save(wystBilet);
 		}
 
-		return ResponseEntity.status(CREATED).body("Zakup zakonczony pomyslnie.");
+		java.math.BigDecimal newBalance = user.getWalletBalance();
+		return ResponseEntity.status(CREATED).body("Zakup zakonczony pomyslnie. Nowy stan portfela: " + newBalance + " PLN.");
 	}
 
 	private DostepnyBiletDto toDostepnyBiletDto(Bilet bilet, LocalDateTime now) {
