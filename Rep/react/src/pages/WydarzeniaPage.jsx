@@ -693,6 +693,8 @@ const WydarzeniaPage = () => {
                     <option value="NIEAKTYWNY">NIEAKTYWNY</option>
                   </select>
 
+                  <p className="form-info-text">{t('events.form.dateTimeInfo')}</p>
+
                   <label htmlFor="wyd-start">{t('events.form.dateStart')}</label>
                   <input id="wyd-start" type="datetime-local" value={wydarzenieForm.dataRozp} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, dataRozp: e.target.value })} required />
 

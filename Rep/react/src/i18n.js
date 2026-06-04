@@ -431,6 +431,7 @@ const resources = {
       'events.form.statusSelect': 'Wybierz status',
       'events.form.dateStart': 'Data rozpoczęcia',
       'events.form.dateEnd': 'Data zakończenia',
+      'events.form.dateTimeInfo': 'Uwaga: Czas należy wpisać ręcznie w formacie HH:MM (np. 14:30).',
 
       'events.tickets.sectionTitle': 'Konfiguracja biletów',
       'events.tickets.addPool': '+ Dodaj pulę',
@@ -1187,6 +1188,7 @@ const resources = {
       'events.form.statusSelect': 'Select status',
       'events.form.dateStart': 'Start date',
       'events.form.dateEnd': 'End date',
+      'events.form.dateTimeInfo': 'Note: Time must be entered manually in HH:MM format (e.g., 14:30).',
 
       'events.tickets.sectionTitle': 'Ticket configuration',
       'events.tickets.addPool': '+ Add pool',
