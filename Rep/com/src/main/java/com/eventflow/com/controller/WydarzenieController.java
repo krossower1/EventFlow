@@ -517,6 +517,34 @@ public class WydarzenieController {
 		return ResponseEntity.ok("Status wydarzenia zostal zaktualizowany.");
 	}
 
+	@PostMapping("/{id}/bilety")
+	@Transactional
+	public ResponseEntity<String> addBiletyToWydarzenie(
+		@PathVariable Long id,
+		Authentication authentication,
+		@RequestBody List<BiletCreateRequestDto> bilety
+	) {
+		User user = requireOrgUser(authentication);
+		
+		Wydarzenie wydarzenie = wydarzenieRepository.findById(id)
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono wydarzenia."));
+		
+		// Check if user is the creator of the event
+		Organizator organizator = organizatorRepository.findById(wydarzenie.getOrgId())
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono organizatora wydarzenia."));
+		if (!organizator.getUserId().equals(user.getId())) {
+			throw new ResponseStatusException(FORBIDDEN, "Mozesz dodawac bilety tylko do swoich wydarzen.");
+		}
+		
+		Sala sala = salaRepository.findById(wydarzenie.getSalaId())
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono sali wydarzenia."));
+		
+		validateBilety(bilety, sala);
+		saveBilety(id, bilety, sala);
+		
+		return ResponseEntity.ok("Bilety zostaly dodane do wydarzenia.");
+	}
+
 	private Long resolveKategoriaId(WydarzenieCreateRequestDto request, User user) {
 		boolean createNowa = Boolean.TRUE.equals(request.createNowaKategoria());
 		if (createNowa) {

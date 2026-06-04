@@ -47,6 +47,9 @@ const WydarzeniaPage = () => {
   const [zakupForm, setZakupForm] = useState({ biletId: '', ilosc: '1', potwierdzPlatnosc: false, seatId: '' });
   const [selectedInfoEvent, setSelectedInfoEvent] = useState(null);
   const [selectedPersonelEvent, setSelectedPersonelEvent] = useState(null);
+  const [selectedAddTicketsEvent, setSelectedAddTicketsEvent] = useState(null);
+  const [addTicketsForm, setAddTicketsForm] = useState([{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [], kategoriaBiletu: 'miejscówka' }]);
+  const [addTicketsLoading, setAddTicketsLoading] = useState(false);
   const [confirmEndEventId, setConfirmEndEventId] = useState(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const [opiniaForm, setOpiniaForm] = useState({ ocena: '5', opis: '' });
@@ -386,6 +389,47 @@ const WydarzeniaPage = () => {
     } finally {
       setInfoLoading(false);
     }
+  };
+
+  const openAddTicketsModal = async (eventId) => {
+    setSelectedAddTicketsEvent(eventId);
+    setAddTicketsForm([{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [], kategoriaBiletu: 'miejscówka' }]);
+  };
+
+  const handleAddTicketsSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedAddTicketsEvent) return;
+
+    setAddTicketsLoading(true);
+    setStatus({ type: '', message: '' });
+
+    try {
+      const response = await apiClient.post(
+        `/wydarzenia/${selectedAddTicketsEvent}/bilety`,
+        addTicketsForm,
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || t('events.status.ticketsAdded') });
+      setSelectedAddTicketsEvent(null);
+      setAddTicketsForm([{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [], kategoriaBiletu: 'miejscówka' }]);
+      await fetchMyWydarzenia();
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.ticketsAddError') });
+    } finally {
+      setAddTicketsLoading(false);
+    }
+  };
+
+  const addAddTicketsBiletForm = () => {
+    setAddTicketsForm(prev => [...prev, { klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [], kategoriaBiletu: 'miejscówka' }]);
+  };
+
+  const removeAddTicketsBiletForm = (index) => {
+    setAddTicketsForm(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateAddTicketsBiletInForm = (index, field, value) => {
+    setAddTicketsForm(prev => prev.map((bilet, i) => i === index ? { ...bilet, [field]: value } : bilet));
   };
 
   const onOpiniaSubmit = async (event) => {
@@ -782,9 +826,11 @@ const WydarzeniaPage = () => {
               <div key={item.id} className="event-management-wrapper" style={{ border: '1px solid #ddd', borderRadius: '12px', padding: '15px', backgroundColor: '#1a1d24', minWidth: 0, overflow: 'visible' }}>
                 <WydarzenieCard
                   item={item}
+                  currentUser={currentUser}
                   currentUserRole={currentUser?.rola}
                   onMoreInfo={openInfoModal}
                   onPersonel={openPersonelModal}
+                  onAddTickets={openAddTicketsModal}
                   onPurchase={openZakupForm}
                 />
 
@@ -1197,6 +1243,71 @@ const WydarzeniaPage = () => {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {selectedAddTicketsEvent && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setSelectedAddTicketsEvent(null);
+          }}
+        >
+          <div className="modal-card modal-card--w600">
+            <div className="modal-header">
+              <div className="modal-title">{t('events.addTickets.modalTitle')}</div>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setSelectedAddTicketsEvent(null)}
+                aria-label={t('events.common.close')}
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleAddTicketsSubmit} className="auth-form organizer-form" style={{ padding: '16px' }}>
+              <div className="event-ticket-section">
+                <div className="event-ticket-section-header">
+                  <h4 style={{ margin: 0 }}>{t('events.tickets.sectionTitle')}</h4>
+                  <div className="event-ticket-actions">
+                    <button type="button" onClick={addAddTicketsBiletForm} className="btn-refresh">{t('events.tickets.addPool')}</button>
+                    <button type="submit" disabled={addTicketsLoading}>{t('events.tickets.addEvent')}</button>
+                  </div>
+                </div>
+                <div className="event-ticket-grid">
+                  {addTicketsForm.map((bilet, index) => (
+                    <div key={index} className="event-ticket-card">
+                      <label htmlFor={`add-bilet-kategoria-${index}`}>{t('events.tickets.ticketCategory')}</label>
+                      <select id={`add-bilet-kategoria-${index}`} value={bilet.kategoriaBiletu || 'miejscówka'} onChange={(e) => updateAddTicketsBiletInForm(index, 'kategoriaBiletu', e.target.value)} required>
+                        <option value="miejscówka">{t('events.tickets.categorySeat')}</option>
+                        <option value="wejściówka">{t('events.tickets.categoryEntry')}</option>
+                      </select>
+
+                      <label htmlFor={`add-bilet-klasa-${index}`}>{t('events.tickets.class')}</label>
+                      <input id={`add-bilet-klasa-${index}`} type="text" value={bilet.klasa} onChange={(e) => updateAddTicketsBiletInForm(index, 'klasa', e.target.value)} required />
+
+                      <label htmlFor={`add-bilet-cena-${index}`}>{t('events.tickets.price')}</label>
+                      <input id={`add-bilet-cena-${index}`} type="number" step="0.01" value={bilet.cena} onChange={(e) => updateAddTicketsBiletInForm(index, 'cena', e.target.value)} required />
+
+                      <label htmlFor={`add-bilet-ilosc-${index}`}>{t('events.tickets.quantity')}</label>
+                      <input id={`add-bilet-ilosc-${index}`} type="number" value={bilet.ilosc} onChange={(e) => updateAddTicketsBiletInForm(index, 'ilosc', e.target.value)} required />
+
+                      <label htmlFor={`add-bilet-start-${index}`}>{t('events.tickets.saleStart')}</label>
+                      <input id={`add-bilet-start-${index}`} type="datetime-local" value={bilet.start_sprzedazy} onChange={(e) => updateAddTicketsBiletInForm(index, 'start_sprzedazy', e.target.value)} />
+
+                      <label htmlFor={`add-bilet-end-${index}`}>{t('events.tickets.saleEnd')}</label>
+                      <input id={`add-bilet-end-${index}`} type="datetime-local" value={bilet.koniec_sprzedazy} onChange={(e) => updateAddTicketsBiletInForm(index, 'koniec_sprzedazy', e.target.value)} />
+
+                      {addTicketsForm.length > 1 && (
+                        <button type="button" onClick={() => removeAddTicketsBiletForm(index)} className="btn-refresh" style={{ marginTop: '8px' }}>{t('events.tickets.removePool')}</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -46,9 +46,9 @@ const ObserveStarIcon = ({ filled }) => (
   />
 );
 
-const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurchase }) => {
+const WydarzenieCard = ({ item, currentUser, currentUserRole, onMoreInfo, onPersonel, onAddTickets, onPurchase }) => {
   const { t } = useTranslation();
-  const { currentUser, authCredentials } = useContext(AuthContext);
+  const { authCredentials } = useContext(AuthContext);
   const heroImageUrl = useMemo(
     () => getEventHeroImageUrl(item.id ?? item.tytul),
     [item.id, item.tytul],
@@ -206,6 +206,21 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
               onClick={() => onPersonel(item.id)}
             >
               {t('eventsCard.actions.personnel')}
+            </button>
+          </span>
+        ) : null}
+        {onAddTickets ? (
+          <span
+            className={`permission-tooltip ${currentUserRole !== 'ORG' ? 'has-tooltip' : ''}`}
+            data-tooltip={currentUserRole !== 'ORG' ? t('events.tooltip.onlyOrganizer') : ''}
+          >
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={currentUserRole !== 'ORG' || item.creatorLogin !== currentUser?.login}
+              onClick={() => onAddTickets(item.id)}
+            >
+              {t('eventsCard.actions.addTickets')}
             </button>
           </span>
         ) : null}

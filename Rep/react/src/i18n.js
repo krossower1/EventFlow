@@ -413,6 +413,8 @@ const resources = {
       'events.status.personnelAddError': 'Nie udało się dodać personelu.',
       'events.status.personnelRevoked': 'Rola personelu została anulowana.',
       'events.status.personnelRevokeError': 'Nie udało się anulować roli.',
+      'events.status.ticketsAdded': 'Bilety zostały dodane do wydarzenia.',
+      'events.status.ticketsAddError': 'Nie udało się dodać biletów.',
       'events.status.organizerRequestSent': 'Wniosek został wysłany.',
       'events.status.organizerRequestError': 'Nie udało się wysłać wniosku.',
 
@@ -532,11 +534,15 @@ const resources = {
       'eventsCard.labels.category': 'Kategoria:',
       'eventsCard.actions.moreInfo': 'Więcej informacji',
       'eventsCard.actions.personnel': 'Personel',
+      'eventsCard.actions.addTickets': 'Dodaj bilety',
       'eventsCard.actions.purchase': 'Zakup',
 
       // Event detail
       'eventDetail.title': 'Szczegóły wydarzenia',
       'eventDetail.subtitle': 'Wyświetlanie szczegółów wydarzenia o ID: {{id}}',
+
+      // Add tickets to existing event
+      'events.addTickets.modalTitle': 'Dodaj bilety do wydarzenia',
 
       // Topbar
       'topbar.adminOnly': 'Dostępne tylko dla administratora',
@@ -1170,6 +1176,8 @@ const resources = {
       'events.status.personnelAddError': 'Could not add personnel.',
       'events.status.personnelRevoked': 'Personnel role has been revoked.',
       'events.status.personnelRevokeError': 'Could not revoke role.',
+      'events.status.ticketsAdded': 'Tickets have been added to the event.',
+      'events.status.ticketsAddError': 'Could not add tickets.',
       'events.status.organizerRequestSent': 'Request has been sent.',
       'events.status.organizerRequestError': 'Could not send request.',
 
@@ -1288,11 +1296,15 @@ const resources = {
       'eventsCard.labels.category': 'Category:',
       'eventsCard.actions.moreInfo': 'More info',
       'eventsCard.actions.personnel': 'Personnel',
+      'eventsCard.actions.addTickets': 'Add tickets',
       'eventsCard.actions.purchase': 'Purchase',
 
       // Event detail
       'eventDetail.title': 'Event details',
       'eventDetail.subtitle': 'Showing event details for ID: {{id}}',
+
+      // Add tickets to existing event
+      'events.addTickets.modalTitle': 'Add tickets to event',
 
       // Topbar
       'topbar.adminOnly': 'Available only for administrator',
