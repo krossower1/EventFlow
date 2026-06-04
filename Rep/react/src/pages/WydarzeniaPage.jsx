@@ -45,6 +45,7 @@ const WydarzeniaPage = () => {
   const [observedEventIds, setObservedEventIds] = useState(new Set());
   const [zakupLoading, setZakupLoading] = useState(false);
   const [zakupForm, setZakupForm] = useState({ biletId: '', ilosc: '1', potwierdzPlatnosc: false, seatId: '' });
+  const [walletBalance, setWalletBalance] = useState(null);
   const [selectedInfoEvent, setSelectedInfoEvent] = useState(null);
   const [selectedPersonelEvent, setSelectedPersonelEvent] = useState(null);
   const [selectedAddTicketsEvent, setSelectedAddTicketsEvent] = useState(null);
@@ -121,6 +122,16 @@ const WydarzeniaPage = () => {
       setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.listFetchError') });
     }
   }, [getRequestConfig, t]);
+
+  const fetchWalletBalance = useCallback(async () => {
+    try {
+      const response = await apiClient.get('/users/me/wallet', getRequestConfig());
+      setWalletBalance(response.data?.balance || 0);
+    } catch (error) {
+      console.error('Failed to load wallet balance:', error);
+      setWalletBalance(null);
+    }
+  }, [getRequestConfig]);
 
   useEffect(() => {
     if (confirmEndEventId == null) return undefined;
@@ -317,6 +328,7 @@ const WydarzeniaPage = () => {
     setStatus({ type: '', message: '' });
 
     try {
+      await fetchWalletBalance();
       const response = await apiClient.get(`/zakupy/wydarzenia/${eventItem.id}/bilety`, getRequestConfig());
       setDostepneBilety(response.data);
       setSelectedZakupEvent(eventItem);
@@ -350,6 +362,7 @@ const WydarzeniaPage = () => {
       setZakupFormOpen(false);
       setSelectedZakupEvent(null);
       fetchMyWydarzenia();
+      await fetchWalletBalance();
     } catch (error) {
       const message = error.response?.data?.message
         || error.response?.data?.detail
@@ -899,6 +912,7 @@ const WydarzeniaPage = () => {
         setZakupForm={setZakupForm}
         onSubmit={onZakupSubmit}
         loading={zakupLoading}
+        walletBalance={walletBalance}
       />
       {openTicketFormEventId && (
         <div

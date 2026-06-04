@@ -144,6 +144,15 @@ const UstawieniaPage = () => {
   const [rowLabelDraft, setRowLabelDraft] = useState('A');
   const [dragState, setDragState] = useState(null);
 
+  // Wallet state
+  const [walletData, setWalletData] = useState({ balance: 0, bankAccountNumber: '', paymentMethod: '' });
+  const [isLoadingWallet, setIsLoadingWallet] = useState(false);
+  const [walletStatus, setWalletStatus] = useState({ type: '', message: '' });
+  const [addFundsAmount, setAddFundsAmount] = useState('');
+  const [isAddingFunds, setIsAddingFunds] = useState(false);
+  const [paymentMethodForm, setPaymentMethodForm] = useState({ paymentMethod: '', bankAccountNumber: '' });
+  const [isSavingPaymentMethod, setIsSavingPaymentMethod] = useState(false);
+
   const [profileForm, setProfileForm] = useState({
     imie: currentUser.imie || '',
     nazwisko: currentUser.nazwisko || '',
@@ -161,6 +170,7 @@ const UstawieniaPage = () => {
   const isAdminUser = String(currentUser?.rola || '').toUpperCase() === 'ADMIN';
   const tabs = useMemo(() => ([
     { id: 'profil', label: t('settings.tabs.profil') },
+    { id: 'platnosci', label: 'Płatności' },
     { id: 'powiadomienia', label: t('settings.tabs.powiadomienia') },
     { id: 'obserwowane', label: t('settings.tabs.obserwowane') },
     { id: 'bezpieczenstwo', label: t('settings.tabs.bezpieczenstwo') },
@@ -912,6 +922,85 @@ const UstawieniaPage = () => {
     loadSessionSettings();
   }, [activeTab, activeSecurityTab]);
 
+  // Load wallet data when payments tab is active
+  useEffect(() => {
+    const loadWallet = async () => {
+      if (activeTab !== 'platnosci') return;
+      setIsLoadingWallet(true);
+      setWalletStatus({ type: '', message: '' });
+      try {
+        const response = await apiClient.get('/users/me/wallet', getRequestConfig());
+        setWalletData({
+          balance: response?.data?.balance || 0,
+          bankAccountNumber: response?.data?.bankAccountNumber || '',
+          paymentMethod: response?.data?.paymentMethod || ''
+        });
+        setPaymentMethodForm({
+          paymentMethod: response?.data?.paymentMethod || '',
+          bankAccountNumber: response?.data?.bankAccountNumber || ''
+        });
+      } catch (error) {
+        setWalletStatus({
+          type: 'error',
+          message: error.response?.data?.message || 'Nie udało się załadować danych portfela.'
+        });
+      } finally {
+        setIsLoadingWallet(false);
+      }
+    };
+    loadWallet();
+  }, [activeTab]);
+
+  const handleAddFunds = async (event) => {
+    event.preventDefault();
+    const amount = parseFloat(addFundsAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setWalletStatus({ type: 'error', message: 'Podaj prawidłową kwotę większą od zera.' });
+      return;
+    }
+    setIsAddingFunds(true);
+    setWalletStatus({ type: '', message: '' });
+    try {
+      const response = await apiClient.post('/users/me/wallet/add-funds', { amount }, getRequestConfig());
+      setWalletData({
+        balance: response?.data?.balance || 0,
+        bankAccountNumber: response?.data?.bankAccountNumber || '',
+        paymentMethod: response?.data?.paymentMethod || ''
+      });
+      setAddFundsAmount('');
+      setWalletStatus({ type: 'success', message: `Dodano ${amount} PLN do portfela.` });
+    } catch (error) {
+      setWalletStatus({
+        type: 'error',
+        message: error.response?.data?.message || 'Nie udało się dodać środków.'
+      });
+    } finally {
+      setIsAddingFunds(false);
+    }
+  };
+
+  const handleUpdatePaymentMethod = async (event) => {
+    event.preventDefault();
+    setIsSavingPaymentMethod(true);
+    setWalletStatus({ type: '', message: '' });
+    try {
+      const response = await apiClient.put('/users/me/wallet/payment-method', paymentMethodForm, getRequestConfig());
+      setWalletData({
+        balance: response?.data?.balance || 0,
+        bankAccountNumber: response?.data?.bankAccountNumber || '',
+        paymentMethod: response?.data?.paymentMethod || ''
+      });
+      setWalletStatus({ type: 'success', message: 'Zaktualizowano metodę płatności.' });
+    } catch (error) {
+      setWalletStatus({
+        type: 'error',
+        message: error.response?.data?.message || 'Nie udało się zaktualizować metody płatności.'
+      });
+    } finally {
+      setIsSavingPaymentMethod(false);
+    }
+  };
+
   const handleGenerateTwoFactorSecret = async () => {
     // Inicjuje setup 2FA: backend zwraca sekret + URI, a UI pokazuje kod QR.
     setTwoFactorStatus({ type: '', message: '' });
@@ -1144,6 +1233,87 @@ const UstawieniaPage = () => {
               )}
             </div>
 
+          </div>
+        ) : activeTab === 'platnosci' ? (
+          <div className="settings-panel">
+            <h3>Płatności i Portfel</h3>
+            <p className="settings-subtitle">Zarządzaj swoim portfelem i metodami płatności</p>
+            
+            {isLoadingWallet ? (
+              <p className="settings-subtitle">Ładowanie danych portfela...</p>
+            ) : (
+              <>
+                <div className="wallet-balance-section">
+                  <h4>Stan portfela</h4>
+                  <div className="wallet-balance-display">
+                    <span className="wallet-balance-amount">{walletData.balance.toFixed(2)} PLN</span>
+                  </div>
+                </div>
+
+                <div className="wallet-add-funds-section">
+                  <h4>Dodaj środki (test)</h4>
+                  <form onSubmit={handleAddFunds}>
+                    <label htmlFor="add-funds-amount">Kwota do dodania (PLN)</label>
+                    <input
+                      id="add-funds-amount"
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      value={addFundsAmount}
+                      onChange={(e) => setAddFundsAmount(e.target.value)}
+                      placeholder="0.00"
+                      disabled={isAddingFunds}
+                    />
+                    <button
+                      type="submit"
+                      className="btn-new-event"
+                      disabled={isAddingFunds}
+                    >
+                      {isAddingFunds ? 'Dodawanie...' : 'Dodaj środki'}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="wallet-payment-method-section">
+                  <h4>Metoda płatności</h4>
+                  <form onSubmit={handleUpdatePaymentMethod}>
+                    <label htmlFor="payment-method">Metoda płatności</label>
+                    <input
+                      id="payment-method"
+                      type="text"
+                      value={paymentMethodForm.paymentMethod}
+                      onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, paymentMethod: e.target.value })}
+                      placeholder="np. Przelew bankowy, BLIK, Karta"
+                      disabled={isSavingPaymentMethod}
+                    />
+                    
+                    <label htmlFor="bank-account-number">Numer konta bankowego</label>
+                    <input
+                      id="bank-account-number"
+                      type="text"
+                      value={paymentMethodForm.bankAccountNumber}
+                      onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, bankAccountNumber: e.target.value })}
+                      placeholder="np. PL12 3456 7890 0000 1234 5678 9012"
+                      disabled={isSavingPaymentMethod}
+                    />
+                    
+                    <button
+                      type="submit"
+                      className="btn-new-event"
+                      disabled={isSavingPaymentMethod}
+                    >
+                      {isSavingPaymentMethod ? 'Zapisywanie...' : 'Zapisz metodę płatności'}
+                    </button>
+                  </form>
+                </div>
+
+                {walletStatus.message && (
+                  <p className={`status-message ${walletStatus.type === 'error' ? 'status-error' : 'status-success'}`}>
+                    {walletStatus.message}
+                  </p>
+                )}
+              </>
+            )}
           </div>
         ) : activeTab === 'powiadomienia' ? (
 <div className="settings-panel">
