@@ -1182,6 +1182,41 @@ background:
   margin-top: 24px;
 }
 
+.event-detail-main {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.event-detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.event-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.event-detail-row:last-child {
+  border-bottom: none;
+}
+
+.event-detail-row strong {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.event-detail-row span {
+  color: #cbd5e1;
+  text-align: right;
+}
+
 .settings-layouts {
   display: grid;
   gap: 20px;
@@ -1699,6 +1734,8 @@ background:
 .modal-card--w600 {
   width: 600px;
   max-width: min(600px, 96vw);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .info-modal-layout {
@@ -3664,8 +3701,10 @@ body .disabled * {
 .dashboard-patch-notes ul {
   margin: 0;
   padding-left: 22px;
+  color: #2b2418 !important;
 }
 
 .dashboard-patch-notes li {
   margin: 8px 0;
+  color: #2b2418 !important;
 }

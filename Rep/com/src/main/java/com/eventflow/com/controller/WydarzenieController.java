@@ -561,6 +561,13 @@ public class WydarzenieController {
 		User creator = organizator != null ? userRepository.findById(organizator.getUserId()).orElse(null) : null;
 		String creatorLogin = creator != null ? creator.getLogin() : "-";
 
+		// Calculate average rating
+		List<Opinia> opinie = opiniaRepository.findByWydIdOrderByDataDesc(wydarzenie.getId());
+		Double averageRating = opinie.isEmpty() ? null : opinie.stream()
+			.mapToInt(Opinia::getOcena)
+			.average()
+			.orElse(Double.NaN);
+
 		return new WydarzenieListItemDto(
 			wydarzenie.getId(),
 			wydarzenie.getTytul(),
@@ -575,7 +582,8 @@ public class WydarzenieController {
 			miasto,
 			kodPocztowy,
 			ulica,
-			creatorLogin
+			creatorLogin,
+			averageRating
 		);
 	}
 
@@ -598,6 +606,18 @@ public class WydarzenieController {
 		User creator = organizator != null ? userRepository.findById(organizator.getUserId()).orElse(null) : null;
 		String creatorLogin = creator != null ? creator.getLogin() : "-";
 
+		// Calculate average rating
+		List<Opinia> opinie = opiniaRepository.findByWydIdOrderByDataDesc(wydarzenie.getId());
+		Double averageRating = opinie.isEmpty() ? null : opinie.stream()
+			.mapToInt(Opinia::getOcena)
+			.average()
+			.orElse(Double.NaN);
+
+		// Calculate hall capacity (sum of all ticket quantities)
+		Integer salaPojemnosc = postepyBiletow.stream()
+			.mapToInt(BiletPostepDto::wszystkie)
+			.sum();
+
 		return new WydarzenieDetailDto(
 			wydarzenie.getId(),
 			wydarzenie.getTytul(),
@@ -617,7 +637,9 @@ public class WydarzenieController {
 			miasto,
 			kodPocztowy,
 			ulica,
-			creatorLogin
+			creatorLogin,
+			averageRating,
+			salaPojemnosc
 		);
 	}
 

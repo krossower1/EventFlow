@@ -971,11 +971,59 @@ const WydarzeniaPage = () => {
             <div className="modal-grid info-modal-layout">
               <div className="info-top-section">
                 <p>{t('events.moreInfo.detailsPrefix', { title: selectedInfoEvent.tytul })}</p>
-                <p>{t('events.moreInfo.todo')}</p>
                 {infoLoading && <p>{t('events.moreInfo.loading')}</p>}
               </div>
 
-              <div className="event-detail-opinie info-left-section">
+              <div className="event-detail-main info-left-section">
+                <div className="event-detail-info">
+                  <div className="event-detail-row">
+                    <strong>Sala:</strong>
+                    <span>{selectedInfoEvent.salaNazwa || '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Autor:</strong>
+                    <span>{selectedInfoEvent.creatorLogin || '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Data rozpoczęcia:</strong>
+                    <span>{selectedInfoEvent.dataRozp ? new Date(selectedInfoEvent.dataRozp).toLocaleString('pl-PL') : '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Data zakończenia:</strong>
+                    <span>{selectedInfoEvent.dataZamk ? new Date(selectedInfoEvent.dataZamk).toLocaleString('pl-PL') : '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Pojemność sali:</strong>
+                    <span>{selectedInfoEvent.salaPojemnosc || 0} miejsc</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Personel:</strong>
+                    <span>{selectedInfoEvent.personel?.length || 0} osób</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Kategoria:</strong>
+                    <span>{selectedInfoEvent.kategoriaNazwa || '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Średnia ocena:</strong>
+                    <span>{selectedInfoEvent.averageRating != null && !isNaN(selectedInfoEvent.averageRating) ? selectedInfoEvent.averageRating.toFixed(1) : '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Miejsce:</strong>
+                    <span>{selectedInfoEvent.miejsceNazwa || '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Adres:</strong>
+                    <span>{selectedInfoEvent.ulica ? `${selectedInfoEvent.ulica}, ${selectedInfoEvent.kodPocztowy} ${selectedInfoEvent.miasto}` : '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Opis:</strong>
+                    <span>{selectedInfoEvent.opis || '-'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="event-detail-opinie info-right-section">
                 <h3>{t('events.moreInfo.reviews.title')}</h3>
                 <form onSubmit={onOpiniaSubmit} className="auth-form organizer-form">
                   <label htmlFor="opinia-ocena">{t('events.moreInfo.reviews.rating')}</label>

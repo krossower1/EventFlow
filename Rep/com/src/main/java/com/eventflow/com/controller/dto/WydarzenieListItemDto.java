@@ -17,6 +17,7 @@ public record WydarzenieListItemDto(
 	String miasto,
 	String kodPocztowy,
 	String ulica,
-	String creatorLogin
+	String creatorLogin,
+	Double averageRating
 ) {
 }
