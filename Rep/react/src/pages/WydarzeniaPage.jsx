@@ -22,7 +22,7 @@ const WydarzeniaPage = () => {
   const [myWydarzenia, setMyWydarzenia] = useState([]);
   const [showWydarzenieForm, setShowWydarzenieForm] = useState(false);
   const [wydarzeniaSearch, setWydarzeniaSearch] = useState('');
-  const [wydarzeniaStatusFilter, setWydarzeniaStatusFilter] = useState('ALL');
+  const [wydarzeniaStatusFilter, setWydarzeniaStatusFilter] = useState('AKTYWNE');
   const [wydarzenieForm, setWydarzenieForm] = useState({
     salaId: '',
     tytul: '',
@@ -112,7 +112,7 @@ const WydarzeniaPage = () => {
 
   const fetchMyWydarzenia = useCallback(async () => {
     try {
-      const response = await apiClient.get('/wydarzenia/open', getRequestConfig());
+      const response = await apiClient.get('/wydarzenia', getRequestConfig());
       setMyWydarzenia(response.data);
     } catch (error) {
       setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.listFetchError') });
@@ -506,8 +506,23 @@ const WydarzeniaPage = () => {
     const matchesText = !wydarzeniaSearch
       || (item.tytul || "").toLowerCase().includes(wydarzeniaSearch.toLowerCase())
       || item.salaNazwa?.toLowerCase().includes(wydarzeniaSearch.toLowerCase());
-    const matchesStatus = wydarzeniaStatusFilter === 'ALL'
-      || (item.status || '').toUpperCase() === wydarzeniaStatusFilter;
+    
+    let matchesStatus = true;
+    if (wydarzeniaStatusFilter === 'ALL') {
+      matchesStatus = true;
+    } else if (wydarzeniaStatusFilter === 'AKTYWNE') {
+      const isActive = (item.status || '').toUpperCase() === 'AKTYWNY';
+      const endDate = item.dataZamk ? new Date(item.dataZamk) : null;
+      const isNotEnded = !endDate || endDate > new Date();
+      matchesStatus = isActive && isNotEnded;
+    } else if (wydarzeniaStatusFilter === 'MOJE') {
+      matchesStatus = item.creatorLogin === currentUser?.login;
+    } else if (wydarzeniaStatusFilter === 'ZAMKNIETE') {
+      matchesStatus = (item.status || '').toUpperCase() !== 'AKTYWNY';
+    } else {
+      matchesStatus = (item.status || '').toUpperCase() === wydarzeniaStatusFilter;
+    }
+    
     return matchesText && matchesStatus;
   }).sort((a, b) => {
     const aObserved = observedEventIds.has(a.id) ? 1 : 0;
@@ -539,7 +554,7 @@ const WydarzeniaPage = () => {
             >
               <option value="ALL">{t('events.filter.all')}</option>
               <option value="AKTYWNE">{t('events.filter.active')}</option>
-              <option value="SZKIC">{t('events.filter.draft')}</option>
+              <option value="MOJE">{t('events.filter.myEvents')}</option>
               <option value="ZAMKNIETE">{t('events.filter.closed')}</option>
             </select>
             <div className="events-toolbar-actions">
