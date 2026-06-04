@@ -85,7 +85,21 @@ public class BiletController {
 		).stream().collect(Collectors.toMap(Wydarzenie::getId, Function.identity()));
 
 		List<UserBiletDto> result = wystBilety.stream()
-			.filter(wystBilet -> !"zwrocony".equalsIgnoreCase(String.valueOf(wystBilet.getStan())))
+			.filter(wystBilet -> {
+				// Filter out tickets with stan "zwrocony"
+				if ("zwrocony".equalsIgnoreCase(String.valueOf(wystBilet.getStan()))) {
+					return false;
+				}
+				// Filter out tickets with accepted refunds
+				Zamowienie zamowienie = zamowienieById.get(wystBilet.getZamId());
+				if (zamowienie != null) {
+					Zwrot zwrot = zwrotRepository.findByPlatnId(zamowienie.getPlatnId()).orElse(null);
+					if (zwrot != null && Boolean.TRUE.equals(zwrot.getPrzyznany())) {
+						return false;
+					}
+				}
+				return true;
+			})
 			.sorted(Comparator.comparing(WystBilet::getWydanyData, Comparator.nullsLast(Comparator.reverseOrder())))
 			.map(wystBilet -> {
 				Zamowienie zamowienie = zamowienieById.get(wystBilet.getZamId());

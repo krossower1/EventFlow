@@ -22,6 +22,8 @@ public record WydarzenieDetailDto(
 	String miasto,
 	String kodPocztowy,
 	String ulica,
-	String creatorLogin
+	String creatorLogin,
+	Double averageRating,
+	Integer salaPojemnosc
 ) {
 }

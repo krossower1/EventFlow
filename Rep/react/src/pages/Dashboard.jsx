@@ -94,15 +94,19 @@ const Dashboard = () => {
           personelem, opiniami i zgłoszeniami w jednym miejscu.
         </p>
         <div className="dashboard-tabs-guide">
-          <span><strong>Wydarzenia</strong> - przegląd aktywnych wydarzeń, zakup biletów i szczegóły.</span>
-          <span><strong>Bilety</strong> - zakupione bilety oraz prośby o zwrot.</span>
-          <span><strong>Ustawienia</strong> - konto, sale i układy miejsc dla organizatorów.</span>
-          <span><strong>Panel admina</strong> - moderacja zwrotów, zgłoszeń i danych systemowych.</span>
+          <span className="section-name"><strong>Wydarzenia</strong> - przegląd aktywnych wydarzeń, zakup biletów i szczegóły.</span>
+          <span className="section-name"><strong>Bilety</strong> - zakupione bilety oraz prośby o zwrot.</span>
+          <span className="section-name"><strong>Uczestnicy</strong> - zarządzanie użytkownikami i ich rolami w systemie.</span>
+          <span className="section-name"><strong>Miejsca</strong> - przegląd i zarządzanie salami oraz układami miejsc.</span>
+          <span className="section-name"><strong>Analityka</strong> - statystyki i raporty dotyczące wydarzeń i sprzedaży.</span>
+          <span className="section-name"><strong>Ustawienia</strong> - konto, portfel i konfiguracja dla organizatorów.</span>
+          <span className="section-name"><strong>Panel admina</strong> - moderacja zwrotów, zgłoszeń i danych systemowych.</span>
         </div>
       </section>
 
       <section className="dashboard-patch-notes">
-        <h3>Notatki ze zmian</h3>
+        <h3 className="patch-notes-title">Notatki ze zmian</h3>
+        <p className="patch-notes-date">Zmiany dnia 29.05.2026</p>
         <ul>
           <li>Nieaktywne i zakończone wydarzenia są ukryte na liście wydarzeń.</li>
           <li>Obserwowane wydarzenia pojawiają się wyżej i można je odobserwować.</li>

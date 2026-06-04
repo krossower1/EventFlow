@@ -32,7 +32,6 @@ const normalizeSeats = (seats, canvasWidth, canvasHeight, baseScale) => {
     return [];
   }
 
-  // Filter out rows (groups) - only show seats
   const seatsOnly = seats.filter(isSeatElement);
   if (seatsOnly.length === 0) {
     return [];
@@ -59,7 +58,6 @@ const normalizeSeats = (seats, canvasWidth, canvasHeight, baseScale) => {
   const contentWidth = Math.max(1, bounds.maxX - bounds.minX);
   const contentHeight = Math.max(1, bounds.maxY - bounds.minY);
   
-  // Move the top-left seat close to the canvas border and keep the whole layout together.
   const scale = Math.min(
     baseScale,
     (canvasWidth - PADDING * 2) / contentWidth,
@@ -108,7 +106,6 @@ const SeatPlanMap = ({
       return index >= 0 ? String(index + 1) : '?';
     })();
 
-    // Find the row that contains this seat
     const row = rows.find((item) => {
       const rowWidth = Number(item.width) || 200;
       const rowHeight = Number(item.height) || 50;
@@ -124,7 +121,6 @@ const SeatPlanMap = ({
       return fallbackLabel;
     }
 
-    // Find all seats in this row
     const seatsInRow = seats
       .filter((item) => {
         if (!isSeatElement(item)) return false;

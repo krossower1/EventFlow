@@ -381,7 +381,7 @@ const resources = {
       'events.search.placeholder': 'Szukaj wydarzeń...',
       'events.filter.all': 'Filtry: wszystkie',
       'events.filter.active': 'aktywne',
-      'events.filter.draft': 'szkic',
+      'events.filter.myEvents': 'moje wydarzenia',
       'events.filter.closed': 'zamknięte',
       'events.tooltip.onlyOrganizer': 'Dostępne tylko dla organizatora',
       'events.tooltip.onlyUser': 'Dostępne tylko dla użytkownika',
@@ -413,6 +413,8 @@ const resources = {
       'events.status.personnelAddError': 'Nie udało się dodać personelu.',
       'events.status.personnelRevoked': 'Rola personelu została anulowana.',
       'events.status.personnelRevokeError': 'Nie udało się anulować roli.',
+      'events.status.ticketsAdded': 'Bilety zostały dodane do wydarzenia.',
+      'events.status.ticketsAddError': 'Nie udało się dodać biletów.',
       'events.status.organizerRequestSent': 'Wniosek został wysłany.',
       'events.status.organizerRequestError': 'Nie udało się wysłać wniosku.',
 
@@ -431,9 +433,11 @@ const resources = {
       'events.form.statusSelect': 'Wybierz status',
       'events.form.dateStart': 'Data rozpoczęcia',
       'events.form.dateEnd': 'Data zakończenia',
+      'events.form.dateTimeInfo': 'Uwaga: Czas należy wpisać ręcznie w formacie HH:MM (np. 14:30).',
 
       'events.tickets.sectionTitle': 'Konfiguracja biletów',
       'events.tickets.addPool': '+ Dodaj pulę',
+      'events.tickets.removePool': 'Usuń pulę',
       'events.tickets.addEvent': 'Dodaj wydarzenie',
       'events.tickets.ticketCategory': 'Kategoria biletu',
       'events.tickets.categorySeat': 'Miejscówka',
@@ -523,17 +527,23 @@ const resources = {
       'eventsCard.labels.hall': 'Sala:',
       'eventsCard.labels.place': 'Miejsce:',
       'eventsCard.labels.address': 'Adres:',
-      'eventsCard.labels.date': 'Data:',
+      'eventsCard.labels.date': 'Data od:',
+      'eventsCard.labels.dateTo': 'Data do:',
       'eventsCard.labels.time': 'Czas:',
+      'eventsCard.labels.rating': 'Ocena:',
       'eventsCard.labels.creator': 'Twórca:',
       'eventsCard.labels.category': 'Kategoria:',
       'eventsCard.actions.moreInfo': 'Więcej informacji',
       'eventsCard.actions.personnel': 'Personel',
+      'eventsCard.actions.addTickets': 'Dodaj bilety',
       'eventsCard.actions.purchase': 'Zakup',
 
       // Event detail
       'eventDetail.title': 'Szczegóły wydarzenia',
       'eventDetail.subtitle': 'Wyświetlanie szczegółów wydarzenia o ID: {{id}}',
+
+      // Add tickets to existing event
+      'events.addTickets.modalTitle': 'Dodaj bilety do wydarzenia',
 
       // Topbar
       'topbar.adminOnly': 'Dostępne tylko dla administratora',
@@ -1135,7 +1145,7 @@ const resources = {
       'events.search.placeholder': 'Search events...',
       'events.filter.all': 'Filters: all',
       'events.filter.active': 'active',
-      'events.filter.draft': 'draft',
+      'events.filter.myEvents': 'my events',
       'events.filter.closed': 'closed',
       'events.tooltip.onlyOrganizer': 'Available only for organizer',
       'events.tooltip.onlyUser': 'Available only for user',
@@ -1167,6 +1177,8 @@ const resources = {
       'events.status.personnelAddError': 'Could not add personnel.',
       'events.status.personnelRevoked': 'Personnel role has been revoked.',
       'events.status.personnelRevokeError': 'Could not revoke role.',
+      'events.status.ticketsAdded': 'Tickets have been added to the event.',
+      'events.status.ticketsAddError': 'Could not add tickets.',
       'events.status.organizerRequestSent': 'Request has been sent.',
       'events.status.organizerRequestError': 'Could not send request.',
 
@@ -1185,9 +1197,11 @@ const resources = {
       'events.form.statusSelect': 'Select status',
       'events.form.dateStart': 'Start date',
       'events.form.dateEnd': 'End date',
+      'events.form.dateTimeInfo': 'Note: Time must be entered manually in HH:MM format (e.g., 14:30).',
 
       'events.tickets.sectionTitle': 'Ticket configuration',
       'events.tickets.addPool': '+ Add pool',
+      'events.tickets.removePool': 'Remove pool',
       'events.tickets.addEvent': 'Add event',
       'events.tickets.ticketCategory': 'Ticket category',
       'events.tickets.categorySeat': 'Seat ticket',
@@ -1277,17 +1291,22 @@ const resources = {
       'eventsCard.labels.hall': 'Hall:',
       'eventsCard.labels.place': 'Place:',
       'eventsCard.labels.address': 'Address:',
-      'eventsCard.labels.date': 'Date:',
+      'eventsCard.labels.date': 'Date from:',
+      'eventsCard.labels.dateTo': 'Date to:',
       'eventsCard.labels.time': 'Time:',
       'eventsCard.labels.creator': 'Creator:',
       'eventsCard.labels.category': 'Category:',
       'eventsCard.actions.moreInfo': 'More info',
       'eventsCard.actions.personnel': 'Personnel',
+      'eventsCard.actions.addTickets': 'Add tickets',
       'eventsCard.actions.purchase': 'Purchase',
 
       // Event detail
       'eventDetail.title': 'Event details',
       'eventDetail.subtitle': 'Showing event details for ID: {{id}}',
+
+      // Add tickets to existing event
+      'events.addTickets.modalTitle': 'Add tickets to event',
 
       // Topbar
       'topbar.adminOnly': 'Available only for administrator',

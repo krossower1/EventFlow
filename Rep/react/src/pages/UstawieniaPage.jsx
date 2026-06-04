@@ -427,7 +427,7 @@ const UstawieniaPage = () => {
   const saveSelectedSalaPlan = async () => {
     if (!selectedSala) return;
     
-    // Check for overlapping seats
+  
     const hasOverlaps = selectedSalaSeats.some((seat) => {
       const candidateSize = getElementDimensions(seat);
       return selectedSalaSeats.some((otherSeat) => {

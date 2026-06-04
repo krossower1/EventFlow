@@ -29,6 +29,11 @@ const formatEventTime = (value) => {
   });
 };
 
+const formatRating = (rating) => {
+  if (rating == null || isNaN(rating)) return '-';
+  return rating.toFixed(1);
+};
+
 /** Ikona gwiazdki na karcie wydarzenia (pusta = można dodać, wypełniona = już obserwowane). */
 const ObserveStarIcon = ({ filled }) => (
   <img
@@ -41,9 +46,9 @@ const ObserveStarIcon = ({ filled }) => (
   />
 );
 
-const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurchase }) => {
+const WydarzenieCard = ({ item, currentUser, currentUserRole, onMoreInfo, onPersonel, onAddTickets, onPurchase }) => {
   const { t } = useTranslation();
-  const { currentUser, authCredentials } = useContext(AuthContext);
+  const { authCredentials } = useContext(AuthContext);
   const heroImageUrl = useMemo(
     () => getEventHeroImageUrl(item.id ?? item.tytul),
     [item.id, item.tytul],
@@ -142,10 +147,6 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
       <div className="event-card-grid">
         <div className="event-card-column event-card-column--labels">
           <div className="event-card-row">
-            <img src="/icons/location.png" alt="" width={22} height={22} />
-            <strong>{t('eventsCard.labels.hall')}</strong>
-          </div>
-          <div className="event-card-row">
             <img src="/icons/building.png" alt="" width={22} height={22} />
             <strong>{t('eventsCard.labels.place')}</strong>
           </div>
@@ -158,8 +159,12 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
             <strong>{t('eventsCard.labels.date')}</strong>
           </div>
           <div className="event-card-row">
-            <img src="/icons/clock.png" alt="" width={22} height={22} />
-            <strong>{t('eventsCard.labels.time')}</strong>
+            <img src="/icons/calendar (1).png" alt="" width={22} height={22} />
+            <strong>{t('eventsCard.labels.dateTo')}</strong>
+          </div>
+          <div className="event-card-row">
+            <img src="/icons/star.png" alt="" width={22} height={22} />
+            <strong>{t('eventsCard.labels.rating')}</strong>
           </div>
           <div className="event-card-row">
             <img src="/icons/user.png" alt="" width={22} height={22} />
@@ -171,11 +176,11 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
           </div>
         </div>
         <div className="event-card-column event-card-column--values">
-          <div className="event-card-row">{item.salaNazwa || '-'}</div>
           <div className="event-card-row">{item.miejsceNazwa || '-'}</div>
           <div className="event-card-row">{item.ulica ? `${item.ulica}, ${item.kodPocztowy} ${item.miasto}` : '-'}</div>
-          <div className="event-card-row">{formatEventDate(item.dataRozp)}</div>
-          <div className="event-card-row">{formatEventTime(item.dataRozp)}</div>
+          <div className="event-card-row">{formatEventDate(item.dataRozp)+", "+formatEventTime(item.dataRozp)}</div>
+          <div className="event-card-row">{formatEventDate(item.dataZamk)+", "+formatEventTime(item.dataZamk)}</div>
+          <div className="event-card-row">{formatRating(item.averageRating)}</div>
           <div className="event-card-row">{item.creatorLogin || '-'}</div>
           <div className="event-card-row">{item.kategoriaNazwa || '-'}</div>
         </div>
@@ -201,6 +206,21 @@ const WydarzenieCard = ({ item, currentUserRole, onMoreInfo, onPersonel, onPurch
               onClick={() => onPersonel(item.id)}
             >
               {t('eventsCard.actions.personnel')}
+            </button>
+          </span>
+        ) : null}
+        {onAddTickets ? (
+          <span
+            className={`permission-tooltip ${currentUserRole !== 'ORG' ? 'has-tooltip' : ''}`}
+            data-tooltip={currentUserRole !== 'ORG' ? t('events.tooltip.onlyOrganizer') : ''}
+          >
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={currentUserRole !== 'ORG' || item.creatorLogin !== currentUser?.login}
+              onClick={() => onAddTickets(item.id)}
+            >
+              {t('eventsCard.actions.addTickets')}
             </button>
           </span>
         ) : null}

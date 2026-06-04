@@ -22,7 +22,7 @@ const WydarzeniaPage = () => {
   const [myWydarzenia, setMyWydarzenia] = useState([]);
   const [showWydarzenieForm, setShowWydarzenieForm] = useState(false);
   const [wydarzeniaSearch, setWydarzeniaSearch] = useState('');
-  const [wydarzeniaStatusFilter, setWydarzeniaStatusFilter] = useState('ALL');
+  const [wydarzeniaStatusFilter, setWydarzeniaStatusFilter] = useState('AKTYWNE');
   const [wydarzenieForm, setWydarzenieForm] = useState({
     salaId: '',
     tytul: '',
@@ -48,6 +48,9 @@ const WydarzeniaPage = () => {
   const [walletBalance, setWalletBalance] = useState(null);
   const [selectedInfoEvent, setSelectedInfoEvent] = useState(null);
   const [selectedPersonelEvent, setSelectedPersonelEvent] = useState(null);
+  const [selectedAddTicketsEvent, setSelectedAddTicketsEvent] = useState(null);
+  const [addTicketsForm, setAddTicketsForm] = useState([{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [], kategoriaBiletu: 'miejscówka' }]);
+  const [addTicketsLoading, setAddTicketsLoading] = useState(false);
   const [confirmEndEventId, setConfirmEndEventId] = useState(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const [opiniaForm, setOpiniaForm] = useState({ ocena: '5', opis: '' });
@@ -113,7 +116,7 @@ const WydarzeniaPage = () => {
 
   const fetchMyWydarzenia = useCallback(async () => {
     try {
-      const response = await apiClient.get('/wydarzenia/open', getRequestConfig());
+      const response = await apiClient.get('/wydarzenia', getRequestConfig());
       setMyWydarzenia(response.data);
     } catch (error) {
       setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.listFetchError') });
@@ -401,6 +404,47 @@ const WydarzeniaPage = () => {
     }
   };
 
+  const openAddTicketsModal = async (eventId) => {
+    setSelectedAddTicketsEvent(eventId);
+    setAddTicketsForm([{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [], kategoriaBiletu: 'miejscówka' }]);
+  };
+
+  const handleAddTicketsSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedAddTicketsEvent) return;
+
+    setAddTicketsLoading(true);
+    setStatus({ type: '', message: '' });
+
+    try {
+      const response = await apiClient.post(
+        `/wydarzenia/${selectedAddTicketsEvent}/bilety`,
+        addTicketsForm,
+        getRequestConfig()
+      );
+      setStatus({ type: 'success', message: response.data || t('events.status.ticketsAdded') });
+      setSelectedAddTicketsEvent(null);
+      setAddTicketsForm([{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [], kategoriaBiletu: 'miejscówka' }]);
+      await fetchMyWydarzenia();
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.ticketsAddError') });
+    } finally {
+      setAddTicketsLoading(false);
+    }
+  };
+
+  const addAddTicketsBiletForm = () => {
+    setAddTicketsForm(prev => [...prev, { klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [], kategoriaBiletu: 'miejscówka' }]);
+  };
+
+  const removeAddTicketsBiletForm = (index) => {
+    setAddTicketsForm(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateAddTicketsBiletInForm = (index, field, value) => {
+    setAddTicketsForm(prev => prev.map((bilet, i) => i === index ? { ...bilet, [field]: value } : bilet));
+  };
+
   const onOpiniaSubmit = async (event) => {
     event.preventDefault();
     if (!selectedInfoEvent) return;
@@ -519,8 +563,23 @@ const WydarzeniaPage = () => {
     const matchesText = !wydarzeniaSearch
       || (item.tytul || "").toLowerCase().includes(wydarzeniaSearch.toLowerCase())
       || item.salaNazwa?.toLowerCase().includes(wydarzeniaSearch.toLowerCase());
-    const matchesStatus = wydarzeniaStatusFilter === 'ALL'
-      || (item.status || '').toUpperCase() === wydarzeniaStatusFilter;
+    
+    let matchesStatus = true;
+    if (wydarzeniaStatusFilter === 'ALL') {
+      matchesStatus = true;
+    } else if (wydarzeniaStatusFilter === 'AKTYWNE') {
+      const isActive = (item.status || '').toUpperCase() === 'AKTYWNY';
+      const endDate = item.dataZamk ? new Date(item.dataZamk) : null;
+      const isNotEnded = !endDate || endDate > new Date();
+      matchesStatus = isActive && isNotEnded;
+    } else if (wydarzeniaStatusFilter === 'MOJE') {
+      matchesStatus = item.creatorLogin === currentUser?.login;
+    } else if (wydarzeniaStatusFilter === 'ZAMKNIETE') {
+      matchesStatus = (item.status || '').toUpperCase() !== 'AKTYWNY';
+    } else {
+      matchesStatus = (item.status || '').toUpperCase() === wydarzeniaStatusFilter;
+    }
+    
     return matchesText && matchesStatus;
   }).sort((a, b) => {
     const aObserved = observedEventIds.has(a.id) ? 1 : 0;
@@ -552,7 +611,7 @@ const WydarzeniaPage = () => {
             >
               <option value="ALL">{t('events.filter.all')}</option>
               <option value="AKTYWNE">{t('events.filter.active')}</option>
-              <option value="SZKIC">{t('events.filter.draft')}</option>
+              <option value="MOJE">{t('events.filter.myEvents')}</option>
               <option value="ZAMKNIETE">{t('events.filter.closed')}</option>
             </select>
             <div className="events-toolbar-actions">
@@ -691,6 +750,8 @@ const WydarzeniaPage = () => {
                     <option value="NIEAKTYWNY">NIEAKTYWNY</option>
                   </select>
 
+                  <p className="form-info-text">{t('events.form.dateTimeInfo')}</p>
+
                   <label htmlFor="wyd-start">{t('events.form.dateStart')}</label>
                   <input id="wyd-start" type="datetime-local" value={wydarzenieForm.dataRozp} onChange={(e) => setWydarzenieForm({ ...wydarzenieForm, dataRozp: e.target.value })} required />
 
@@ -778,9 +839,11 @@ const WydarzeniaPage = () => {
               <div key={item.id} className="event-management-wrapper" style={{ border: '1px solid #ddd', borderRadius: '12px', padding: '15px', backgroundColor: '#1a1d24', minWidth: 0, overflow: 'visible' }}>
                 <WydarzenieCard
                   item={item}
+                  currentUser={currentUser}
                   currentUserRole={currentUser?.rola}
                   onMoreInfo={openInfoModal}
                   onPersonel={openPersonelModal}
+                  onAddTickets={openAddTicketsModal}
                   onPurchase={openZakupForm}
                 />
 
@@ -985,11 +1048,59 @@ const WydarzeniaPage = () => {
             <div className="modal-grid info-modal-layout">
               <div className="info-top-section">
                 <p>{t('events.moreInfo.detailsPrefix', { title: selectedInfoEvent.tytul })}</p>
-                <p>{t('events.moreInfo.todo')}</p>
                 {infoLoading && <p>{t('events.moreInfo.loading')}</p>}
               </div>
 
-              <div className="event-detail-opinie info-left-section">
+              <div className="event-detail-main info-left-section">
+                <div className="event-detail-info">
+                  <div className="event-detail-row">
+                    <strong>Sala:</strong>
+                    <span>{selectedInfoEvent.salaNazwa || '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Autor:</strong>
+                    <span>{selectedInfoEvent.creatorLogin || '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Data rozpoczęcia:</strong>
+                    <span>{selectedInfoEvent.dataRozp ? new Date(selectedInfoEvent.dataRozp).toLocaleString('pl-PL') : '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Data zakończenia:</strong>
+                    <span>{selectedInfoEvent.dataZamk ? new Date(selectedInfoEvent.dataZamk).toLocaleString('pl-PL') : '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Pojemność sali:</strong>
+                    <span>{selectedInfoEvent.salaPojemnosc || 0} miejsc</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Personel:</strong>
+                    <span>{selectedInfoEvent.personel?.length || 0} osób</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Kategoria:</strong>
+                    <span>{selectedInfoEvent.kategoriaNazwa || '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Średnia ocena:</strong>
+                    <span>{selectedInfoEvent.averageRating != null && !isNaN(selectedInfoEvent.averageRating) ? selectedInfoEvent.averageRating.toFixed(1) : '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Miejsce:</strong>
+                    <span>{selectedInfoEvent.miejsceNazwa || '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Adres:</strong>
+                    <span>{selectedInfoEvent.ulica ? `${selectedInfoEvent.ulica}, ${selectedInfoEvent.kodPocztowy} ${selectedInfoEvent.miasto}` : '-'}</span>
+                  </div>
+                  <div className="event-detail-row">
+                    <strong>Opis:</strong>
+                    <span>{selectedInfoEvent.opis || '-'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="event-detail-opinie info-right-section">
                 <h3>{t('events.moreInfo.reviews.title')}</h3>
                 <form onSubmit={onOpiniaSubmit} className="auth-form organizer-form">
                   <label htmlFor="opinia-ocena">{t('events.moreInfo.reviews.rating')}</label>
@@ -1146,6 +1257,75 @@ const WydarzeniaPage = () => {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {selectedAddTicketsEvent && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setSelectedAddTicketsEvent(null);
+          }}
+        >
+          <div className="modal-card modal-card--w600">
+            <div className="modal-header">
+              <div className="modal-title">{t('events.addTickets.modalTitle')}</div>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setSelectedAddTicketsEvent(null)}
+                aria-label={t('events.common.close')}
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleAddTicketsSubmit} className="auth-form organizer-form" style={{ padding: '16px' }}>
+              <div className="event-ticket-section">
+                <div className="event-ticket-section-header">
+                  <h4 style={{ margin: 0 }}>{t('events.tickets.sectionTitle')}</h4>
+                  <div className="event-ticket-actions">
+                    <button type="button" onClick={addAddTicketsBiletForm} className="btn-refresh">{t('events.tickets.addPool')}</button>
+                    <button type="submit" disabled={addTicketsLoading}>{t('events.tickets.addEvent')}</button>
+                  </div>
+                </div>
+                <div className="event-ticket-grid">
+                  {addTicketsForm.map((bilet, index) => (
+                    <div key={index} className="event-ticket-card">
+                      <label htmlFor={`add-bilet-kategoria-${index}`}>{t('events.tickets.ticketCategory')}</label>
+                      <select id={`add-bilet-kategoria-${index}`} value={bilet.kategoriaBiletu || 'miejscówka'} onChange={(e) => updateAddTicketsBiletInForm(index, 'kategoriaBiletu', e.target.value)} required>
+                        <option value="miejscówka">{t('events.tickets.categorySeat')}</option>
+                        <option value="wejściówka">{t('events.tickets.categoryEntry')}</option>
+                      </select>
+
+                      <label htmlFor={`add-bilet-klasa-${index}`}>{t('events.tickets.class')}</label>
+                      <select id={`add-bilet-klasa-${index}`} value={bilet.klasa} onChange={(e) => updateAddTicketsBiletInForm(index, 'klasa', e.target.value)} required>
+                        <option value="">{t('events.tickets.classSelect')}</option>
+                        <option value="Standard">Standard</option>
+                        <option value="VIP">VIP</option>
+                      </select>
+
+                      <label htmlFor={`add-bilet-cena-${index}`}>{t('events.tickets.price')}</label>
+                      <input id={`add-bilet-cena-${index}`} type="number" step="0.01" value={bilet.cena} onChange={(e) => updateAddTicketsBiletInForm(index, 'cena', e.target.value)} required />
+
+                      <label htmlFor={`add-bilet-ilosc-${index}`}>{t('events.tickets.quantity')}</label>
+                      <input id={`add-bilet-ilosc-${index}`} type="number" value={bilet.ilosc} onChange={(e) => updateAddTicketsBiletInForm(index, 'ilosc', e.target.value)} required />
+
+                      <label htmlFor={`add-bilet-start-${index}`}>{t('events.tickets.salesStart')}</label>
+                      <input id={`add-bilet-start-${index}`} type="datetime-local" value={bilet.start_sprzedazy} onChange={(e) => updateAddTicketsBiletInForm(index, 'start_sprzedazy', e.target.value)} />
+
+                      <label htmlFor={`add-bilet-end-${index}`}>{t('events.tickets.salesEnd')}</label>
+                      <input id={`add-bilet-end-${index}`} type="datetime-local" value={bilet.koniec_sprzedazy} onChange={(e) => updateAddTicketsBiletInForm(index, 'koniec_sprzedazy', e.target.value)} />
+
+                      {addTicketsForm.length > 1 && (
+                        <button type="button" onClick={() => removeAddTicketsBiletForm(index)} className="btn-refresh" style={{ marginTop: '8px' }}>{t('events.tickets.removePool')}</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}
