@@ -437,6 +437,7 @@ const resources = {
 
       'events.tickets.sectionTitle': 'Konfiguracja biletów',
       'events.tickets.addPool': '+ Dodaj pulę',
+      'events.tickets.removePool': 'Usuń pulę',
       'events.tickets.addEvent': 'Dodaj wydarzenie',
       'events.tickets.ticketCategory': 'Kategoria biletu',
       'events.tickets.categorySeat': 'Miejscówka',
@@ -1200,6 +1201,7 @@ const resources = {
 
       'events.tickets.sectionTitle': 'Ticket configuration',
       'events.tickets.addPool': '+ Add pool',
+      'events.tickets.removePool': 'Remove pool',
       'events.tickets.addEvent': 'Add event',
       'events.tickets.ticketCategory': 'Ticket category',
       'events.tickets.categorySeat': 'Seat ticket',

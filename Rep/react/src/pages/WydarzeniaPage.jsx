@@ -1300,7 +1300,11 @@ const WydarzeniaPage = () => {
                       </select>
 
                       <label htmlFor={`add-bilet-klasa-${index}`}>{t('events.tickets.class')}</label>
-                      <input id={`add-bilet-klasa-${index}`} type="text" value={bilet.klasa} onChange={(e) => updateAddTicketsBiletInForm(index, 'klasa', e.target.value)} required />
+                      <select id={`add-bilet-klasa-${index}`} value={bilet.klasa} onChange={(e) => updateAddTicketsBiletInForm(index, 'klasa', e.target.value)} required>
+                        <option value="">{t('events.tickets.classSelect')}</option>
+                        <option value="Standard">Standard</option>
+                        <option value="VIP">VIP</option>
+                      </select>
 
                       <label htmlFor={`add-bilet-cena-${index}`}>{t('events.tickets.price')}</label>
                       <input id={`add-bilet-cena-${index}`} type="number" step="0.01" value={bilet.cena} onChange={(e) => updateAddTicketsBiletInForm(index, 'cena', e.target.value)} required />
@@ -1308,10 +1312,10 @@ const WydarzeniaPage = () => {
                       <label htmlFor={`add-bilet-ilosc-${index}`}>{t('events.tickets.quantity')}</label>
                       <input id={`add-bilet-ilosc-${index}`} type="number" value={bilet.ilosc} onChange={(e) => updateAddTicketsBiletInForm(index, 'ilosc', e.target.value)} required />
 
-                      <label htmlFor={`add-bilet-start-${index}`}>{t('events.tickets.saleStart')}</label>
+                      <label htmlFor={`add-bilet-start-${index}`}>{t('events.tickets.salesStart')}</label>
                       <input id={`add-bilet-start-${index}`} type="datetime-local" value={bilet.start_sprzedazy} onChange={(e) => updateAddTicketsBiletInForm(index, 'start_sprzedazy', e.target.value)} />
 
-                      <label htmlFor={`add-bilet-end-${index}`}>{t('events.tickets.saleEnd')}</label>
+                      <label htmlFor={`add-bilet-end-${index}`}>{t('events.tickets.salesEnd')}</label>
                       <input id={`add-bilet-end-${index}`} type="datetime-local" value={bilet.koniec_sprzedazy} onChange={(e) => updateAddTicketsBiletInForm(index, 'koniec_sprzedazy', e.target.value)} />
 
                       {addTicketsForm.length > 1 && (
