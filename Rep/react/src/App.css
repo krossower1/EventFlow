@@ -3625,6 +3625,11 @@ body .disabled * {
   margin-top: 0;
 }
 
+.dashboard-patch-notes h3.patch-notes-title {
+  color: #000000 !important;
+  font-weight: bold;
+}
+
 .dashboard-tabs-guide {
   display: grid;
   gap: 10px;
@@ -3637,12 +3642,23 @@ body .disabled * {
   padding: 12px 14px;
 }
 
+.section-name {
+  color: #ffffff;
+}
+
 .dashboard-patch-notes {
   background:
     linear-gradient(90deg, rgba(245, 196, 81, 0.18) 0 2px, transparent 2px 100%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 246, 214, 0.96));
   color: #2b2418;
   font-family: Georgia, 'Times New Roman', serif;
+}
+
+.patch-notes-date {
+  color: #000000 !important;
+  font-style: italic;
+  margin-top: 0;
+  margin-bottom: 12px;
 }
 
 .dashboard-patch-notes ul {
