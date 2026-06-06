@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../context/AuthContext';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
 import WydarzenieCard from '../components/WydarzenieCard';
 import PurchaseModal from '../components/PurchaseModal';
+import PatchNotesPanel from '../components/PatchNotesPanel';
 
 const Dashboard = () => {
+  const { t } = useTranslation();
   const { currentUser, authCredentials } = useContext(AuthContext);
   const navigate = useNavigate();
   const [openWydarzenia, setOpenWydarzenia] = useState([]);
@@ -29,9 +32,9 @@ const Dashboard = () => {
       const response = await apiClient.get('/wydarzenia/open', getRequestConfig());
       setOpenWydarzenia(response.data);
     } catch (error) {
-      setStatus({ type: 'error', message: 'Nie udało się pobrać aktualnych wydarzeń.' });
+      setStatus({ type: 'error', message: t('dashboard.status.fetchOpenEventsError') });
     }
-  }, [getRequestConfig]);
+  }, [getRequestConfig, t]);
 
   useEffect(() => {
     fetchOpenWydarzenia();
@@ -57,7 +60,7 @@ const Dashboard = () => {
       });
       setZakupFormOpen(true);
     } catch (error) {
-      setStatus({ type: 'error', message: 'Nie udało się pobrać dostępnych biletów.' });
+      setStatus({ type: 'error', message: t('events.status.availableTicketsError') });
     } finally {
       setZakupLoading(false);
     }
@@ -74,11 +77,11 @@ const Dashboard = () => {
         potwierdzPlatnosc: zakupForm.potwierdzPlatnosc,
         seatId: zakupForm.seatId || null
       }, getRequestConfig());
-      setStatus({ type: 'success', message: 'Zakup zakończony pomyślnie.' });
+      setStatus({ type: 'success', message: t('events.status.purchaseSuccess') });
       setZakupFormOpen(false);
       fetchOpenWydarzenia();
     } catch (error) {
-      setStatus({ type: 'error', message: 'Nie udało się zakończyć zakupu.' });
+      setStatus({ type: 'error', message: t('events.status.purchaseError') });
     } finally {
       setZakupLoading(false);
     }
@@ -88,37 +91,25 @@ const Dashboard = () => {
     <div className="dashboard-home">
       <section className="dashboard-intro">
         <p className="dashboard-kicker">EventFlow</p>
-        <h2>Panel główny</h2>
-        <p>
-          EventFlow pomaga organizować wydarzenia, zarządzać salami, biletami,
-          personelem, opiniami i zgłoszeniami w jednym miejscu.
-        </p>
+        <h2>{t('dashboard.title')}</h2>
+        <p>{t('dashboard.description')}</p>
         <div className="dashboard-tabs-guide">
-          <span className="section-name"><strong>Wydarzenia</strong> - przegląd aktywnych wydarzeń, zakup biletów i szczegóły.</span>
-          <span className="section-name"><strong>Bilety</strong> - zakupione bilety oraz prośby o zwrot.</span>
-          <span className="section-name"><strong>Uczestnicy</strong> - zarządzanie użytkownikami i ich rolami w systemie.</span>
-          <span className="section-name"><strong>Miejsca</strong> - przegląd i zarządzanie salami oraz układami miejsc.</span>
-          <span className="section-name"><strong>Analityka</strong> - statystyki i raporty dotyczące wydarzeń i sprzedaży.</span>
-          <span className="section-name"><strong>Ustawienia</strong> - konto, portfel i konfiguracja dla organizatorów.</span>
-          <span className="section-name"><strong>Panel admina</strong> - moderacja zwrotów, zgłoszeń i danych systemowych.</span>
+          <span className="section-name"><strong>{t('sidebar.nav.events')}</strong> - {t('dashboard.guide.events')}</span>
+          <span className="section-name"><strong>{t('sidebar.nav.tickets')}</strong> - {t('dashboard.guide.tickets')}</span>
+          <span className="section-name"><strong>{t('sidebar.nav.participants')}</strong> - {t('dashboard.guide.participants')}</span>
+          <span className="section-name"><strong>{t('sidebar.nav.places')}</strong> - {t('dashboard.guide.places')}</span>
+          <span className="section-name"><strong>{t('sidebar.nav.analytics')}</strong> - {t('dashboard.guide.analytics')}</span>
+          <span className="section-name"><strong>{t('sidebar.nav.settings')}</strong> - {t('dashboard.guide.settings')}</span>
+          <span className="section-name"><strong>{t('topbar.adminPanel')}</strong> - {t('dashboard.guide.adminPanel')}</span>
         </div>
       </section>
 
-      <section className="dashboard-patch-notes">
-        <h3 className="patch-notes-title">Notatki ze zmian</h3>
-        <p className="patch-notes-date">Zmiany dnia 29.05.2026</p>
-        <ul>
-          <li>Nieaktywne i zakończone wydarzenia są ukryte na liście wydarzeń.</li>
-          <li>Obserwowane wydarzenia pojawiają się wyżej i można je odobserwować.</li>
-          <li>Po zaakceptowaniu zwrotu bilet znika z listy biletów użytkownika.</li>
-          <li>Panel główny dostał krótki przewodnik po najważniejszych zakładkach.</li>
-        </ul>
-      </section>
+      <PatchNotesPanel />
 
       {status.message && <p className={`status-message ${status.type}`}>{status.message}</p>}
 
       <div className="dashboard-events">
-        <h3>Trwające i nadchodzące wydarzenia</h3>
+        <h3>{t('dashboard.events.title')}</h3>
         <div className="events-grid">
           {openWydarzenia.length > 0 ? (
             openWydarzenia.slice(0, 3).map((item) => (
@@ -131,7 +122,7 @@ const Dashboard = () => {
               />
             ))
           ) : (
-            <p>Brak wydarzeń, które jeszcze się nie zakończyły.</p>
+            <p>{t('dashboard.events.empty')}</p>
           )}
         </div>
       </div>

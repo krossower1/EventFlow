@@ -17,6 +17,7 @@ import {
   refreshObservedEvents,
   removeObservedEvent,
 } from '../utils/obserwowaneWydarzenia';
+import { ErrorBar } from 'recharts';
 const SESSION_SETTINGS_STORAGE_KEY = 'sessionSettingsCache';
 
 /** Format daty rozpoczęcia wydarzenia na liście obserwowanych w ustawieniach. */
@@ -170,7 +171,7 @@ const UstawieniaPage = () => {
   const isAdminUser = String(currentUser?.rola || '').toUpperCase() === 'ADMIN';
   const tabs = useMemo(() => ([
     { id: 'profil', label: t('settings.tabs.profil') },
-    { id: 'platnosci', label: 'Płatności' },
+    { id: 'platnosci', label: t('settings.tabs.platnosci') },
     { id: 'powiadomienia', label: t('settings.tabs.powiadomienia') },
     { id: 'obserwowane', label: t('settings.tabs.obserwowane') },
     { id: 'bezpieczenstwo', label: t('settings.tabs.bezpieczenstwo') },
@@ -634,10 +635,12 @@ const UstawieniaPage = () => {
         if (!cancelled) {
           setObservedEvents([]);
           setHasObservedEvents(false);
+          if (error.response?.status !== 403) {
           setObservedStatus({
             type: 'error',
             message: error.response?.data?.message || t('settings.observed.loadError'),
           });
+          }
         }
       } finally {
         if (!cancelled) setIsLoadingObserved(false);
@@ -942,7 +945,7 @@ const UstawieniaPage = () => {
       } catch (error) {
         setWalletStatus({
           type: 'error',
-          message: error.response?.data?.message || 'Nie udało się załadować danych portfela.'
+          message: error.response?.data?.message || t('settings.payments.loadError')
         });
       } finally {
         setIsLoadingWallet(false);
@@ -955,7 +958,7 @@ const UstawieniaPage = () => {
     event.preventDefault();
     const amount = parseFloat(addFundsAmount);
     if (isNaN(amount) || amount <= 0) {
-      setWalletStatus({ type: 'error', message: 'Podaj prawidłową kwotę większą od zera.' });
+      setWalletStatus({ type: 'error', message: t('settings.payments.invalidAmount') });
       return;
     }
     setIsAddingFunds(true);
@@ -968,11 +971,11 @@ const UstawieniaPage = () => {
         paymentMethod: response?.data?.paymentMethod || ''
       });
       setAddFundsAmount('');
-      setWalletStatus({ type: 'success', message: `Dodano ${amount} PLN do portfela.` });
+      setWalletStatus({ type: 'success', message: t('settings.payments.fundsAdded', { amount }) });
     } catch (error) {
       setWalletStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Nie udało się dodać środków.'
+        message: error.response?.data?.message || t('settings.payments.addFundsError')
       });
     } finally {
       setIsAddingFunds(false);
@@ -990,11 +993,11 @@ const UstawieniaPage = () => {
         bankAccountNumber: response?.data?.bankAccountNumber || '',
         paymentMethod: response?.data?.paymentMethod || ''
       });
-      setWalletStatus({ type: 'success', message: 'Zaktualizowano metodę płatności.' });
+      setWalletStatus({ type: 'success', message: t('settings.payments.paymentMethodUpdated') });
     } catch (error) {
       setWalletStatus({
         type: 'error',
-        message: error.response?.data?.message || 'Nie udało się zaktualizować metody płatności.'
+        message: error.response?.data?.message || t('settings.payments.paymentMethodUpdateError')
       });
     } finally {
       setIsSavingPaymentMethod(false);
@@ -1236,32 +1239,33 @@ const UstawieniaPage = () => {
           </div>
         ) : activeTab === 'platnosci' ? (
           <div className="settings-panel">
-            <h3>Płatności i Portfel</h3>
-            <p className="settings-subtitle">Zarządzaj swoim portfelem i metodami płatności</p>
+            <h3>{t('settings.payments.title')}</h3>
+            <p className="settings-subtitle">{t('settings.payments.subtitle')}</p>
             
             {isLoadingWallet ? (
-              <p className="settings-subtitle">Ładowanie danych portfela...</p>
+              <p className="settings-subtitle">{t('settings.payments.loading')}</p>
             ) : (
               <>
                 <div className="wallet-balance-section">
-                  <h4>Stan portfela</h4>
+                  <h4>{t('settings.payments.walletBalance')}</h4>
                   <div className="wallet-balance-display">
                     <span className="wallet-balance-amount">{walletData.balance.toFixed(2)} PLN</span>
                   </div>
                 </div>
 
                 <div className="wallet-add-funds-section">
-                  <h4>Dodaj środki (test)</h4>
+                  <h4>{t('settings.payments.addFundsTitle')}</h4>
                   <form onSubmit={handleAddFunds}>
-                    <label htmlFor="add-funds-amount">Kwota do dodania (PLN)</label>
+                    <label htmlFor="add-funds-amount">{t('settings.payments.addFundsAmountLabel')}</label>
                     <input
                       id="add-funds-amount"
+                      className="buttonv2"
                       type="number"
                       step="0.01"
                       min="0.01"
                       value={addFundsAmount}
                       onChange={(e) => setAddFundsAmount(e.target.value)}
-                      placeholder="0.00"
+                      placeholder={t('settings.payments.addFundsAmountPlaceholder')}
                       disabled={isAddingFunds}
                     />
                     <button
@@ -1269,31 +1273,33 @@ const UstawieniaPage = () => {
                       className="btn-new-event"
                       disabled={isAddingFunds}
                     >
-                      {isAddingFunds ? 'Dodawanie...' : 'Dodaj środki'}
+                      {isAddingFunds ? t('settings.payments.addingFunds') : t('settings.payments.addFunds')}
                     </button>
                   </form>
                 </div>
 
                 <div className="wallet-payment-method-section">
-                  <h4>Metoda płatności</h4>
+                  <h4>{t('settings.payments.paymentMethod')}</h4>
                   <form onSubmit={handleUpdatePaymentMethod}>
-                    <label htmlFor="payment-method">Metoda płatności</label>
+                    <label htmlFor="payment-method">{t('settings.payments.paymentMethod')}</label>
                     <input
                       id="payment-method"
                       type="text"
+                      className="buttonv2"
                       value={paymentMethodForm.paymentMethod}
                       onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, paymentMethod: e.target.value })}
-                      placeholder="np. Przelew bankowy, BLIK, Karta"
+                      placeholder={t('settings.payments.paymentMethodPlaceholder')}
                       disabled={isSavingPaymentMethod}
                     />
                     
-                    <label htmlFor="bank-account-number">Numer konta bankowego</label>
+                    <label htmlFor="bank-account-number">{t('settings.payments.bankAccountNumber')}</label>
                     <input
                       id="bank-account-number"
                       type="text"
+                      className="buttonv2"
                       value={paymentMethodForm.bankAccountNumber}
                       onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, bankAccountNumber: e.target.value })}
-                      placeholder="np. PL12 3456 7890 0000 1234 5678 9012"
+                      placeholder={t('settings.payments.bankAccountPlaceholder')}
                       disabled={isSavingPaymentMethod}
                     />
                     
@@ -1302,7 +1308,7 @@ const UstawieniaPage = () => {
                       className="btn-new-event"
                       disabled={isSavingPaymentMethod}
                     >
-                      {isSavingPaymentMethod ? 'Zapisywanie...' : 'Zapisz metodę płatności'}
+                      {isSavingPaymentMethod ? t('common.saving') : t('settings.payments.savePaymentMethod')}
                     </button>
                   </form>
                 </div>

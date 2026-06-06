@@ -168,7 +168,7 @@ public class ObservedWydarzenieController {
 	private User requireUserRole(Authentication authentication) {
 		User user = requireCurrentUser(authentication);
 		if (!isUser(user)) {
-			throw new ResponseStatusException(FORBIDDEN, "Obserwowanie wydarzen dostepne tylko dla uzytkownika USER.");
+			throw new ResponseStatusException(FORBIDDEN, "");
 		}
 		return user;
 	}

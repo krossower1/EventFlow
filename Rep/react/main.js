@@ -6,11 +6,16 @@ let mainWindow;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1280,
+    height: 800,
+    minWidth: 1024,
+    minHeight: 600,
+    center: true,
+    show: false,
     icon: path.join(__dirname, 'image(1).ico'),
     webPreferences: {
       nodeIntegration: true,
+      zoomFactor: 0.6,
     },
   });
 
@@ -19,6 +24,11 @@ function createWindow() {
     : `file://${path.join(__dirname, '../build/index.html')}`;
 
   mainWindow.loadURL(startURL);
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.maximize();
+    mainWindow.show();
+  });
 
   mainWindow.on('closed', () => (mainWindow = null));
 }

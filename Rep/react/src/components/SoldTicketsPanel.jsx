@@ -6,7 +6,6 @@ const SoldTicketsPanel = ({ API_BASE_URL, getRequestConfig, setStatus }) => {
   const { t } = useTranslation();
   const [soldTickets, setSoldTickets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTicket, setSelectedTicket] = useState(null);
   const [filterSearch, setFilterSearch] = useState('');
   const [filterEvent, setFilterEvent] = useState('');
   const [filterClass, setFilterClass] = useState('');
@@ -129,15 +128,7 @@ const SoldTicketsPanel = ({ API_BASE_URL, getRequestConfig, setStatus }) => {
                 <td>{ticket.wydarzenieTytul || '-'}</td>
                 <td>{ticket.klasa || '-'}</td>
                 <td>{formatPrice(ticket)}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="btn-new-event"
-                    onClick={() => setSelectedTicket(ticket)}
-                  >
-                    {t('tickets.sold.table.showQr')}
-                  </button>
-                </td>
+                <td>{ticket.kod || '-'}</td>
               </tr>
             )) : (
               <tr>
@@ -146,29 +137,6 @@ const SoldTicketsPanel = ({ API_BASE_URL, getRequestConfig, setStatus }) => {
             )}
           </tbody>
         </table>
-      )}
-
-      {selectedTicket && (
-        <div className="modal-overlay" onClick={() => setSelectedTicket(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3>{t('tickets.sold.qrModal.title')}</h3>
-            <p>{t('tickets.sold.qrModal.code', { code: selectedTicket.kod })}</p>
-            {selectedTicket.qrCode ? (
-              <div style={{ marginTop: '10px', textAlign: 'center' }}>
-                <img
-                  src={selectedTicket.qrCode}
-                  alt={t('tickets.ticket.qrAlt')}
-                  style={{ width: '220px', height: '220px', border: '1px solid #ddd' }}
-                />
-              </div>
-            ) : (
-              <p>{t('tickets.sold.qrModal.missing')}</p>
-            )}
-            <button type="button" className="btn-new-event" style={{ marginTop: '16px' }} onClick={() => setSelectedTicket(null)}>
-              {t('tickets.sold.qrModal.close')}
-            </button>
-          </div>
-        </div>
       )}
     </div>
   );
