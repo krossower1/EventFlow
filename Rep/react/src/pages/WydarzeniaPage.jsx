@@ -764,14 +764,24 @@ const WydarzeniaPage = () => {
                     <div className="event-ticket-section-header">
                       <h4 style={{ margin: 0 }}>{t('events.tickets.sectionTitle')}</h4>
                       <div className="event-ticket-actions">
-                        <button type="button" onClick={addBiletForm} className="btn-refresh">{t('events.tickets.addPool')}</button>
-                        <button type="submit">{t('events.tickets.addEvent')}</button>
+                        <button type="button" onClick={addBiletForm} className="btn-refresh ostatnia_deska">{t('events.tickets.addPool')}</button>
+                        <button type="submit" className="ostatnia_deska">{t('events.tickets.addEvent')}</button>
                       </div>
                     </div>
                     <div className="event-ticket-grid">
                       {wydarzenieForm.bilety.map((bilet, index) => (
                         <div key={index} className="event-ticket-card">
-                          <label htmlFor={`bilet-kategoria-${index}`}>{t('events.tickets.ticketCategory')}</label>
+                          <div className="event-ticket-card-top">
+                            <label htmlFor={`bilet-kategoria-${index}`}>{t('events.tickets.ticketCategory')}</label>
+                            <button
+                              type="button"
+                              onClick={() => removeBiletForm(index)}
+                              className="event-ticket-card-remove"
+                              aria-label={t('events.tickets.removePool')}
+                            >
+                              ×
+                            </button>
+                          </div>
                           <select id={`bilet-kategoria-${index}`} value={bilet.kategoriaBiletu || 'miejscówka'} onChange={(e) => updateBiletInForm(index, 'kategoriaBiletu', e.target.value)} required>
                             <option value="miejscówka">{t('events.tickets.categorySeat')}</option>
                             <option value="wejściówka">{t('events.tickets.categoryEntry')}</option>
@@ -821,8 +831,6 @@ const WydarzeniaPage = () => {
                               )}
                             </>
                           )}
-
-                          <button type="button" onClick={() => removeBiletForm(index)} className="btn-delete">X</button>
                         </div>
                       ))}
                     </div>
@@ -1214,7 +1222,7 @@ const WydarzeniaPage = () => {
                     ))}
                   </select>
 
-                  <button type="submit" disabled={currentUser?.rola !== 'ORG'}>
+                  <button type="submit" disabled={currentUser?.rola !== 'ORG'} className="ostatnia_deska">
                     {t('events.personnel.add')}
                   </button>
                 </form>
@@ -1286,14 +1294,30 @@ const WydarzeniaPage = () => {
                 <div className="event-ticket-section-header">
                   <h4 style={{ margin: 0 }}>{t('events.tickets.sectionTitle')}</h4>
                   <div className="event-ticket-actions">
-                    <button type="button" onClick={addAddTicketsBiletForm} className="btn-refresh">{t('events.tickets.addPool')}</button>
-                    <button type="submit" disabled={addTicketsLoading}>{t('events.tickets.addEvent')}</button>
+                    <button type="button" onClick={addAddTicketsBiletForm} className="btn-refresh ostatnia_deska">{t('events.tickets.addPool')}
+                    </button>
+
+                    <button type="submit" disabled={addTicketsLoading}
+                    className="btn-refresh ostatnia_deska"
+                    >{t('events.tickets.addEvent')}</button>
                   </div>
                 </div>
                 <div className="event-ticket-grid">
                   {addTicketsForm.map((bilet, index) => (
                     <div key={index} className="event-ticket-card">
-                      <label htmlFor={`add-bilet-kategoria-${index}`}>{t('events.tickets.ticketCategory')}</label>
+                      <div className="event-ticket-card-top">
+                        <label htmlFor={`add-bilet-kategoria-${index}`}>{t('events.tickets.ticketCategory')}</label>
+                        {addTicketsForm.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeAddTicketsBiletForm(index)}
+                            className="event-ticket-card-remove"
+                            aria-label={t('events.tickets.removePool')}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
                       <select id={`add-bilet-kategoria-${index}`} value={bilet.kategoriaBiletu || 'miejscówka'} onChange={(e) => updateAddTicketsBiletInForm(index, 'kategoriaBiletu', e.target.value)} required>
                         <option value="miejscówka">{t('events.tickets.categorySeat')}</option>
                         <option value="wejściówka">{t('events.tickets.categoryEntry')}</option>
@@ -1317,10 +1341,6 @@ const WydarzeniaPage = () => {
 
                       <label htmlFor={`add-bilet-end-${index}`}>{t('events.tickets.salesEnd')}</label>
                       <input id={`add-bilet-end-${index}`} type="datetime-local" value={bilet.koniec_sprzedazy} onChange={(e) => updateAddTicketsBiletInForm(index, 'koniec_sprzedazy', e.target.value)} />
-
-                      {addTicketsForm.length > 1 && (
-                        <button type="button" onClick={() => removeAddTicketsBiletForm(index)} className="btn-refresh" style={{ marginTop: '8px' }}>{t('events.tickets.removePool')}</button>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -1338,7 +1358,7 @@ const WydarzeniaPage = () => {
             if (e.target === e.currentTarget) setOrganizerRequestOpen(false);
           }}
         >
-          <div className="modal-card">
+          <div className="modal-card modal-card--w600">
             <div className="modal-header">
               <div className="modal-title">{t('events.organizerRequest.modalTitle')}</div>
               <button
@@ -1381,7 +1401,7 @@ const WydarzeniaPage = () => {
                 disabled={currentUser?.rola !== 'USER'}
               />
 
-              <button type="submit" disabled={currentUser?.rola !== 'USER'}>
+              <button type="submit" disabled={currentUser?.rola !== 'USER'} className="ostatnia_deska">
                 {t('events.organizerRequest.submit')}
               </button>
             </form>

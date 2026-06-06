@@ -274,7 +274,7 @@ const AuthPage = () => {
           <div className="auth-tabs">
             <button
               type="button"
-              className={mode === 'login' ? 'active' : ''}
+              className={mode === 'login' ? 'active ostatnia_deska' : 'ostatnia_deska'}
               onClick={() => {
                 setMode('login');
                 setStatus({ type: '', message: '' });
@@ -284,7 +284,7 @@ const AuthPage = () => {
             </button>
             <button
               type="button"
-              className={mode === 'register' ? 'active' : ''}
+              className={mode === 'register' ? 'active ostatnia_deska' : 'ostatnia_deska'}
               onClick={() => {
                 setMode('register');
                 setStatus({ type: '', message: '' });
@@ -327,7 +327,10 @@ const AuthPage = () => {
               </label>
             </div>
 
-            <button type="submit">{t('auth.login.submit')}</button>
+            <button 
+            type="submit"
+            className="ostatnia_deska"
+            >{t('auth.login.submit')}</button>
             {pendingVerificationEmail && (
               <div className="verification-note">
                 <button
@@ -429,7 +432,7 @@ const AuthPage = () => {
               required
             />
 
-            <button type="submit" disabled={registerSubmitting} className={registerSubmitting ? 'auth-submit-loading' : ''}>
+            <button type="submit" disabled={registerSubmitting} className={registerSubmitting ? 'auth-submit-loading ostatnia_deska' : 'ostatnia_deska'}>
               {registerSubmitting ? t('auth.register.submitting') : t('auth.register.submit')}
             </button>
           </form>
