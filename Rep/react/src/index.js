@@ -3,9 +3,11 @@ import ReactDOM from 'react-dom/client';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 import './i18n';
+import { initTheme } from './utils/theme';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+initTheme();
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>

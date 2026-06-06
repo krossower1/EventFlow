@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
 import { authService } from '../services/authService';
 import i18n from '../i18n';
@@ -43,6 +44,7 @@ const UstawieniaPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, authCredentials, applyAuthenticatedUser, applySessionSettings } = useContext(AuthContext);
+  const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('profil');
   const [activeSecurityTab, setActiveSecurityTab] = useState('zmiana-hasla');
   const [openSessionAccordion, setOpenSessionAccordion] = useState('');
@@ -178,6 +180,12 @@ const UstawieniaPage = () => {
     { id: 'uklady-sal', label: t('settings.tabs.ukladySal') },
     { id: 'wyglad', label: t('settings.tabs.wyglad') },
     { id: 'jezyk', label: t('settings.tabs.jezyk') }
+  ]), [t]);
+
+  const themeOptions = useMemo(() => ([
+    { id: 'default', label: t('settings.appearance.option.default') },
+    { id: 'dark', label: t('settings.appearance.option.dark') },
+    { id: 'light', label: t('settings.appearance.option.light') },
   ]), [t]);
 
   /** Podzakładki sekcji Bezpieczeństwo; „Zgłoszenia” tylko dla admina (UI: tooltip + disabled). */
@@ -2135,6 +2143,7 @@ const UstawieniaPage = () => {
                                 <input
                                   type="number"
                                   min="80"
+                                  className="buttonv2"
                                   value={Number(row.width) || ROW_BASE_WIDTH}
                                   onChange={(event) => updateSelectedSalaPlan(selectedSalaElements.map((item) => item.id === row.id ? { ...item, width: Number(event.target.value) || ROW_BASE_WIDTH } : item))}
                                 />
@@ -2144,6 +2153,7 @@ const UstawieniaPage = () => {
                                 <input
                                   type="number"
                                   min="40"
+                                  className="buttonv2"
                                   value={Number(row.height) || ROW_BASE_HEIGHT}
                                   onChange={(event) => updateSelectedSalaPlan(selectedSalaElements.map((item) => item.id === row.id ? { ...item, height: Number(event.target.value) || ROW_BASE_HEIGHT } : item))}
                                 />
@@ -2213,6 +2223,23 @@ const UstawieniaPage = () => {
                   )}
                 </div>
               )
+            ) : activeTab === 'wyglad' ? (
+              <div className="settings-appearance">
+                <p>{t('settings.appearance.title')}</p>
+                <div className="settings-theme-actions">
+                  {themeOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={`btn-new-event settings-theme-btn ${theme === option.id ? 'is-active' : ''}`}
+                      onClick={() => setTheme(option.id)}
+                      aria-pressed={theme === option.id}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ) : activeTab === 'jezyk' ? (
               <div className="settings-language">
                 <p>{t('settings.language.title')}</p>

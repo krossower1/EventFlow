@@ -310,7 +310,7 @@ const MiejscaPage = () => {
                 <p>{t('places.card.noRoomsDefined')}</p>
               )}
 
-              <div style={{ marginTop: '15px', color: 'white', border: '1px solid white', backgroundColor: '#0d0f14', padding: '15px', borderRadius: '5px' }}>
+              <div id='xxx'>
                 <h5>{t('places.addRoom.titlePrefix')} {miejsce.nazwa}</h5>
                 {currentUser?.rola === 'ORG' ? (
                   <form onSubmit={e => onSalaSubmit(e, miejsce.id)} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '10px', alignItems: 'end' }}>

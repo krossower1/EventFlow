@@ -230,6 +230,12 @@ const resources = {
       'settings.layouts.saved': 'Układ sali został zapisany.',
       'settings.layouts.saveError': 'Nie udało się zapisać układu sali.',
 
+      // Settings - appearance
+      'settings.appearance.title': 'Motyw interfejsu',
+      'settings.appearance.option.default': 'Domyślny',
+      'settings.appearance.option.dark': 'Ciemny',
+      'settings.appearance.option.light': 'Jasny',
+
       // Settings - language
       'settings.language.title': 'Język interfejsu',
       'settings.language.option.pl': 'Polski',
@@ -1062,6 +1068,12 @@ const resources = {
       'settings.layouts.overlapError': 'Cannot save layout - seats overlap.',
       'settings.layouts.saved': 'Hall layout has been saved.',
       'settings.layouts.saveError': 'Could not save hall layout.',
+
+      // Settings - appearance
+      'settings.appearance.title': 'Interface theme',
+      'settings.appearance.option.default': 'Default',
+      'settings.appearance.option.dark': 'Dark',
+      'settings.appearance.option.light': 'Light',
 
       // Settings - language
       'settings.language.title': 'Interface language',
