@@ -15,5 +15,6 @@ public class ObservedEventReminderScheduler {
 	@Scheduled(fixedRate = 300_000)
 	public void runUpcomingStartReminders() {
 		notificationService.sendUpcomingObservedEventStartReminders();
+		notificationService.sendUpcomingOrganizerEventStartReminders();
 	}
 }

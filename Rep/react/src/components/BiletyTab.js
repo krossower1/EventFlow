@@ -90,7 +90,9 @@ const BiletyTab = ({ currentUserRole, getRequestConfig, setStatus, API_BASE_URL,
             <h3>{t('tickets.refund.modalTitle', { title: selectedZwrotBilet.wydarzenieTytul })}</h3>
             <form onSubmit={onZwrotSubmit} className="auth-form">
               <label>{t('tickets.refund.reason')}</label>
-              <textarea value={zwrotForm.powod} onChange={e => setZwrotForm({ powod: e.target.value })} required />
+              <textarea 
+              className="buttonv2"
+              value={zwrotForm.powod} onChange={e => setZwrotForm({ powod: e.target.value })} required />
               <button type="submit">{t('tickets.refund.send')}</button>
             </form>
           </div>

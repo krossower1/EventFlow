@@ -147,6 +147,7 @@ public class ZwrotController {
 		if (zamowienie == null) {
 			return;
 		}
+		User buyer = userRepository.findById(zamowienie.getUserId()).orElse(null);
 		List<WystBilet> wystBilety = wystBiletRepository.findByZamIdIn(List.of(zamowienie.getId()));
 		for (WystBilet wystBilet : wystBilety) {
 			String seatId = wystBilet.getSeatId();
@@ -155,6 +156,13 @@ public class ZwrotController {
 			wystBilet.setSeatId(null);
 			wystBilet.setStan("zwrocony");
 			wystBiletRepository.save(wystBilet);
+
+			if (bilet != null && bilet.getWydarzenieId() != null) {
+				Wydarzenie wydarzenie = wydarzenieRepository.findById(bilet.getWydarzenieId()).orElse(null);
+				if (buyer != null && wydarzenie != null) {
+					notificationService.notifyOrganizerEventRefund(wydarzenie, buyer, bilet.getKlasa());
+				}
+			}
 
 			if (seatId != null && !seatId.isBlank() && bilet != null && bilet.getWydarzenieId() != null) {
 				Wydarzenie wydarzenie = wydarzenieRepository.findById(bilet.getWydarzenieId()).orElse(null);

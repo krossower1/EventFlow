@@ -13,7 +13,7 @@ const isSeatTicketCategory = (value) => !String(value || TICKET_CATEGORY_SEAT).t
 const isSeatPlanElement = (item) => String(item?.type || 'SEAT').toUpperCase() !== 'ROW';
 
 const WydarzeniaPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { currentUser, authCredentials } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -53,6 +53,7 @@ const WydarzeniaPage = () => {
   const [addTicketsLoading, setAddTicketsLoading] = useState(false);
   const [confirmEndEventId, setConfirmEndEventId] = useState(null);
   const [infoLoading, setInfoLoading] = useState(false);
+  const [reviewsModalOpen, setReviewsModalOpen] = useState(false);
   const [opiniaForm, setOpiniaForm] = useState({ ocena: '5', opis: '' });
   const [organizerRequestOpen, setOrganizerRequestOpen] = useState(false);
   const [organizerForm, setOrganizerForm] = useState({ firma: '', kwalifikacje: '', strona: '' });
@@ -374,8 +375,18 @@ const WydarzeniaPage = () => {
     }
   };
 
+  const refreshInfoEvent = async (eventId) => {
+    try {
+      const eventResponse = await apiClient.get(`/wydarzenia/${eventId}`, getRequestConfig());
+      setSelectedInfoEvent(eventResponse.data);
+    } catch (error) {
+      setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.eventDetailsError') });
+    }
+  };
+
   const openInfoModal = async (eventId) => {
     setInfoLoading(true);
+    setReviewsModalOpen(false);
     try {
       const eventResponse = await apiClient.get(`/wydarzenia/${eventId}`, getRequestConfig());
       setSelectedInfoEvent(eventResponse.data);
@@ -385,6 +396,11 @@ const WydarzeniaPage = () => {
     } finally {
       setInfoLoading(false);
     }
+  };
+
+  const closeInfoModal = () => {
+    setSelectedInfoEvent(null);
+    setReviewsModalOpen(false);
   };
 
   const openPersonelModal = async (eventId) => {
@@ -457,7 +473,7 @@ const WydarzeniaPage = () => {
       );
       setStatus({ type: 'success', message: response.data || t('events.status.reviewAdded') });
       setOpiniaForm({ ocena: '5', opis: '' });
-      await openInfoModal(selectedInfoEvent.id);
+      await refreshInfoEvent(selectedInfoEvent.id);
     } catch (error) {
       setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.reviewAddError') });
     }
@@ -472,7 +488,7 @@ const WydarzeniaPage = () => {
         getRequestConfig()
       );
       setStatus({ type: 'success', message: response.data || t('events.status.reviewDeleted') });
-      await openInfoModal(selectedInfoEvent.id);
+      await refreshInfoEvent(selectedInfoEvent.id);
     } catch (error) {
       setStatus({ type: 'error', message: error.response?.data?.message || t('events.status.reviewDeleteError') });
     }
@@ -827,7 +843,7 @@ const WydarzeniaPage = () => {
                                   showLegend
                                 />
                               ) : (
-                                <p className="status-message error">Nie udało się pobrać miejsc dla wybranej sali.</p>
+                                <p className="status-message error">{t('events.status.hallSeatsFetchError')}</p>
                               )}
                             </>
                           )}
@@ -1038,7 +1054,7 @@ const WydarzeniaPage = () => {
           role="dialog"
           aria-modal="true"
           onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setSelectedInfoEvent(null);
+            if (e.target === e.currentTarget) closeInfoModal();
           }}
         >
           <div className="modal-card modal-card--w600">
@@ -1047,7 +1063,7 @@ const WydarzeniaPage = () => {
               <button
                 type="button"
                 className="modal-close"
-                onClick={() => setSelectedInfoEvent(null)}
+                onClick={closeInfoModal}
                 aria-label={t('events.common.close')}
               >
                 ×
@@ -1062,102 +1078,131 @@ const WydarzeniaPage = () => {
               <div className="event-detail-main info-left-section">
                 <div className="event-detail-info">
                   <div className="event-detail-row">
-                    <strong>Sala:</strong>
+                    <strong>{t('eventsCard.labels.hall')}</strong>
                     <span>{selectedInfoEvent.salaNazwa || '-'}</span>
                   </div>
                   <div className="event-detail-row">
-                    <strong>Autor:</strong>
+                    <strong>{t('events.moreInfo.labels.author')}</strong>
                     <span>{selectedInfoEvent.creatorLogin || '-'}</span>
                   </div>
                   <div className="event-detail-row">
-                    <strong>Data rozpoczęcia:</strong>
-                    <span>{selectedInfoEvent.dataRozp ? new Date(selectedInfoEvent.dataRozp).toLocaleString('pl-PL') : '-'}</span>
+                    <strong>{t('events.moreInfo.labels.startDate')}</strong>
+                    <span>{selectedInfoEvent.dataRozp ? new Date(selectedInfoEvent.dataRozp).toLocaleString(i18n.language === 'en' ? 'en-GB' : 'pl-PL') : '-'}</span>
                   </div>
                   <div className="event-detail-row">
-                    <strong>Data zakończenia:</strong>
-                    <span>{selectedInfoEvent.dataZamk ? new Date(selectedInfoEvent.dataZamk).toLocaleString('pl-PL') : '-'}</span>
+                    <strong>{t('events.moreInfo.labels.endDate')}</strong>
+                    <span>{selectedInfoEvent.dataZamk ? new Date(selectedInfoEvent.dataZamk).toLocaleString(i18n.language === 'en' ? 'en-GB' : 'pl-PL') : '-'}</span>
                   </div>
                   <div className="event-detail-row">
-                    <strong>Pojemność sali:</strong>
-                    <span>{selectedInfoEvent.salaPojemnosc || 0} miejsc</span>
+                    <strong>{t('events.moreInfo.labels.hallCapacity')}</strong>
+                    <span>{t('events.moreInfo.hallCapacityValue', { count: selectedInfoEvent.salaPojemnosc || 0 })}</span>
                   </div>
                   <div className="event-detail-row">
-                    <strong>Personel:</strong>
-                    <span>{selectedInfoEvent.personel?.length || 0} osób</span>
+                    <strong>{t('events.moreInfo.labels.personnelCount')}</strong>
+                    <span>{t('events.moreInfo.personnelCountValue', { count: selectedInfoEvent.personel?.length || 0 })}</span>
                   </div>
                   <div className="event-detail-row">
-                    <strong>Kategoria:</strong>
+                    <strong>{t('eventsCard.labels.category')}</strong>
                     <span>{selectedInfoEvent.kategoriaNazwa || '-'}</span>
                   </div>
                   <div className="event-detail-row">
-                    <strong>Średnia ocena:</strong>
+                    <strong>{t('events.moreInfo.labels.averageRating')}</strong>
                     <span>{selectedInfoEvent.averageRating != null && !isNaN(selectedInfoEvent.averageRating) ? selectedInfoEvent.averageRating.toFixed(1) : '-'}</span>
                   </div>
                   <div className="event-detail-row">
-                    <strong>Miejsce:</strong>
+                    <strong>{t('eventsCard.labels.place')}</strong>
                     <span>{selectedInfoEvent.miejsceNazwa || '-'}</span>
                   </div>
                   <div className="event-detail-row">
-                    <strong>Adres:</strong>
+                    <strong>{t('eventsCard.labels.address')}</strong>
                     <span>{selectedInfoEvent.ulica ? `${selectedInfoEvent.ulica}, ${selectedInfoEvent.kodPocztowy} ${selectedInfoEvent.miasto}` : '-'}</span>
                   </div>
                   <div className="event-detail-row">
-                    <strong>Opis:</strong>
+                    <strong>{t('events.moreInfo.labels.description')}</strong>
                     <span>{selectedInfoEvent.opis || '-'}</span>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  className="btn-refresh ostatnia_deska info-reviews-btn"
+                  onClick={() => setReviewsModalOpen(true)}
+                >
+                  {t('events.moreInfo.reviews.browse')}
+                </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedInfoEvent && reviewsModalOpen && (
+        <div
+          className="modal-overlay modal-overlay--nested"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setReviewsModalOpen(false);
+          }}
+        >
+          <div className="modal-card modal-card--w600">
+            <div className="modal-header">
+              <div className="modal-title">{t('events.moreInfo.reviews.title')}</div>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setReviewsModalOpen(false)}
+                aria-label={t('events.common.close')}
+              >
+                ×
+              </button>
+            </div>
+            <div className="event-detail-opinie info-reviews-modal">
+              <form onSubmit={onOpiniaSubmit} className="auth-form organizer-form">
+                <label htmlFor="opinia-ocena">{t('events.moreInfo.reviews.rating')}</label>
+                <select
+                  id="opinia-ocena"
+                  value={opiniaForm.ocena}
+                  onChange={(event) => setOpiniaForm({ ...opiniaForm, ocena: event.target.value })}
+                >
+                  <option value="5">5</option>
+                  <option value="4">4</option>
+                  <option value="3">3</option>
+                  <option value="2">2</option>
+                  <option value="1">1</option>
+                </select>
 
-              <div className="event-detail-opinie info-right-section">
-                <h3>{t('events.moreInfo.reviews.title')}</h3>
-                <form onSubmit={onOpiniaSubmit} className="auth-form organizer-form">
-                  <label htmlFor="opinia-ocena">{t('events.moreInfo.reviews.rating')}</label>
-                  <select
-                    id="opinia-ocena"
-                    value={opiniaForm.ocena}
-                    onChange={(event) => setOpiniaForm({ ...opiniaForm, ocena: event.target.value })}
-                  >
-                    <option value="5">5</option>
-                    <option value="4">4</option>
-                    <option value="3">3</option>
-                    <option value="2">2</option>
-                    <option value="1">1</option>
-                  </select>
+                <label htmlFor="opinia-opis">{t('events.moreInfo.reviews.description')}</label>
+                <textarea
+                  id="opinia-opis"
+                  className="buttonv2"
+                  value={opiniaForm.opis}
+                  onChange={(event) => setOpiniaForm({ ...opiniaForm, opis: event.target.value })}
+                  required
+                />
 
-                  <label htmlFor="opinia-opis">{t('events.moreInfo.reviews.description')}</label>
-                  <textarea
-                    id="opinia-opis"
-                    value={opiniaForm.opis}
-                    onChange={(event) => setOpiniaForm({ ...opiniaForm, opis: event.target.value })}
-                    required
-                  />
+                <button type="submit">{t('events.moreInfo.reviews.add')}</button>
+              </form>
 
-                  <button type="submit">{t('events.moreInfo.reviews.add')}</button>
-                </form>
-
-                <div className="events-grid">
-                  {selectedInfoEvent.opinie?.length > 0 ? selectedInfoEvent.opinie.map((opinia) => (
-                    <article key={opinia.id} className="event-card">
-                      <span className="event-badge">{t('events.moreInfo.reviews.badge', { value: opinia.ocena })}</span>
-                      <h3>{opinia.userLogin}</h3>
-                      <p>{opinia.opis}</p>
-                      <p>{opinia.data ? new Date(opinia.data).toLocaleString() : '-'}</p>
-                      {(opinia.userLogin === currentUser.login || currentUser.rola === 'ADMIN') && (
-                        <button
-                          type="button"
-                          className="btn-delete"
-                          onClick={() => onDeleteOpinia(opinia.id)}
-                        >
-                          {t('events.moreInfo.reviews.delete')}
-                        </button>
-                      )}
-                    </article>
-                  )) : (
-                    <p>{t('events.moreInfo.reviews.empty')}</p>
-                  )}
-                </div>
+              <div className="events-grid">
+                {selectedInfoEvent.opinie?.length > 0 ? selectedInfoEvent.opinie.map((opinia) => (
+                  <article key={opinia.id} className="event-card">
+                    <span className="event-badge">{t('events.moreInfo.reviews.badge', { value: opinia.ocena })}</span>
+                    <h3>{opinia.userLogin}</h3>
+                    <p>{opinia.opis}</p>
+                    <p>{opinia.data ? new Date(opinia.data).toLocaleString() : '-'}</p>
+                    {(opinia.userLogin === currentUser.login || currentUser.rola === 'ADMIN') && (
+                      <button
+                        type="button"
+                        className="btn-delete"
+                        onClick={() => onDeleteOpinia(opinia.id)}
+                      >
+                        {t('events.moreInfo.reviews.delete')}
+                      </button>
+                    )}
+                  </article>
+                )) : (
+                  <p>{t('events.moreInfo.reviews.empty')}</p>
+                )}
               </div>
-
             </div>
           </div>
         </div>

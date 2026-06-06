@@ -115,5 +115,25 @@ public class User {
 	@Column(name = "notify_new_security_report", nullable = false)
 	private Boolean notifyNewSecurityReport = true;
 
+	/** Powiadomienie ORG: dołączenie uczestnika do wydarzenia. */
+	@Column(name = "notify_org_event_join", nullable = false)
+	private Boolean notifyOrgEventJoin = true;
+
+	/** Powiadomienie ORG: wykupienie wszystkich biletów. */
+	@Column(name = "notify_org_event_sold_out", nullable = false)
+	private Boolean notifyOrgEventSoldOut = true;
+
+	/** Powiadomienie ORG: nowa opinia o wydarzeniu. */
+	@Column(name = "notify_org_event_review", nullable = false)
+	private Boolean notifyOrgEventReview = true;
+
+	/** Powiadomienie ORG: zbliżający się start wydarzenia. */
+	@Column(name = "notify_org_event_start", nullable = false)
+	private Boolean notifyOrgEventStart = true;
+
+	/** Powiadomienie ORG: zwrot biletu na wydarzenie. */
+	@Column(name = "notify_org_event_refund", nullable = false)
+	private Boolean notifyOrgEventRefund = true;
+
 	private Boolean aktywnosc;
 }

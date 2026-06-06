@@ -79,7 +79,7 @@ const AdminRefundsPanel = () => {
                   {!approved && (
                     <button type="button" className="buttonv2" onClick={() => handleApprove(z.id)}>{t('adminRefunds.actions.approve')}</button>
                   )}
-                  {approved && <span>Zaakceptowano</span>}
+                  {approved && <span>{t('adminRefunds.status.approvedLabel')}</span>}
                 </td>
               </tr>
             );

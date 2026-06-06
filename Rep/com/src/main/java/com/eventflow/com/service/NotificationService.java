@@ -3,12 +3,18 @@ package com.eventflow.com.service;
 import com.eventflow.com.controller.dto.UnreadNotificationsCountResponse;
 import com.eventflow.com.controller.dto.UserNotificationResponse;
 import com.eventflow.com.model.Organizator;
+import com.eventflow.com.model.Bilet;
+import com.eventflow.com.model.Organizator;
+import com.eventflow.com.model.PozZam;
 import com.eventflow.com.model.SecurityTicket;
 import com.eventflow.com.model.User;
 import com.eventflow.com.model.UserNotification;
 import com.eventflow.com.model.UserObservedEvent;
 import com.eventflow.com.model.Wydarzenie;
 import com.eventflow.com.model.Zwrot;
+import com.eventflow.com.repository.OrganizatorRepository;
+import com.eventflow.com.repository.PozZamRepository;
+import com.eventflow.com.repository.BiletRepository;
 import com.eventflow.com.repository.UserFavoriteRepository;
 import com.eventflow.com.repository.UserNotificationRepository;
 import com.eventflow.com.repository.UserObservedEventRepository;
@@ -38,6 +44,16 @@ public class NotificationService {
 	public static final String TYPE_NEW_ORGANIZER_REQUEST = "NEW_ORGANIZER_REQUEST";
 	/** Typ powiadomienia ADMIN: nowe zgłoszenie bezpieczeństwa. */
 	public static final String TYPE_NEW_SECURITY_REPORT = "NEW_SECURITY_REPORT";
+	/** Typ powiadomienia ORG: dołączenie uczestnika do wydarzenia. */
+	public static final String TYPE_ORG_EVENT_JOIN = "ORG_EVENT_JOIN";
+	/** Typ powiadomienia ORG: wykupienie wszystkich biletów. */
+	public static final String TYPE_ORG_EVENT_SOLD_OUT = "ORG_EVENT_SOLD_OUT";
+	/** Typ powiadomienia ORG: nowa opinia o wydarzeniu. */
+	public static final String TYPE_ORG_EVENT_REVIEW = "ORG_EVENT_REVIEW";
+	/** Typ powiadomienia ORG: zbliżający się start wydarzenia organizatora. */
+	public static final String TYPE_ORG_EVENT_START = "ORG_EVENT_START";
+	/** Typ powiadomienia ORG: zwrot biletu na wydarzenie. */
+	public static final String TYPE_ORG_EVENT_REFUND = "ORG_EVENT_REFUND";
 
 	private static final String STATUS_AKTYWNY = "AKTYWNY";
 	public static final int START_REMINDER_HOURS_BEFORE = 24;
@@ -47,19 +63,28 @@ public class NotificationService {
 	private final UserObservedEventRepository userObservedEventRepository;
 	private final UserFavoriteRepository userFavoriteRepository;
 	private final WydarzenieRepository wydarzenieRepository;
+	private final OrganizatorRepository organizatorRepository;
+	private final BiletRepository biletRepository;
+	private final PozZamRepository pozZamRepository;
 
 	public NotificationService(
 		UserRepository userRepository,
 		UserNotificationRepository userNotificationRepository,
 		UserObservedEventRepository userObservedEventRepository,
 		UserFavoriteRepository userFavoriteRepository,
-		WydarzenieRepository wydarzenieRepository
+		WydarzenieRepository wydarzenieRepository,
+		OrganizatorRepository organizatorRepository,
+		BiletRepository biletRepository,
+		PozZamRepository pozZamRepository
 	) {
 		this.userRepository = userRepository;
 		this.userNotificationRepository = userNotificationRepository;
 		this.userObservedEventRepository = userObservedEventRepository;
 		this.userFavoriteRepository = userFavoriteRepository;
 		this.wydarzenieRepository = wydarzenieRepository;
+		this.organizatorRepository = organizatorRepository;
+		this.biletRepository = biletRepository;
+		this.pozZamRepository = pozZamRepository;
 	}
 
 	@Transactional
@@ -159,6 +184,92 @@ public class NotificationService {
 		notifyAdmins(TYPE_NEW_SECURITY_REPORT, message, this::isNewSecurityReportEnabled);
 	}
 
+	/** Powiadomienie ORG: uczestnik dołączył do wydarzenia (zakup biletu). */
+	@Transactional
+	public void notifyOrganizerEventJoin(Wydarzenie wydarzenie, User buyer, int quantity) {
+		if (wydarzenie == null || wydarzenie.getId() == null || buyer == null || buyer.getId() == null || quantity <= 0) {
+			return;
+		}
+		if (isOrganizerUser(wydarzenie, buyer.getId())) {
+			return;
+		}
+		String message = buildUserLabel(buyer) + " dołączył do wydarzenia " + eventTitle(wydarzenie)
+			+ " (bilety: " + quantity + ").";
+		notifyOrganizer(wydarzenie.getOrgId(), TYPE_ORG_EVENT_JOIN, message, this::isOrgEventJoinEnabled);
+	}
+
+	/** Powiadomienie ORG: wszystkie pule biletów wydarzenia są wyczerpane (jednorazowo). */
+	@Transactional
+	public void notifyOrganizerEventSoldOutIfNeeded(Wydarzenie wydarzenie) {
+		if (wydarzenie == null || wydarzenie.getId() == null || wydarzenie.getOrgSoldOutNotifiedAt() != null) {
+			return;
+		}
+		if (!isEventFullySoldOut(wydarzenie.getId())) {
+			return;
+		}
+		String message = "Wszystkie bilety na wydarzenie " + eventTitle(wydarzenie) + " zostały wykupione.";
+		notifyOrganizer(wydarzenie.getOrgId(), TYPE_ORG_EVENT_SOLD_OUT, message, this::isOrgEventSoldOutEnabled);
+		wydarzenie.setOrgSoldOutNotifiedAt(LocalDateTime.now());
+		wydarzenieRepository.save(wydarzenie);
+	}
+
+	/** Powiadomienie ORG: nowa opinia o wydarzeniu. */
+	@Transactional
+	public void notifyOrganizerEventReview(Wydarzenie wydarzenie, User reviewer, int rating) {
+		if (wydarzenie == null || wydarzenie.getId() == null || reviewer == null || reviewer.getId() == null) {
+			return;
+		}
+		if (isOrganizerUser(wydarzenie, reviewer.getId())) {
+			return;
+		}
+		String message = buildUserLabel(reviewer) + " dodał opinię (" + rating + "/5) do wydarzenia "
+			+ eventTitle(wydarzenie) + ".";
+		notifyOrganizer(wydarzenie.getOrgId(), TYPE_ORG_EVENT_REVIEW, message, this::isOrgEventReviewEnabled);
+	}
+
+	/** Powiadomienie ORG: zaakceptowany zwrot biletu. */
+	@Transactional
+	public void notifyOrganizerEventRefund(Wydarzenie wydarzenie, User buyer, String ticketClass) {
+		if (wydarzenie == null || wydarzenie.getId() == null || buyer == null || buyer.getId() == null) {
+			return;
+		}
+		String classLabel = ticketClass != null && !ticketClass.isBlank() ? ticketClass.trim() : "bilet";
+		String message = buildUserLabel(buyer) + " zwrócił " + classLabel + " na wydarzenie " + eventTitle(wydarzenie) + ".";
+		notifyOrganizer(wydarzenie.getOrgId(), TYPE_ORG_EVENT_REFUND, message, this::isOrgEventRefundEnabled);
+	}
+
+	/**
+	 * Scheduler: przypomnienie organizatorowi o starcie w ciągu {@link #START_REMINDER_HOURS_BEFORE} h.
+	 */
+	@Transactional
+	public void sendUpcomingOrganizerEventStartReminders() {
+		LocalDateTime now = LocalDateTime.now();
+		LocalDateTime windowEnd = now.plusHours(START_REMINDER_HOURS_BEFORE);
+		List<Wydarzenie> pending = wydarzenieRepository.findByOrgStartReminderSentAtIsNull();
+
+		for (Wydarzenie wydarzenie : pending) {
+			if (wydarzenie.getDataRozp() == null || wydarzenie.getOrgId() == null) {
+				continue;
+			}
+			if (!STATUS_AKTYWNY.equalsIgnoreCase(normalizeStatus(wydarzenie.getStatus()))) {
+				continue;
+			}
+			LocalDateTime start = wydarzenie.getDataRozp();
+			if (start.isBefore(now) || start.isAfter(windowEnd)) {
+				continue;
+			}
+			User organizer = resolveOrganizerUser(wydarzenie.getOrgId());
+			if (organizer == null || organizer.getId() == null || !isOrgEventStartEnabled(organizer)) {
+				continue;
+			}
+			String message = "Zbliża się start Twojego wydarzenia: " + eventTitle(wydarzenie)
+				+ " (" + formatDateTime(start) + ").";
+			saveNotification(organizer.getId(), TYPE_ORG_EVENT_START, message, now);
+			wydarzenie.setOrgStartReminderSentAt(now);
+			wydarzenieRepository.save(wydarzenie);
+		}
+	}
+
 	/**
 	 * Scheduler: przypomnienie o starcie w ciągu {@link #START_REMINDER_HOURS_BEFORE} h (tylko wydarzenia AKTYWNE).
 	 */
@@ -253,6 +364,48 @@ public class NotificationService {
 			.forEach(recipient -> saveNotification(recipient.getId(), type, message, now));
 	}
 
+	private void notifyOrganizer(Long orgId, String type, String message, Predicate<User> preferenceFilter) {
+		if (orgId == null) {
+			return;
+		}
+		User organizer = resolveOrganizerUser(orgId);
+		if (organizer == null || !preferenceFilter.test(organizer)) {
+			return;
+		}
+		saveNotification(organizer.getId(), type, message, LocalDateTime.now());
+	}
+
+	private User resolveOrganizerUser(Long orgId) {
+		Organizator organizator = organizatorRepository.findById(orgId).orElse(null);
+		if (organizator == null || organizator.getUserId() == null) {
+			return null;
+		}
+		return userRepository.findById(organizator.getUserId()).orElse(null);
+	}
+
+	private boolean isOrganizerUser(Wydarzenie wydarzenie, Long userId) {
+		if (wydarzenie == null || wydarzenie.getOrgId() == null || userId == null) {
+			return false;
+		}
+		return organizatorRepository.findById(wydarzenie.getOrgId())
+			.map(org -> userId.equals(org.getUserId()))
+			.orElse(false);
+	}
+
+	private boolean isEventFullySoldOut(Long wydarzenieId) {
+		List<Bilet> bilety = biletRepository.findByWydarzenieId(wydarzenieId);
+		if (bilety.isEmpty()) {
+			return false;
+		}
+		for (Bilet bilet : bilety) {
+			PozZam pozZam = pozZamRepository.findByBiletId(bilet.getId()).orElse(null);
+			if (pozZam == null || pozZam.getIlosc() == null || pozZam.getIlosc() > 0) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	private void saveNotification(Long userId, String type, String message, LocalDateTime createdAt) {
 		UserNotification notification = new UserNotification();
 		notification.setUserId(userId);
@@ -299,6 +452,26 @@ public class NotificationService {
 	/** Preferencja ADMIN: powiadom o nowym zgłoszeniu bezpieczeństwa. */
 	private boolean isNewSecurityReportEnabled(User user) {
 		return user.getNotifyNewSecurityReport() == null || Boolean.TRUE.equals(user.getNotifyNewSecurityReport());
+	}
+
+	private boolean isOrgEventJoinEnabled(User user) {
+		return user == null || user.getNotifyOrgEventJoin() == null || Boolean.TRUE.equals(user.getNotifyOrgEventJoin());
+	}
+
+	private boolean isOrgEventSoldOutEnabled(User user) {
+		return user == null || user.getNotifyOrgEventSoldOut() == null || Boolean.TRUE.equals(user.getNotifyOrgEventSoldOut());
+	}
+
+	private boolean isOrgEventReviewEnabled(User user) {
+		return user == null || user.getNotifyOrgEventReview() == null || Boolean.TRUE.equals(user.getNotifyOrgEventReview());
+	}
+
+	private boolean isOrgEventStartEnabled(User user) {
+		return user == null || user.getNotifyOrgEventStart() == null || Boolean.TRUE.equals(user.getNotifyOrgEventStart());
+	}
+
+	private boolean isOrgEventRefundEnabled(User user) {
+		return user == null || user.getNotifyOrgEventRefund() == null || Boolean.TRUE.equals(user.getNotifyOrgEventRefund());
 	}
 
 	private UserNotificationResponse toResponse(UserNotification notification) {

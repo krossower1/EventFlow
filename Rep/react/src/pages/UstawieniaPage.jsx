@@ -136,6 +136,11 @@ const UstawieniaPage = () => {
     newRefundRequest: true,
     newOrganizerRequest: true,
     newSecurityReport: true,
+    orgEventJoin: true,
+    orgEventSoldOut: true,
+    orgEventReview: true,
+    orgEventStart: true,
+    orgEventRefund: true,
   });
   const [isLoadingNotificationSettings, setIsLoadingNotificationSettings] = useState(false);
   const [isSavingNotificationSettings, setIsSavingNotificationSettings] = useState(false);
@@ -732,6 +737,11 @@ const UstawieniaPage = () => {
     newRefundRequest: saved?.newRefundRequest !== false,
     newOrganizerRequest: saved?.newOrganizerRequest !== false,
     newSecurityReport: saved?.newSecurityReport !== false,
+    orgEventJoin: saved?.orgEventJoin !== false,
+    orgEventSoldOut: saved?.orgEventSoldOut !== false,
+    orgEventReview: saved?.orgEventReview !== false,
+    orgEventStart: saved?.orgEventStart !== false,
+    orgEventRefund: saved?.orgEventRefund !== false,
   });
 
   const handleNotificationSettingChange = async (key, checked) => {
@@ -1484,6 +1494,84 @@ const UstawieniaPage = () => {
       </div>
     </>
     )}
+    {/*Panel powiadomień tylko dla organizatorów*/}
+    {currentUser?.rola === 'ORG' && (
+      <>
+      <div className="settings-list">
+        <div className="settings-row">
+        <span>{t('settings.notifications.orgEventJoin')}</span>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={notificationSettings.orgEventJoin}
+            disabled={isLoadingNotificationSettings || isSavingNotificationSettings}
+            onChange={(event) => handleNotificationSettingChange('orgEventJoin', event.target.checked)}
+          />
+          <span className="slider"></span>
+        </label>
+        </div>
+
+        <div className="settings-row">
+        <span>{t('settings.notifications.orgEventSoldOut')}</span>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={notificationSettings.orgEventSoldOut}
+            disabled={isLoadingNotificationSettings || isSavingNotificationSettings}
+            onChange={(event) => handleNotificationSettingChange('orgEventSoldOut', event.target.checked)}
+          />
+          <span className="slider"></span>
+        </label>
+        </div>
+
+        <div className="settings-row">
+        <span>{t('settings.notifications.orgEventReview')}</span>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={notificationSettings.orgEventReview}
+            disabled={isLoadingNotificationSettings || isSavingNotificationSettings}
+            onChange={(event) => handleNotificationSettingChange('orgEventReview', event.target.checked)}
+          />
+          <span className="slider"></span>
+        </label>
+        </div>
+
+        <div className="settings-row">
+        <span>{t('settings.notifications.orgEventStart')}</span>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={notificationSettings.orgEventStart}
+            disabled={isLoadingNotificationSettings || isSavingNotificationSettings}
+            onChange={(event) => handleNotificationSettingChange('orgEventStart', event.target.checked)}
+          />
+          <span className="slider"></span>
+        </label>
+        </div>
+
+        <div className="settings-row">
+        <span>{t('settings.notifications.orgEventRefund')} <small className="badge-beta">
+        <span
+        className="permission-tooltip has-tooltip"
+        data-tooltip={t('settings.notifications.orgEventRefundTooltip')}
+        >
+        *
+        </span></small></span>
+        <label className="switch">
+          <input
+            type="checkbox"
+            checked={notificationSettings.orgEventRefund}
+            disabled={isLoadingNotificationSettings || isSavingNotificationSettings}
+            onChange={(event) => handleNotificationSettingChange('orgEventRefund', event.target.checked)}
+          />
+          <span className="slider"></span>
+        </label>
+        </div>
+      </div>
+    </>
+    )}
+
     {notificationSettingsStatus.message && (
       <p className={`status-message ${notificationSettingsStatus.type === 'error' ? 'status-error' : 'status-success'}`}>
         {notificationSettingsStatus.message}
@@ -1728,7 +1816,7 @@ const UstawieniaPage = () => {
                           {twoFactorQrDataUrl && (
                             <img
                               src={twoFactorQrDataUrl}
-                              alt="Kod QR konfiguracji 2FA"
+                              alt={t('settings.security.twoFactor.qrAlt')}
                               className="settings-2fa-qr"
                             />
                           )}
@@ -1975,10 +2063,10 @@ const UstawieniaPage = () => {
                                       disabled={isAdminUser || entry.id == null}
                                       title={
                                         isAdminUser
-                                          ? 'Administrator nie zgłasza logowań z tego poziomu.'
+                                          ? t('settings.security.loginHistory.reportDisabledAdmin')
                                           : entry.id == null
-                                            ? 'Brak identyfikatora wpisu — odśwież stronę.'
-                                            : 'Wyślij zgłoszenie do administratorów'
+                                            ? t('settings.security.loginHistory.reportDisabledNoId')
+                                            : t('settings.security.loginHistory.reportHint')
                                       }
                                       onClick={() => {
                                         if (isAdminUser || entry.id == null) return;
@@ -2285,7 +2373,7 @@ const UstawieniaPage = () => {
                 )}
               </div>
             ) : (
-              <p>Ta sekcja zostanie dodana w kolejnych krokach.</p>
+              <p>{t('settings.fallback.sectionPending')}</p>
             )}
 
           </div>
@@ -2302,7 +2390,7 @@ const UstawieniaPage = () => {
                 type="text"
                 value={verificationCode}
                 onChange={(event) => setVerificationCode(event.target.value)}
-                placeholder="Wpisz kod weryfikacyjny"
+                placeholder={t('settings.emailVerification.placeholder')}
               />
               <button
                 type="submit"

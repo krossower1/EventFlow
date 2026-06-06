@@ -67,7 +67,12 @@ const PurchaseModal = ({
             <option value="">{t('purchase.ticketClassSelect')}</option>
             {dostepneBilety.map((bilet) => (
               <option key={bilet.biletId} value={bilet.biletId}>
-                {bilet.klasa} - {bilet.cena} {bilet.waluta} - dostępne: {bilet.ilosc || bilet.dostepnaIlosc}
+                {t('purchase.ticketOption', {
+                  class: bilet.klasa,
+                  price: bilet.cena,
+                  currency: bilet.waluta,
+                  count: bilet.ilosc || bilet.dostepnaIlosc,
+                })}
               </option>
             ))}
           </select>
@@ -105,23 +110,23 @@ const PurchaseModal = ({
 
           <div className="wallet-info-section">
             <div className="wallet-balance-display">
-              <span>Stan portfela: </span>
-              <span className="wallet-balance-amount">{walletBalance !== null ? walletBalance.toFixed(2) + ' PLN' : 'Ładowanie...'}</span>
+              <span>{t('purchase.walletBalanceLabel')} </span>
+              <span className="wallet-balance-amount">{walletBalance !== null ? `${walletBalance.toFixed(2)} PLN` : t('common.loading')}</span>
             </div>
             {selectedBilet && (
               <div className="wallet-purchase-info">
                 <div className="wallet-total-price">
-                  <span>Kwota zakupu: </span>
+                  <span>{t('purchase.purchaseAmount')} </span>
                   <span className="wallet-price-amount">{totalPrice.toFixed(2)} PLN</span>
                 </div>
                 {walletBalance !== null && (
                   <div className={`wallet-balance-after ${canAfford ? 'is-sufficient' : 'is-insufficient'}`}>
-                    <span>Stan po zakupie: </span>
+                    <span>{t('purchase.balanceAfter')} </span>
                     <span className="wallet-balance-after-amount">{balanceAfterPurchase.toFixed(2)} PLN</span>
                   </div>
                 )}
                 {!canAfford && walletBalance !== null && (
-                  <p className="wallet-insufficient-funds">Niewystarczające środki w portfelu!</p>
+                  <p className="wallet-insufficient-funds">{t('purchase.insufficientFunds')}</p>
                 )}
               </div>
             )}

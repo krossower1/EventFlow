@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 
 const SoldTicketsPanel = ({ API_BASE_URL, getRequestConfig, setStatus }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [soldTickets, setSoldTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterSearch, setFilterSearch] = useState('');
@@ -62,6 +62,20 @@ const SoldTicketsPanel = ({ API_BASE_URL, getRequestConfig, setStatus }) => {
     return `${ticket.cena} ${ticket.waluta || 'PLN'}`;
   };
 
+  const formatPurchaseDate = (value) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    const locale = i18n.language === 'en' ? 'en-GB' : 'pl-PL';
+    return date.toLocaleString(locale, {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   return (
     <div>
       <h3>{t('tickets.sold.title')}</h3>
@@ -117,6 +131,7 @@ const SoldTicketsPanel = ({ API_BASE_URL, getRequestConfig, setStatus }) => {
               <th>{t('tickets.sold.table.event')}</th>
               <th>{t('tickets.sold.table.type')}</th>
               <th>{t('tickets.sold.table.price')}</th>
+              <th>{t('tickets.sold.table.purchasedAt')}</th>
               <th>{t('tickets.sold.table.identifier')}</th>
             </tr>
           </thead>
@@ -128,11 +143,12 @@ const SoldTicketsPanel = ({ API_BASE_URL, getRequestConfig, setStatus }) => {
                 <td>{ticket.wydarzenieTytul || '-'}</td>
                 <td>{ticket.klasa || '-'}</td>
                 <td>{formatPrice(ticket)}</td>
+                <td>{formatPurchaseDate(ticket.wydanyData)}</td>
                 <td>{ticket.kod || '-'}</td>
               </tr>
             )) : (
               <tr>
-                <td colSpan={6}>{t('tickets.sold.empty')}</td>
+                <td colSpan={7}>{t('tickets.sold.empty')}</td>
               </tr>
             )}
           </tbody>

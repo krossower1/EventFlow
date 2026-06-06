@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { authService } from '../services/authService';
 import { ensureObservedLoaded, invalidateObservedCache } from '../utils/obserwowaneWydarzenia';
 import i18n from '../i18n';
@@ -16,6 +17,7 @@ const MAX_SESSION_TIMEOUT_MINUTES = 1440;
 const SESSION_SETTINGS_STORAGE_KEY = 'sessionSettingsCache';
 
 export const AuthProvider = ({ children }) => {
+  const { t } = useTranslation();
   const getCachedLanguage = useCallback(() => {
     try {
       const raw = localStorage.getItem(LANGUAGE_STORAGE_KEY);
@@ -350,7 +352,7 @@ export const AuthProvider = ({ children }) => {
     // Tryb LOCK_SCREEN: odblokowanie wymaga ponownej autoryzacji hasłem bieżącego użytkownika.
     const password = unlockPassword.trim();
     if (!password || !currentUser.login) {
-      setUnlockError('Podaj hasło, aby odblokować ekran.');
+      setUnlockError(t('session.lock.passwordRequired'));
       return;
     }
     setIsUnlocking(true);
@@ -358,7 +360,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const loginResponse = await authService.login(currentUser.login, password);
       if (!loginResponse?.success) {
-        throw new Error(loginResponse?.message || 'Nie udało się odblokować sesji.');
+        throw new Error(loginResponse?.message || t('session.lock.unlockError'));
       }
       applyAuthenticatedUser(
         {
@@ -372,11 +374,11 @@ export const AuthProvider = ({ children }) => {
       setUnlockError('');
       setSessionResetCounter((prev) => prev + 1);
     } catch (error) {
-      setUnlockError(error?.response?.data?.message || error?.message || 'Niepoprawne hasło.');
+      setUnlockError(error?.response?.data?.message || error?.message || t('auth.login.errorInvalidCredentials'));
     } finally {
       setIsUnlocking(false);
     }
-  }, [unlockPassword, currentUser, applyAuthenticatedUser]);
+  }, [unlockPassword, currentUser, applyAuthenticatedUser, t]);
 
   return (
     <AuthContext.Provider value={{
@@ -400,13 +402,13 @@ export const AuthProvider = ({ children }) => {
       {showSessionWarningModal && (
         <div className="session-warning-overlay" role="dialog" aria-modal="true" aria-labelledby="session-warning-title">
           <div className="session-warning-modal">
-            <h3 id="session-warning-title">Czy chcesz przedłużyć sesję?</h3>
+            <h3 id="session-warning-title">{t('session.warning.title')}</h3>
             <div className="session-warning-actions">
               <button type="button" className="btn-new-event" onClick={extendSession}>
-                Tak
+                {t('topbar.common.yes')}
               </button>
               <button type="button" className="btn-secondary" onClick={dismissSessionWarning}>
-                Nie
+                {t('topbar.common.no')}
               </button>
             </div>
           </div>
@@ -415,21 +417,21 @@ export const AuthProvider = ({ children }) => {
       {isSessionLocked && (
         <div className="session-warning-overlay" role="dialog" aria-modal="true" aria-labelledby="session-lock-title">
           <div className="session-warning-modal">
-            <h3 id="session-lock-title">Sesja wygasła. Ekran został zablokowany.</h3>
+            <h3 id="session-lock-title">{t('session.lock.title')}</h3>
             <div className="settings-verification-form">
               <input
                 type="password"
                 value={unlockPassword}
                 onChange={(event) => setUnlockPassword(event.target.value)}
-                placeholder="Wpisz hasło, aby odblokować"
+                placeholder={t('session.lock.passwordPlaceholder')}
               />
               {unlockError && <p className="status-message status-error">{unlockError}</p>}
               <div className="session-warning-actions">
                 <button type="button" className="btn-new-event" onClick={handleUnlockSession} disabled={isUnlocking}>
-                  {isUnlocking ? 'Odblokowywanie...' : 'Odblokuj'}
+                  {isUnlocking ? t('session.lock.unlocking') : t('session.lock.unlock')}
                 </button>
                 <button type="button" className="btn-secondary" onClick={handleLogout} disabled={isUnlocking}>
-                  Wyloguj
+                  {t('topbar.logout')}
                 </button>
               </div>
             </div>

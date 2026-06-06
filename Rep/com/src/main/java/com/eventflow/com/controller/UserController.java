@@ -228,6 +228,11 @@ public class UserController {
             && request.newRefundRequest() == null
             && request.newOrganizerRequest() == null
             && request.newSecurityReport() == null
+            && request.orgEventJoin() == null
+            && request.orgEventSoldOut() == null
+            && request.orgEventReview() == null
+            && request.orgEventStart() == null
+            && request.orgEventRefund() == null
         )) {
             throw new RuntimeException("Brak danych ustawień powiadomień");
         }
@@ -257,6 +262,21 @@ public class UserController {
         }
         if (request.newSecurityReport() != null) {
             currentUser.setNotifyNewSecurityReport(request.newSecurityReport());
+        }
+        if (request.orgEventJoin() != null) {
+            currentUser.setNotifyOrgEventJoin(request.orgEventJoin());
+        }
+        if (request.orgEventSoldOut() != null) {
+            currentUser.setNotifyOrgEventSoldOut(request.orgEventSoldOut());
+        }
+        if (request.orgEventReview() != null) {
+            currentUser.setNotifyOrgEventReview(request.orgEventReview());
+        }
+        if (request.orgEventStart() != null) {
+            currentUser.setNotifyOrgEventStart(request.orgEventStart());
+        }
+        if (request.orgEventRefund() != null) {
+            currentUser.setNotifyOrgEventRefund(request.orgEventRefund());
         }
         User saved = userRepository.save(currentUser);
         return toNotificationSettingsResponse(saved);
@@ -530,6 +550,26 @@ public class UserController {
         return value == null || Boolean.TRUE.equals(value);
     }
 
+    private boolean resolveNotifyOrgEventJoin(Boolean value) {
+        return value == null || Boolean.TRUE.equals(value);
+    }
+
+    private boolean resolveNotifyOrgEventSoldOut(Boolean value) {
+        return value == null || Boolean.TRUE.equals(value);
+    }
+
+    private boolean resolveNotifyOrgEventReview(Boolean value) {
+        return value == null || Boolean.TRUE.equals(value);
+    }
+
+    private boolean resolveNotifyOrgEventStart(Boolean value) {
+        return value == null || Boolean.TRUE.equals(value);
+    }
+
+    private boolean resolveNotifyOrgEventRefund(Boolean value) {
+        return value == null || Boolean.TRUE.equals(value);
+    }
+
     private NotificationSettingsResponse toNotificationSettingsResponse(User user) {
         return new NotificationSettingsResponse(
             resolveNotifyAdminLogin(user.getNotifyAdminLogin()),
@@ -540,7 +580,12 @@ public class UserController {
             resolveNotifyObservedSeatFreed(user.getNotifyObservedSeatFreed()),
             resolveNotifyNewRefundRequest(user.getNotifyNewRefundRequest()),
             resolveNotifyNewOrganizerRequest(user.getNotifyNewOrganizerRequest()),
-            resolveNotifyNewSecurityReport(user.getNotifyNewSecurityReport())
+            resolveNotifyNewSecurityReport(user.getNotifyNewSecurityReport()),
+            resolveNotifyOrgEventJoin(user.getNotifyOrgEventJoin()),
+            resolveNotifyOrgEventSoldOut(user.getNotifyOrgEventSoldOut()),
+            resolveNotifyOrgEventReview(user.getNotifyOrgEventReview()),
+            resolveNotifyOrgEventStart(user.getNotifyOrgEventStart()),
+            resolveNotifyOrgEventRefund(user.getNotifyOrgEventRefund())
         );
     }
 

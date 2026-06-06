@@ -53,6 +53,11 @@ const NotificationBell = () => {
     NEW_REFUND_REQUEST: t('notifications.types.NEW_REFUND_REQUEST'),
     NEW_ORGANIZER_REQUEST: t('notifications.types.NEW_ORGANIZER_REQUEST'),
     NEW_SECURITY_REPORT: t('notifications.types.NEW_SECURITY_REPORT'),
+    ORG_EVENT_JOIN: t('notifications.types.ORG_EVENT_JOIN'),
+    ORG_EVENT_SOLD_OUT: t('notifications.types.ORG_EVENT_SOLD_OUT'),
+    ORG_EVENT_REVIEW: t('notifications.types.ORG_EVENT_REVIEW'),
+    ORG_EVENT_START: t('notifications.types.ORG_EVENT_START'),
+    ORG_EVENT_REFUND: t('notifications.types.ORG_EVENT_REFUND'),
   };
   const getTypeLabel = (type) => notificationTypeLabels[type] || type || t('notifications.types.default');
 

@@ -57,4 +57,6 @@ public interface WydarzenieRepository extends JpaRepository<Wydarzenie, Long> {
 		ORDER BY COUNT(w.id) DESC
 		""", nativeQuery = true)
 	List<Object[]> countActiveEventsByCategoryForOrg(@Param("status") String status, @Param("orgId") Long orgId);
+
+	List<Wydarzenie> findByOrgStartReminderSentAtIsNull();
 }

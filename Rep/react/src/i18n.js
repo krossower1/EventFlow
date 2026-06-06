@@ -16,6 +16,16 @@ const resources = {
       'common.save': 'Zapisz',
       'common.saving': 'Zapisywanie...',
       'common.cancel': 'Anuluj',
+      'common.loading': 'Ładowanie...',
+      'app.sessionLoading': 'Sprawdzanie aktywnej sesji...',
+      'app.notFound': 'W budowie. Przejdź do Panelu Głównego.',
+      'session.warning.title': 'Czy chcesz przedłużyć sesję?',
+      'session.lock.title': 'Sesja wygasła. Ekran został zablokowany.',
+      'session.lock.passwordPlaceholder': 'Wpisz hasło, aby odblokować',
+      'session.lock.passwordRequired': 'Podaj hasło, aby odblokować ekran.',
+      'session.lock.unlock': 'Odblokuj',
+      'session.lock.unlocking': 'Odblokowywanie...',
+      'session.lock.unlockError': 'Nie udało się odblokować sesji.',
 
       // Settings - page and tabs
       'settings.page.title': 'Ustawienia',
@@ -55,6 +65,12 @@ const resources = {
       'settings.notifications.newRefundRequest': 'Nowy wniosek o zwrot pieniędzy za bilet',
       'settings.notifications.newOrganizerRequest': 'Nowy wniosek o rolę organizatora',
       'settings.notifications.newSecurityReport': 'Nowe zgłoszenie bezpieczeństwa',
+      'settings.notifications.orgEventJoin': 'Zakup biletu',
+      'settings.notifications.orgEventSoldOut': 'Wykupienie wszystkich biletów',
+      'settings.notifications.orgEventReview': 'Dołączona opinia na temat wydarzenia',
+      'settings.notifications.orgEventStart': 'Zbliża się start mojego wydarzenia',
+      'settings.notifications.orgEventRefund': 'Zwrócenie biletu',
+      'settings.notifications.orgEventRefundTooltip': 'Zaakceptowane przez administratora!',
       'settings.notifications.saved': 'Zapisano ustawienie powiadomień.',
       'settings.notifications.saveError': 'Nie udało się zapisać ustawienia powiadomień.',
       'settings.notifications.loadError': 'Nie udało się pobrać ustawień powiadomień.',
@@ -340,10 +356,12 @@ const resources = {
       'places.addRoom.floor': 'Piętro',
       'places.addRoom.plan': 'Plan',
       'places.addRoom.submit': 'Dodaj',
-      'places.addRoom.onlyOrganizer': 'Dodawanie sal dostępne tylko dla organizatorów.'
+      'places.addRoom.onlyOrganizer': 'Dodawanie sal dostępne tylko dla organizatorów.',
+      'places.addRoom.roomLimitReached': 'Osiągnięto limit sal. Najpierw zwiększ ilosc_sal.',
+      'places.increaseRooms.confirmAria': 'Potwierdź zwiększenie ilości sal',
 
       // Participants (Uczestnicy)
-      ,'participants.page.title': 'Uczestnicy',
+      'participants.page.title': 'Uczestnicy',
       'participants.status.fetchError': 'Nie udało się pobrać uczestników.',
       'participants.status.favoritesFetchError': 'Nie udało się pobrać ulubionych.',
       'participants.status.favoritesToggleError': 'Nie udało się zmienić ulubionych.',
@@ -419,6 +437,7 @@ const resources = {
       'tickets.sold.table.event': 'Nazwa wydarzenia',
       'tickets.sold.table.type': 'Typ biletu',
       'tickets.sold.table.price': 'Cena',
+      'tickets.sold.table.purchasedAt': 'Data i godzina zakupu',
       'tickets.sold.table.identifier': 'Identyfikator',
 
       // Events (Wydarzenia)
@@ -464,6 +483,7 @@ const resources = {
       'events.status.ticketsAddError': 'Nie udało się dodać biletów.',
       'events.status.organizerRequestSent': 'Wniosek został wysłany.',
       'events.status.organizerRequestError': 'Nie udało się wysłać wniosku.',
+      'events.status.hallSeatsFetchError': 'Nie udało się pobrać miejsc dla wybranej sali.',
 
       'events.form.hall': 'Sala',
       'events.form.hallSelect': 'Wybierz salę',
@@ -519,12 +539,22 @@ const resources = {
       'events.moreInfo.todo': 'do rozbudowania',
       'events.moreInfo.loading': 'Ładowanie szczegółów...',
       'events.moreInfo.reviews.title': 'Opinie',
+      'events.moreInfo.reviews.browse': 'Przeglądaj opinie',
       'events.moreInfo.reviews.rating': 'Ocena',
       'events.moreInfo.reviews.description': 'Opis',
       'events.moreInfo.reviews.add': 'Dodaj opinię',
       'events.moreInfo.reviews.badge': 'ocena {{value}}/5',
       'events.moreInfo.reviews.delete': 'Usuń opinię',
       'events.moreInfo.reviews.empty': 'Brak opinii dla tego wydarzenia.',
+      'events.moreInfo.labels.author': 'Autor:',
+      'events.moreInfo.labels.startDate': 'Data rozpoczęcia:',
+      'events.moreInfo.labels.endDate': 'Data zakończenia:',
+      'events.moreInfo.labels.hallCapacity': 'Pojemność sali:',
+      'events.moreInfo.labels.personnelCount': 'Personel:',
+      'events.moreInfo.labels.averageRating': 'Średnia ocena:',
+      'events.moreInfo.labels.description': 'Opis:',
+      'events.moreInfo.hallCapacityValue': '{{count}} miejsc',
+      'events.moreInfo.personnelCountValue': '{{count}} osób',
 
       'events.personnel.modalTitle': 'Personel',
       'events.personnel.forEvent': 'Personel dla wydarzenia: {{title}}',
@@ -559,6 +589,11 @@ const resources = {
       'purchase.confirmTestPayment': 'Potwierdzam płatność testową',
       'purchase.submit': 'Finalizuj zakup',
       'purchase.seatPickHint': 'Wybierz wolne miejsce przypisane do tej klasy biletu.',
+      'purchase.walletBalanceLabel': 'Stan portfela:',
+      'purchase.purchaseAmount': 'Kwota zakupu:',
+      'purchase.balanceAfter': 'Stan po zakupie:',
+      'purchase.insufficientFunds': 'Niewystarczające środki w portfelu!',
+      'purchase.ticketOption': '{{class}} - {{price}} {{currency}} - dostępne: {{count}}',
 
       // Seat plan map
       'seatPlan.legend.occupied': 'Zajęte',
@@ -656,6 +691,11 @@ const resources = {
       'notifications.types.NEW_REFUND_REQUEST': 'Nowy wniosek o zwrot',
       'notifications.types.NEW_ORGANIZER_REQUEST': 'Nowy wniosek o rolę organizatora',
       'notifications.types.NEW_SECURITY_REPORT': 'Nowe zgłoszenie bezpieczeństwa',
+      'notifications.types.ORG_EVENT_JOIN': 'Zakup biletu',
+      'notifications.types.ORG_EVENT_SOLD_OUT': 'Wykupienie wszystkich biletów',
+      'notifications.types.ORG_EVENT_REVIEW': 'Nowa opinia o wydarzeniu',
+      'notifications.types.ORG_EVENT_START': 'Zbliża się start wydarzenia',
+      'notifications.types.ORG_EVENT_REFUND': 'Zwrot biletu',
       'notifications.types.default': 'Powiadomienie',
       'notifications.status.loadError': 'Nie udało się pobrać powiadomień.',
       'notifications.status.markReadError': 'Nie udało się oznaczyć jako przeczytane.',
@@ -717,6 +757,7 @@ const resources = {
       'adminRefunds.status.fetchError': 'Nie udało się pobrać próśb o zwrot.',
       'adminRefunds.status.approveSuccess': 'Zwrot zaakceptowany.',
       'adminRefunds.status.approveError': 'Nie udało się zaakceptować zwrotu.',
+      'adminRefunds.status.approvedLabel': 'Zaakceptowano',
 
       // Admin organizer requests
       'adminRequests.loading': 'Ładowanie wniosków...',
@@ -855,6 +896,18 @@ const resources = {
       'common.save': 'Save',
       'common.saving': 'Saving...',
       'common.cancel': 'Cancel',
+      'common.loading': 'Loading...',
+
+      'app.sessionLoading': 'Checking active session...',
+      'app.notFound': 'Under construction. Go to the Dashboard.',
+
+      'session.warning.title': 'Do you want to extend your session?',
+      'session.lock.title': 'Session expired. The screen has been locked.',
+      'session.lock.passwordPlaceholder': 'Enter your password to unlock',
+      'session.lock.passwordRequired': 'Enter your password to unlock the screen.',
+      'session.lock.unlock': 'Unlock',
+      'session.lock.unlocking': 'Unlocking...',
+      'session.lock.unlockError': 'Could not unlock session.',
 
       // Settings - page and tabs
       'settings.page.title': 'Settings',
@@ -894,6 +947,12 @@ const resources = {
       'settings.notifications.newRefundRequest': 'New ticket refund request',
       'settings.notifications.newOrganizerRequest': 'New organizer role request',
       'settings.notifications.newSecurityReport': 'New security report',
+      'settings.notifications.orgEventJoin': 'Ticket purchase',
+      'settings.notifications.orgEventSoldOut': 'All tickets sold out',
+      'settings.notifications.orgEventReview': 'Review added to my event',
+      'settings.notifications.orgEventStart': 'My event is starting soon',
+      'settings.notifications.orgEventRefund': 'Ticket refund',
+      'settings.notifications.orgEventRefundTooltip': 'Accepted by administrator!',
       'settings.notifications.saved': 'Notification setting saved.',
       'settings.notifications.saveError': 'Could not save notification setting.',
       'settings.notifications.loadError': 'Could not load notification settings.',
@@ -1179,10 +1238,12 @@ const resources = {
       'places.addRoom.floor': 'Floor',
       'places.addRoom.plan': 'Layout',
       'places.addRoom.submit': 'Add',
-      'places.addRoom.onlyOrganizer': 'Adding rooms is available only for organizers.'
+      'places.addRoom.onlyOrganizer': 'Adding rooms is available only for organizers.',
+      'places.addRoom.roomLimitReached': 'Room limit reached. Increase the room count first.',
+      'places.increaseRooms.confirmAria': 'Confirm room count increase',
 
       // Participants (Uczestnicy)
-      ,'participants.page.title': 'Participants',
+      'participants.page.title': 'Participants',
       'participants.status.fetchError': 'Could not load participants.',
       'participants.status.favoritesFetchError': 'Could not load favorites.',
       'participants.status.favoritesToggleError': 'Could not change favorites.',
@@ -1258,6 +1319,7 @@ const resources = {
       'tickets.sold.table.event': 'Event name',
       'tickets.sold.table.type': 'Ticket type',
       'tickets.sold.table.price': 'Price',
+      'tickets.sold.table.purchasedAt': 'Purchase date and time',
       'tickets.sold.table.identifier': 'Identifier',
 
       // Events (Wydarzenia)
@@ -1303,6 +1365,7 @@ const resources = {
       'events.status.ticketsAddError': 'Could not add tickets.',
       'events.status.organizerRequestSent': 'Request has been sent.',
       'events.status.organizerRequestError': 'Could not send request.',
+      'events.status.hallSeatsFetchError': 'Could not load seats for the selected hall.',
 
       'events.form.hall': 'Hall',
       'events.form.hallSelect': 'Select hall',
@@ -1358,12 +1421,22 @@ const resources = {
       'events.moreInfo.todo': 'to be expanded',
       'events.moreInfo.loading': 'Loading details...',
       'events.moreInfo.reviews.title': 'Reviews',
+      'events.moreInfo.reviews.browse': 'Browse reviews',
       'events.moreInfo.reviews.rating': 'Rating',
       'events.moreInfo.reviews.description': 'Description',
       'events.moreInfo.reviews.add': 'Add review',
       'events.moreInfo.reviews.badge': 'rating {{value}}/5',
       'events.moreInfo.reviews.delete': 'Delete review',
       'events.moreInfo.reviews.empty': 'No reviews for this event.',
+      'events.moreInfo.labels.author': 'Author:',
+      'events.moreInfo.labels.startDate': 'Start date:',
+      'events.moreInfo.labels.endDate': 'End date:',
+      'events.moreInfo.labels.hallCapacity': 'Hall capacity:',
+      'events.moreInfo.labels.personnelCount': 'Personnel:',
+      'events.moreInfo.labels.averageRating': 'Average rating:',
+      'events.moreInfo.labels.description': 'Description:',
+      'events.moreInfo.hallCapacityValue': '{{count}} seats',
+      'events.moreInfo.personnelCountValue': '{{count}} people',
 
       'events.personnel.modalTitle': 'Personnel',
       'events.personnel.forEvent': 'Personnel for event: {{title}}',
@@ -1398,6 +1471,11 @@ const resources = {
       'purchase.confirmTestPayment': 'I confirm test payment',
       'purchase.submit': 'Complete purchase',
       'purchase.seatPickHint': 'Choose a free seat assigned to this ticket class.',
+      'purchase.walletBalanceLabel': 'Wallet balance:',
+      'purchase.purchaseAmount': 'Purchase amount:',
+      'purchase.balanceAfter': 'Balance after purchase:',
+      'purchase.insufficientFunds': 'Insufficient wallet balance!',
+      'purchase.ticketOption': '{{class}} - {{price}} {{currency}} - available: {{count}}',
 
       // Seat plan map
       'seatPlan.legend.occupied': 'Occupied',
@@ -1494,6 +1572,11 @@ const resources = {
       'notifications.types.NEW_REFUND_REQUEST': 'New refund request',
       'notifications.types.NEW_ORGANIZER_REQUEST': 'New organizer role request',
       'notifications.types.NEW_SECURITY_REPORT': 'New security report',
+      'notifications.types.ORG_EVENT_JOIN': 'Event join',
+      'notifications.types.ORG_EVENT_SOLD_OUT': 'All tickets sold out',
+      'notifications.types.ORG_EVENT_REVIEW': 'New event review',
+      'notifications.types.ORG_EVENT_START': 'Event starting soon',
+      'notifications.types.ORG_EVENT_REFUND': 'Ticket refund',
       'notifications.types.default': 'Notification',
       'notifications.status.loadError': 'Could not load notifications.',
       'notifications.status.markReadError': 'Could not mark as read.',
@@ -1555,6 +1638,7 @@ const resources = {
       'adminRefunds.status.fetchError': 'Could not load refund requests.',
       'adminRefunds.status.approveSuccess': 'Refund approved.',
       'adminRefunds.status.approveError': 'Could not approve refund.',
+      'adminRefunds.status.approvedLabel': 'Accepted',
 
       // Admin organizer requests
       'adminRequests.loading': 'Loading requests...',

@@ -253,7 +253,7 @@ const MiejscaPage = () => {
                     </div>
                     <span className="inline-confirm-anchor" style={{ display: 'inline-block' }}>
                       {confirmIncreaseMiejsceId === miejsce.id ? (
-                        <span className="inline-confirm-popover" role="group" aria-label="Potwierdź zwiększenie ilości sal">
+                        <span className="inline-confirm-popover" role="group" aria-label={t('places.increaseRooms.confirmAria')}>
                           <button
                             type="button"
                             className="btn-new-event inline-confirm-popover-btn"
@@ -351,7 +351,7 @@ const MiejscaPage = () => {
                       value={salaForms[miejsce.id]?.maPlan || false} 
                       onChange={e => updateSalaForm(miejsce.id, 'maPlan', e.target.value === 'true')}
                     >
-                      <option value="false" style={{backgroundColor: '#0d0f14', color: '#ffffff'}}>Nie</option>
+                      <option value="false" style={{backgroundColor: '#0d0f14', color: '#ffffff'}}>{t('places.rooms.table.planNo')}</option>
                       <option value="true" style={{backgroundColor: '#0d0f14', color: '#ffffff'}}>{t('places.rooms.table.planYes')}</option>
                     </select>
                   </div>
@@ -360,7 +360,7 @@ const MiejscaPage = () => {
                     className="buttonv2"
                     style={{padding: '4px 8px'}}
                     disabled={(miejsce.sale?.length || 0) >= (miejsce.iloscSal || 0)}
-                    title={(miejsce.sale?.length || 0) >= (miejsce.iloscSal || 0) ? 'Osiągnięto limit sal. Najpierw zwiększ ilosc_sal.' : ''}
+                    title={(miejsce.sale?.length || 0) >= (miejsce.iloscSal || 0) ? t('places.addRoom.roomLimitReached') : ''}
                   >
                     {t('places.addRoom.submit')}
                   </button>

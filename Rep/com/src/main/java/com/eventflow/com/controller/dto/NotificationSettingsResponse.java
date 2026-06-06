@@ -9,5 +9,10 @@ public record NotificationSettingsResponse(
 	boolean observedSeatFreed,
 	boolean newRefundRequest,
 	boolean newOrganizerRequest,
-	boolean newSecurityReport
+	boolean newSecurityReport,
+	boolean orgEventJoin,
+	boolean orgEventSoldOut,
+	boolean orgEventReview,
+	boolean orgEventStart,
+	boolean orgEventRefund
 ) {}

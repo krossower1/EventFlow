@@ -40,4 +40,10 @@ public class Wydarzenie {
 
 	@Column(name = "data_zamk")
 	private LocalDateTime dataZamk;
+
+	@Column(name = "org_start_reminder_sent_at")
+	private LocalDateTime orgStartReminderSentAt;
+
+	@Column(name = "org_sold_out_notified_at")
+	private LocalDateTime orgSoldOutNotifiedAt;
 }

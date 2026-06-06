@@ -379,7 +379,7 @@ public class WydarzenieController {
 			throw new ResponseStatusException(BAD_REQUEST, "Opis opinii jest wymagany.");
 		}
 
-		wydarzenieRepository.findById(id)
+		Wydarzenie wydarzenie = wydarzenieRepository.findById(id)
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono wydarzenia."));
 
 		Opinia opinia = new Opinia();
@@ -389,6 +389,7 @@ public class WydarzenieController {
 		opinia.setOpis(request.opis().trim());
 		opinia.setData(LocalDateTime.now());
 		opiniaRepository.save(opinia);
+		notificationService.notifyOrganizerEventReview(wydarzenie, user, request.ocena());
 
 		return ResponseEntity.ok("Opinia zostala dodana.");
 	}

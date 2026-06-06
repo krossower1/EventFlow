@@ -19,6 +19,7 @@ import com.eventflow.com.repository.UserRepository;
 import com.eventflow.com.repository.WydarzenieRepository;
 import com.eventflow.com.repository.WystBiletRepository;
 import com.eventflow.com.repository.ZamowienieRepository;
+import com.eventflow.com.service.NotificationService;
 import com.eventflow.com.service.QrCodeService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -55,6 +56,7 @@ public class ZakupController {
 	private final SalaRepository salaRepository;
 
 	private final QrCodeService qrCodeService;
+	private final NotificationService notificationService;
 
 	public ZakupController(
 		UserRepository userRepository,
@@ -65,7 +67,8 @@ public class ZakupController {
 		WystBiletRepository wystBiletRepository,
 		WydarzenieRepository wydarzenieRepository,
 		SalaRepository salaRepository,
-		QrCodeService qrCodeService
+		QrCodeService qrCodeService,
+		NotificationService notificationService
 	) {
 		this.userRepository = userRepository;
 		this.biletRepository = biletRepository;
@@ -76,6 +79,7 @@ public class ZakupController {
 		this.wydarzenieRepository = wydarzenieRepository;
 		this.salaRepository = salaRepository;
 		this.qrCodeService = qrCodeService;
+		this.notificationService = notificationService;
 	}
 
 	@GetMapping("/wydarzenia/{wydarzenieId}/bilety")
@@ -201,6 +205,9 @@ public class ZakupController {
 			wystBilet.setQrCode(qrCodeData);
 			wystBiletRepository.save(wystBilet);
 		}
+
+		notificationService.notifyOrganizerEventJoin(wydarzenie, user, request.ilosc());
+		notificationService.notifyOrganizerEventSoldOutIfNeeded(wydarzenie);
 
 		java.math.BigDecimal newBalance = user.getWalletBalance();
 		return ResponseEntity.status(CREATED).body("Zakup zakonczony pomyslnie. Nowy stan portfela: " + newBalance + " PLN.");
