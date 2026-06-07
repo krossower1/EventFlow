@@ -11,22 +11,45 @@ import java.util.List;
 
 @Repository
 public interface WydarzenieRepository extends JpaRepository<Wydarzenie, Long> {
-	List<Wydarzenie> findByOrgId(Long orgId);
+	@Query(value = """
+		SELECT w.*
+		FROM wydarzenia w
+		WHERE w.org_id = :orgId
+		""", nativeQuery = true)
+	List<Wydarzenie> findByOrgId(@Param("orgId") Long orgId);
+
 	List<Wydarzenie> findByKategoriaIdIn(List<Long> kategoriaIds);
-	List<Wydarzenie> findByDataZamkAfterOrderByDataRozpAsc(LocalDateTime now);
+
+	@Query(value = """
+		SELECT w.*
+		FROM wydarzenia w
+		WHERE w.data_zamk > :now
+		ORDER BY w.data_rozp ASC
+		""", nativeQuery = true)
+	List<Wydarzenie> findByDataZamkAfterOrderByDataRozpAsc(@Param("now") LocalDateTime now);
 
 	/**
 	 * Liczba wydarzeń o podanym statusie na całej platformie — używana jako licznik KPI „łącznie wydarzeń”
 	 * oraz jako spójnik z wykresem kategorii, gdy nie stosujemy filtra {@code org_id} (admin / widok globalny).
 	 */
-	long countByStatus(String status);
+	@Query(value = """
+		SELECT COUNT(w.id)
+		FROM wydarzenia w
+		WHERE w.status = :status
+		""", nativeQuery = true)
+	long countByStatus(@Param("status") String status);
 
 	/**
 	 * Jak {@link #countByStatus(String)}, lecz tylko dla jednego organizatora — identyczny filtr {@code org_id}
 	 * jak w zapytaniu agregującym kategorie, żeby suma wydarzeń i rozkład segmentów donut odnosiły się
 	 * do tego samego zbioru rekordów.
 	 */
-	long countByStatusAndOrgId(String status, Long orgId);
+	@Query(value = """
+		SELECT COUNT(w.id)
+		FROM wydarzenia w
+		WHERE w.status = :status AND w.org_id = :orgId
+		""", nativeQuery = true)
+	long countByStatusAndOrgId(@Param("status") String status, @Param("orgId") Long orgId);
 
 	/**
 	 * Agregacja pod wykres pierścieniowy (i listę kategorii na froncie): dla każdej nazwy kategorii zwraca
