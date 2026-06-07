@@ -1722,10 +1722,9 @@ span {
   padding: 8px 10px;
   background: var(--text-active);
   color: var(--text-on-accent);
-  cursor: var(--cursor-pointer);
+  cursor: var(--cursor-pointer) !important;
   font-weight: 700;
 }
-
 .btn-delete:hover {
   background: var(--card-bg);
 }
