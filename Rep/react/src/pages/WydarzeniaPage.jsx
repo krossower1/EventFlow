@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
@@ -23,6 +23,10 @@ const WydarzeniaPage = () => {
   const [showWydarzenieForm, setShowWydarzenieForm] = useState(false);
   const [wydarzeniaSearch, setWydarzeniaSearch] = useState('');
   const [wydarzeniaStatusFilter, setWydarzeniaStatusFilter] = useState('AKTYWNE');
+  const [wydarzeniaKategoriaFilter, setWydarzeniaKategoriaFilter] = useState('');
+  const [kategoriaFilterOpen, setKategoriaFilterOpen] = useState(false);
+  const [systemKategorie, setSystemKategorie] = useState([]);
+  const kategoriaFilterRef = useRef(null);
   const [wydarzenieForm, setWydarzenieForm] = useState({
     salaId: '',
     tytul: '',
@@ -124,6 +128,16 @@ const WydarzeniaPage = () => {
     }
   }, [getRequestConfig, t]);
 
+  const fetchSystemKategorie = useCallback(async () => {
+    try {
+      const response = await apiClient.get('/wydarzenia/kategorie/systemowe', getRequestConfig());
+      setSystemKategorie(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      console.error('Failed to load system categories:', error);
+      setSystemKategorie([]);
+    }
+  }, [getRequestConfig]);
+
   const fetchWalletBalance = useCallback(async () => {
     try {
       const response = await apiClient.get('/users/me/wallet', getRequestConfig());
@@ -144,6 +158,17 @@ const WydarzeniaPage = () => {
     document.addEventListener('mousedown', handleClickOutsideConfirm);
     return () => document.removeEventListener('mousedown', handleClickOutsideConfirm);
   }, [confirmEndEventId]);
+
+  useEffect(() => {
+    if (!kategoriaFilterOpen) return undefined;
+    const handleClickOutsideCategoryFilter = (event) => {
+      if (!kategoriaFilterRef.current?.contains(event.target)) {
+        setKategoriaFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideCategoryFilter);
+    return () => document.removeEventListener('mousedown', handleClickOutsideCategoryFilter);
+  }, [kategoriaFilterOpen]);
 
   const handleEndEventAsAdmin = async (eventId) => {
     try {
@@ -543,11 +568,13 @@ const WydarzeniaPage = () => {
   };
 
   useEffect(() => {
+    if (!currentUser) return;
     fetchMyWydarzenia();
-    if (currentUser?.rola === 'ORG') {
+    fetchSystemKategorie();
+    if (currentUser.rola === 'ORG') {
       fetchWydarzeniaOptions();
     }
-  }, [currentUser, fetchWydarzeniaOptions, fetchMyWydarzenia]);
+  }, [currentUser, fetchWydarzeniaOptions, fetchMyWydarzenia, fetchSystemKategorie]);
 
   useEffect(() => {
     if (currentUser?.rola !== 'USER' || !currentUser?.id) {
@@ -575,10 +602,27 @@ const WydarzeniaPage = () => {
     };
   }, [authCredentials, currentUser?.id, currentUser?.rola]);
 
+  const availableKategorie = useMemo(() => (
+    systemKategorie
+      .filter((item) => item?.id != null && item?.nazwa)
+      .sort((a, b) => a.nazwa.localeCompare(b.nazwa, i18n.language))
+  ), [systemKategorie, i18n.language]);
+
+  const selectedKategoriaNazwa = useMemo(() => {
+    if (!wydarzeniaKategoriaFilter) return '';
+    const kategoria = availableKategorie.find(
+      (item) => String(item.id) === String(wydarzeniaKategoriaFilter),
+    );
+    return kategoria?.nazwa || '';
+  }, [wydarzeniaKategoriaFilter, availableKategorie]);
+
   const filteredWydarzenia = myWydarzenia.filter((item) => {
     const matchesText = !wydarzeniaSearch
       || (item.tytul || "").toLowerCase().includes(wydarzeniaSearch.toLowerCase())
       || item.salaNazwa?.toLowerCase().includes(wydarzeniaSearch.toLowerCase());
+
+    const matchesCategory = !wydarzeniaKategoriaFilter
+      || String(item.kategoriaId) === String(wydarzeniaKategoriaFilter);
     
     let matchesStatus = true;
     if (wydarzeniaStatusFilter === 'ALL') {
@@ -596,7 +640,7 @@ const WydarzeniaPage = () => {
       matchesStatus = (item.status || '').toUpperCase() === wydarzeniaStatusFilter;
     }
     
-    return matchesText && matchesStatus;
+    return matchesText && matchesStatus && matchesCategory;
   }).sort((a, b) => {
     const aObserved = observedEventIds.has(a.id) ? 1 : 0;
     const bObserved = observedEventIds.has(b.id) ? 1 : 0;
@@ -620,6 +664,51 @@ const WydarzeniaPage = () => {
               value={wydarzeniaSearch}
               onChange={(event) => setWydarzeniaSearch(event.target.value)}
             />
+            <div className="events-category-filter" ref={kategoriaFilterRef}>
+              <button
+                type="button"
+                className={`events-category-filter-btn${selectedKategoriaNazwa ? ' is-active events-category-filter-btn--label' : ' btn-icon'}`}
+                aria-label={selectedKategoriaNazwa || t('events.filter.category')}
+                aria-expanded={kategoriaFilterOpen}
+                aria-haspopup="listbox"
+                onClick={() => setKategoriaFilterOpen((open) => !open)}
+              >
+                {selectedKategoriaNazwa ? (
+                  <span className="events-category-filter-label">{selectedKategoriaNazwa}</span>
+                ) : (
+                  <img src="/icons/menu.png" alt="" width={22} height={22} />
+                )}
+              </button>
+              <div className={`events-category-filter-menu${kategoriaFilterOpen ? ' open' : ''}`} role="listbox" aria-label={t('events.filter.category')}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={!wydarzeniaKategoriaFilter}
+                  className={`events-category-filter-item${!wydarzeniaKategoriaFilter ? ' is-selected' : ''}`}
+                  onClick={() => {
+                    setWydarzeniaKategoriaFilter('');
+                    setKategoriaFilterOpen(false);
+                  }}
+                >
+                  {t('events.filter.categoryAll')}
+                </button>
+                {availableKategorie.map((kategoria) => (
+                  <button
+                    key={kategoria.id}
+                    type="button"
+                    role="option"
+                    aria-selected={String(wydarzeniaKategoriaFilter) === String(kategoria.id)}
+                    className={`events-category-filter-item${String(wydarzeniaKategoriaFilter) === String(kategoria.id) ? ' is-selected' : ''}`}
+                    onClick={() => {
+                      setWydarzeniaKategoriaFilter(String(kategoria.id));
+                      setKategoriaFilterOpen(false);
+                    }}
+                  >
+                    {kategoria.nazwa}
+                  </button>
+                ))}
+              </div>
+            </div>
             <select
               className="events-filter"
               value={wydarzeniaStatusFilter}

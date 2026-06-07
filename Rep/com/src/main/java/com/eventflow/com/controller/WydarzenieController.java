@@ -153,6 +153,15 @@ public class WydarzenieController {
 		return ResponseEntity.ok(new WydarzenieOptionsDto(sale, kategorieSystemowe, kategorieUzytkownika));
 	}
 
+	@GetMapping("/kategorie/systemowe")
+	public ResponseEntity<List<KategoriaDto>> getSystemKategorie(Authentication authentication) {
+		requireAuthenticatedUser(authentication);
+		List<KategoriaDto> kategorieSystemowe = kategoriaRepository.findBySystemowaTrue().stream()
+			.map(k -> new KategoriaDto(k.getId(), k.getNazwa(), k.getOpis()))
+			.toList();
+		return ResponseEntity.ok(kategorieSystemowe);
+	}
+
 	@PostMapping("/kategorie/systemowe")
 	public ResponseEntity<String> createSystemKategoria(
 		Authentication authentication,
@@ -602,6 +611,7 @@ public class WydarzenieController {
 			wydarzenie.getTytul(),
 			normalizeStatus(wydarzenie.getStatus()),
 			sala != null ? sala.getNazwa() : "-",
+			wydarzenie.getKategoriaId(),
 			kategoriaRepository.findById(wydarzenie.getKategoriaId()).map(Kategoria::getNazwa).orElse("-"),
 			wydarzenie.getDataRozp(),
 			wydarzenie.getDataZamk(),

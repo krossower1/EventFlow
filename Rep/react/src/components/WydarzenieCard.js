@@ -120,6 +120,7 @@ const WydarzenieCard = ({ item, currentUser, currentUserRole, onMoreInfo, onPers
     : !item.maDostepneBilety
       ? t('eventsCard.purchase.noTickets')
       : '';
+  const creatorTooltip = t('eventsCard.creatorTooltip', { login: item.creatorLogin || '-' });
 
   return (
     <article className="event-card">
@@ -127,22 +128,38 @@ const WydarzenieCard = ({ item, currentUser, currentUserRole, onMoreInfo, onPers
         className="event-card-hero"
         style={heroImageUrl ? { backgroundImage: `url(${heroImageUrl})` } : undefined}
       >
-        <span
-          className={`permission-tooltip event-card-observe-wrap ${observeDisabled && observeTooltip ? 'has-tooltip' : ''}`}
-          data-tooltip={observeTooltip}
-        >
-          <button
-            type="button"
-            className={`event-card-observe-btn ${isObserved ? 'is-observed' : ''}`}
-            disabled={observeDisabled}
-            aria-label={observeTooltip}
-            onClick={handleObserve}
+        <div className={`event-card-hero-tools${observeDisabled ? ' is-muted' : ''}`}>
+          <span
+            className={`permission-tooltip event-card-observe-wrap ${observeDisabled && observeTooltip ? 'has-tooltip' : ''}`}
+            data-tooltip={observeTooltip}
           >
-            <ObserveStarIcon filled={isObserved} />
-          </button>
-        </span>
+            <button
+              type="button"
+              className={`event-card-observe-btn ${isObserved ? 'is-observed' : ''}`}
+              disabled={observeDisabled}
+              aria-label={observeTooltip}
+              onClick={handleObserve}
+            >
+              <ObserveStarIcon filled={isObserved} />
+            </button>
+          </span>
+          <span
+            className="permission-tooltip event-card-creator-wrap has-tooltip"
+            data-tooltip={creatorTooltip}
+          >
+            <button
+              type="button"
+              className="event-card-creator-btn"
+              disabled
+              tabIndex={-1}
+              aria-label={creatorTooltip}
+            >
+              <img src="/icons/user.png" alt="" width={22} height={22} />
+            </button>
+          </span>
+        </div>
         <span className="event-badge">{(item.status || 'aktywne').toLowerCase()}</span>
-        <h3>{item.tytul}</h3>
+        <h1 className="event-card-title">{item.tytul}</h1>
       </div>
       <div className="event-card-grid">
         <div className="event-card-column event-card-column--labels">
@@ -166,14 +183,6 @@ const WydarzenieCard = ({ item, currentUser, currentUserRole, onMoreInfo, onPers
             <img src="/icons/star.png" alt="" width={22} height={22} />
             <strong>{t('eventsCard.labels.rating')}</strong>
           </div>
-          <div className="event-card-row">
-            <img src="/icons/user.png" alt="" width={22} height={22} />
-            <strong>{t('eventsCard.labels.creator')}</strong>
-          </div>
-          <div className="event-card-row">
-            <img src="/icons/menu.png" alt="" width={22} height={22} />
-            <strong>{t('eventsCard.labels.category')}</strong>
-          </div>
         </div>
         <div className="event-card-column event-card-column--values">
           <div className="event-card-row">{item.miejsceNazwa || '-'}</div>
@@ -181,8 +190,6 @@ const WydarzenieCard = ({ item, currentUser, currentUserRole, onMoreInfo, onPers
           <div className="event-card-row">{formatEventDate(item.dataRozp)+", "+formatEventTime(item.dataRozp)}</div>
           <div className="event-card-row">{formatEventDate(item.dataZamk)+", "+formatEventTime(item.dataZamk)}</div>
           <div className="event-card-row">{formatRating(item.averageRating)}</div>
-          <div className="event-card-row">{item.creatorLogin || '-'}</div>
-          <div className="event-card-row">{item.kategoriaNazwa || '-'}</div>
         </div>
       </div>
       <TicketProgress postepy={item.postepyBiletow} />

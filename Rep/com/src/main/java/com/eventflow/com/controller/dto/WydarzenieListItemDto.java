@@ -8,6 +8,7 @@ public record WydarzenieListItemDto(
 	String tytul,
 	String status,
 	String salaNazwa,
+	Long kategoriaId,
 	String kategoriaNazwa,
 	LocalDateTime dataRozp,
 	LocalDateTime dataZamk,
