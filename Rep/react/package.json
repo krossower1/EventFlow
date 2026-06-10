@@ -13,8 +13,8 @@
     "bootstrap": "^5.3.8",
     "i18next": "^26.3.0",
     "qrcode": "^1.5.4",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-i18next": "^17.0.8",
     "react-router-dom": "^7.14.2",
     "react-scripts": "5.0.1",
@@ -32,7 +32,8 @@
   "scripts": {
     "start": "cross-env BROWSER=none react-scripts start",
     "electron": "wait-on http://localhost:3000 && npx electron .",
-    "build": "cross-env react-scripts start",
+    "build": "react-scripts build",
+    "serve": "react-scripts start",
     "dev": "concurrently \"npm start\" \"npm run electron\"",
     "electron:dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\""
   },

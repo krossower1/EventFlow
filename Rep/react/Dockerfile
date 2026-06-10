@@ -1,8 +1,10 @@
 # Build stage
 FROM node:18-alpine AS builder
 WORKDIR /app
+ARG REACT_APP_API_BASE_URL=/api
+ENV REACT_APP_API_BASE_URL=$REACT_APP_API_BASE_URL
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 COPY . .
 RUN npm run build
 
