@@ -1,7 +1,12 @@
-import React, { useCallback, useContext, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../context/AuthContext';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
+import {
+  buildTodayDateLabel,
+  normalizePatchNotesDateLabel,
+  shouldAutoApplyDateLabel,
+} from '../utils/patchNotesDateLabel';
 
 const PatchNotesPanel = () => {
   const { t } = useTranslation();
@@ -13,6 +18,7 @@ const PatchNotesPanel = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
+  const [editSessionKey, setEditSessionKey] = useState(0);
 
   const getRequestConfig = useCallback(() => {
     const config = { withCredentials: true };
@@ -42,8 +48,9 @@ const PatchNotesPanel = () => {
   }, [loadPatchNotes]);
 
   const startEditing = () => {
+    setEditSessionKey((key) => key + 1);
     setEditForm({
-      dateLabel: patchNotes.dateLabel,
+      dateLabel: '',
       itemsText: patchNotes.items.join('\n'),
     });
     setStatus({ type: '', message: '' });
@@ -55,6 +62,22 @@ const PatchNotesPanel = () => {
     setStatus({ type: '', message: '' });
   };
 
+  const dateLabelPreview = useMemo(
+    () => normalizePatchNotesDateLabel(editForm.dateLabel),
+    [editForm.dateLabel]
+  );
+
+  const handleDateLabelChange = (value) => {
+    const nextValue = shouldAutoApplyDateLabel(value)
+      ? normalizePatchNotesDateLabel(value)
+      : value;
+    setEditForm((prev) => ({ ...prev, dateLabel: nextValue }));
+  };
+
+  const applyTodayDateLabel = () => {
+    setEditForm((prev) => ({ ...prev, dateLabel: buildTodayDateLabel() }));
+  };
+
   const onSave = async (event) => {
     event.preventDefault();
     const items = editForm.itemsText
@@ -62,7 +85,9 @@ const PatchNotesPanel = () => {
       .map((line) => line.trim())
       .filter(Boolean);
 
-    if (!editForm.dateLabel.trim()) {
+    const normalizedDateLabel = normalizePatchNotesDateLabel(editForm.dateLabel).trim();
+
+    if (!normalizedDateLabel) {
       setStatus({ type: 'error', message: t('dashboard.patchNotes.missingDateLabel') });
       return;
     }
@@ -77,13 +102,13 @@ const PatchNotesPanel = () => {
       const response = await apiClient.put(
         '/dashboard/patch-notes',
         {
-          dateLabel: editForm.dateLabel.trim(),
+          dateLabel: normalizedDateLabel,
           items,
         },
         getRequestConfig()
       );
       setPatchNotes({
-        dateLabel: response.data?.dateLabel || editForm.dateLabel.trim(),
+        dateLabel: response.data?.dateLabel || normalizedDateLabel,
         items: Array.isArray(response.data?.items) ? response.data.items : items,
       });
       setIsEditing(false);
@@ -114,13 +139,49 @@ const PatchNotesPanel = () => {
       {!isLoading && isEditing ? (
         <form className="patch-notes-form" onSubmit={onSave}>
           <label htmlFor="patch-notes-date">{t('dashboard.patchNotes.dateLabel')}</label>
-          <input
-            id="patch-notes-date"
-            type="text"
-            value={editForm.dateLabel}
-            onChange={(event) => setEditForm((prev) => ({ ...prev, dateLabel: event.target.value }))}
-            placeholder={t('dashboard.patchNotes.datePlaceholder')}
-          />
+          <div className="patch-notes-date-row">
+            <div className="patch-notes-date-input-wrap">
+              <input
+                key={editSessionKey}
+                id="patch-notes-date"
+                type="text"
+                name="patch-notes-date-label"
+                autoComplete="off"
+                spellCheck={false}
+                value={editForm.dateLabel}
+                onChange={(event) => handleDateLabelChange(event.target.value)}
+                onBlur={(event) => {
+                  const trimmed = event.target.value.trim();
+                  if (!trimmed) {
+                    return;
+                  }
+                  const normalized = normalizePatchNotesDateLabel(trimmed);
+                  if (normalized !== trimmed) {
+                    setEditForm((prev) => ({ ...prev, dateLabel: normalized }));
+                  }
+                }}
+                aria-describedby="patch-notes-date-hint"
+              />
+              {!editForm.dateLabel.trim() ? (
+                <span id="patch-notes-date-hint" className="patch-notes-date-faux-placeholder">
+                  {t('dashboard.patchNotes.datePlaceholder')}
+                </span>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              className="btn-back-tab"
+              onClick={applyTodayDateLabel}
+              disabled={isSaving}
+            >
+              {t('dashboard.patchNotes.todayButton')}
+            </button>
+          </div>
+          {editForm.dateLabel.trim() ? (
+            <p className="patch-notes-date-preview">
+              {t('dashboard.patchNotes.datePreview', { label: dateLabelPreview })}
+            </p>
+          ) : null}
           <label htmlFor="patch-notes-items">{t('dashboard.patchNotes.itemsLabel')}</label>
           <textarea
             id="patch-notes-items"
