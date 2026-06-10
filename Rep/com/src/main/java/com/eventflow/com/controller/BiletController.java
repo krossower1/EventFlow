@@ -96,11 +96,9 @@ public class BiletController {
 
 		List<UserBiletDto> result = wystBilety.stream()
 			.filter(wystBilet -> {
-				// Filter out tickets with stan "zwrocony"
 				if ("zwrocony".equalsIgnoreCase(String.valueOf(wystBilet.getStan()))) {
 					return false;
 				}
-				// Filter out tickets with accepted refunds
 				Zamowienie zamowienie = zamowienieById.get(wystBilet.getZamId());
 				if (zamowienie != null) {
 					Zwrot zwrot = zwrotRepository.findByPlatnId(zamowienie.getPlatnId()).orElse(null);

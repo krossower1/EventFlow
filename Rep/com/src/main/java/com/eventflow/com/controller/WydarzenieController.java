@@ -585,21 +585,18 @@ public class WydarzenieController {
 	private WydarzenieListItemDto toListItem(Wydarzenie wydarzenie) {
 		List<BiletPostepDto> postepyBiletow = getBiletPostepy(wydarzenie.getId());
 		boolean maDostepneBilety = postepyBiletow.stream().anyMatch(item -> item.wszystkie() > item.sprzedane());
-		
-		// Fetch place details
+
 		Sala sala = salaRepository.findById(wydarzenie.getSalaId()).orElse(null);
 		Miejsce miejsce = sala != null ? miejsceRepository.findById(sala.getMiejsceId()).orElse(null) : null;
 		String miejsceNazwa = miejsce != null ? miejsce.getNazwa() : "-";
 		String miasto = miejsce != null ? miejsce.getMiasto() : "-";
 		String kodPocztowy = miejsce != null ? miejsce.getKodPoczt() : "-";
 		String ulica = miejsce != null ? miejsce.getUlica() : "-";
-		
-		// Fetch creator info
+
 		Organizator organizator = organizatorRepository.findById(wydarzenie.getOrgId()).orElse(null);
 		User creator = organizator != null ? userRepository.findById(organizator.getUserId()).orElse(null) : null;
 		String creatorLogin = creator != null ? creator.getLogin() : "-";
 
-		// Calculate average rating
 		List<Opinia> opinie = opiniaRepository.findByWydIdOrderByDataDesc(wydarzenie.getId());
 		Double averageRating = opinie.isEmpty() ? null : opinie.stream()
 			.mapToInt(Opinia::getOcena)
@@ -631,28 +628,24 @@ public class WydarzenieController {
 		boolean maDostepneBilety = postepyBiletow.stream().anyMatch(item -> item.wszystkie() > item.sprzedane());
 		List<ZgloszenieDto> zgloszenia = canManageZgloszenia(user, wydarzenie) ? getZgloszenia(wydarzenie.getId()) : List.of();
 		boolean canManagePersonel = canManagePersonel(user, wydarzenie);
-		
-		// Fetch place details
+
 		Sala sala = salaRepository.findById(wydarzenie.getSalaId()).orElse(null);
 		Miejsce miejsce = sala != null ? miejsceRepository.findById(sala.getMiejsceId()).orElse(null) : null;
 		String miejsceNazwa = miejsce != null ? miejsce.getNazwa() : "-";
 		String miasto = miejsce != null ? miejsce.getMiasto() : "-";
 		String kodPocztowy = miejsce != null ? miejsce.getKodPoczt() : "-";
 		String ulica = miejsce != null ? miejsce.getUlica() : "-";
-		
-		// Fetch creator info
+
 		Organizator organizator = organizatorRepository.findById(wydarzenie.getOrgId()).orElse(null);
 		User creator = organizator != null ? userRepository.findById(organizator.getUserId()).orElse(null) : null;
 		String creatorLogin = creator != null ? creator.getLogin() : "-";
 
-		// Calculate average rating
 		List<Opinia> opinie = opiniaRepository.findByWydIdOrderByDataDesc(wydarzenie.getId());
 		Double averageRating = opinie.isEmpty() ? null : opinie.stream()
 			.mapToInt(Opinia::getOcena)
 			.average()
 			.orElse(Double.NaN);
 
-		// Calculate hall capacity (sum of all ticket quantities)
 		Integer salaPojemnosc = postepyBiletow.stream()
 			.mapToInt(BiletPostepDto::wszystkie)
 			.sum();
@@ -815,22 +808,19 @@ public class WydarzenieController {
 			bilet.setCena(requestBilet.cena());
 			bilet.setWaluta("PLN");
 			bilet.setIlosc(hasSalaPlan && isMiejscowka ? seatIds.size() : requestBilet.ilosc());
-			
-			// Parse String dates to LocalDateTime
+
 			LocalDateTime startSprzedazy = null;
 			LocalDateTime koniecSprzedazy = null;
 			if (requestBilet.startSprzedazy() != null && !requestBilet.startSprzedazy().isBlank()) {
 				try {
 					startSprzedazy = LocalDateTime.parse(requestBilet.startSprzedazy());
 				} catch (Exception e) {
-					// If parsing fails, leave as null
 				}
 			}
 			if (requestBilet.koniecSprzedazy() != null && !requestBilet.koniecSprzedazy().isBlank()) {
 				try {
 					koniecSprzedazy = LocalDateTime.parse(requestBilet.koniecSprzedazy());
 				} catch (Exception e) {
-					// If parsing fails, leave as null
 				}
 			}
 			bilet.setStartSprzedazy(startSprzedazy);
