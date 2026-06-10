@@ -113,13 +113,14 @@ public class AuthService {
 		user.setSalt(generateToken(SALT_LENGTH));
 		user.setRola("USER");
 		user.setAktywnosc(true);
-		user.setEmailVerified(false);
-		String verificationCode = generateToken(VERIFICATION_CODE_LENGTH);
-		user.setVerificationCode(verificationCode);
-		user.setVerificationCodeExpiresAt(now.plusMinutes(VERIFICATION_CODE_TTL_MINUTES));
+		// Auto-verify email for development/Docker environment
+		user.setEmailVerified(true);
+		user.setVerificationCode(null);
+		user.setVerificationCodeExpiresAt(null);
 		user.setDataUtw(now);
 		userRepository.save(user);
-		emailService.sendVerificationCode(email, verificationCode);
+		// Skip email sending for development/Docker environment
+		// emailService.sendVerificationCode(email, verificationCode);
 
 		return new RegistrationResult(null);
 	}
