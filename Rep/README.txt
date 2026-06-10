@@ -10,16 +10,21 @@ This project can be run using Docker and Docker Compose for easy deployment and 
 ## Quick Start
 
 1. Navigate to the project root directory:
-```bash
-cd d:\Szkoła\DB\Rep\Rep
-```
+ 
+cd \d d:\Szkoła\DB\Rep\Rep
+ 
 
 2. Build and start all services:
-```bash
+ 
 docker-compose up --build
-```
+ 
 
-3. Access the application:
+3. When starting the MySQL container:
+ 
+MYSQL_ROOT_PASSWORD=haslo_adm
+ 
+
+4. Access the application:
 - Frontend: http://localhost
 - Backend API: http://localhost:8081
 - MySQL Database: localhost:3306
@@ -32,7 +37,6 @@ The docker-compose.yml file defines three services:
 - Image: mysql:8.0
 - Port: 3306
 - Database: event_flow
-- Credentials: root/haslo
 - Volume: mysql-data (persistent storage)
 
 ### 2. Backend (Spring Boot)
@@ -50,42 +54,42 @@ The docker-compose.yml file defines three services:
 ## Useful Commands
 
 ### Start all services in detached mode:
-```bash
+ 
 docker-compose up -d
-```
+ 
 
 ### Stop all services:
-```bash
+ 
 docker-compose down
-```
+ 
 
 ### Stop and remove all containers and volumes:
-```bash
+ 
 docker-compose down -v
-```
+ 
 
 ### View logs:
-```bash
+ 
 docker-compose logs -f
-```
+ 
 
 ### View logs for a specific service:
-```bash
+ 
 docker-compose logs -f backend
 docker-compose logs -f frontend
 docker-compose logs -f mysql
-```
+ 
 
 ### Rebuild a specific service:
-```bash
+ 
 docker-compose up -d --build backend
-```
+ 
 
 ### Execute commands in a container:
-```bash
+ 
 docker-compose exec backend bash
 docker-compose exec mysql mysql -u root -phaslo event_flow
-```
+ 
 
 ## Configuration
 
@@ -103,28 +107,26 @@ The backend uses environment variables for configuration. These are set in docke
 
 The MySQL database is configured with:
 - Database name: event_flow
-- Root password: haslo
-- Additional user: eventflow/eventflow
+- Root user: root
 
 Data is persisted in a Docker volume named `mysql-data`.
 
-## Development
 
 ### Running without Docker
 
 For local development, you can still run the services without Docker:
 
 **Backend:**
-```bash
+ 
 cd com
 ./gradlew bootrun
-```
+ 
 
 **Frontend:**
-```bash
+ 
 cd react
 npm start
-```
+ 
 
 **Database:**
 Ensure MySQL is running locally on port 3306 with database `event_flow`.
@@ -148,7 +150,7 @@ If you encounter permission issues with volumes, ensure proper user permissions 
 
 ## Architecture
 
-```
+ 
 ┌─────────────┐
 │   Frontend  │ (React + nginx)
 │   Port 80   │
@@ -167,6 +169,6 @@ If you encounter permission issues with volumes, ensure proper user permissions 
 │   MySQL     │
 │  Port 3306  │
 └─────────────┘
-```
+ 
 
 All services communicate via the `eventflow-network` Docker bridge network.
