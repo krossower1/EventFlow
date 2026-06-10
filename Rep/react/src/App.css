@@ -4181,6 +4181,71 @@ label {
   margin: 0 !important;
 }
 
+.patch-notes-date-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.patch-notes-date-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.patch-notes-date-row input {
+  width: 100%;
+  min-width: 0;
+}
+
+.patch-notes-date-faux-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  right: 12px;
+  transform: translateY(-50%);
+  color: var(--text-on-muted);
+  opacity: 0.75;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: inherit;
+}
+
+.patch-notes-today-btn {
+  flex-shrink: 0;
+  border: 1px solid var(--card-bg);
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: var(--card-bg);
+  color: var(--text-on-gradient);
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.patch-notes-today-btn:hover:not(:disabled) {
+  background: var(--text-muted);
+}
+
+.patch-notes-today-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.patch-notes-date-hint,
+.patch-notes-date-preview {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-on-gradient) !important;
+}
+
+.patch-notes-date-preview {
+  font-weight: 700;
+  color: var(--text-active2) !important;
+}
+
 .patch-notes-form input,
 .patch-notes-form textarea {
   width: 100%;

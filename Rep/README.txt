@@ -1,3 +1,9 @@
+# Biblioteki do zainstalowania:
+npm install react-router-dom
+npm install qrcode
+npm install recharts@2
+npm install i18next react-i18next --legacy-peer-deps
+
 # Docker Setup for EventFlow
 
 This project can be run using Docker and Docker Compose for easy deployment and development.
