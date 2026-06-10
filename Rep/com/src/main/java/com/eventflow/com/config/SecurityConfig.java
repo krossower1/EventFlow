@@ -3,6 +3,7 @@ package com.eventflow.com.config;
 import com.eventflow.com.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.Customizer;
@@ -23,27 +24,44 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
+	private static final String[] PUBLIC_AUTH_PATHS = {
+		"/api/auth/login",
+		"/api/auth/login-2fa",
+		"/api/auth/register",
+		"/api/auth/verify-email",
+		"/api/auth/logout"
+	};
+
 	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+	@Order(0)
+	public SecurityFilterChain publicAuthFilterChain(HttpSecurity http) throws Exception {
 		http
+			.securityMatcher(PUBLIC_AUTH_PATHS)
 			.csrf(csrf -> csrf.disable())
 			.cors(Customizer.withDefaults())
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/api/auth/login").permitAll() // Logowanie jest jawne
-						.requestMatchers("/api/auth/login-2fa").permitAll() // Drugi krok logowania 2FA
-						.requestMatchers("/api/auth/register").permitAll()
-						.requestMatchers("/api/auth/verify-email").permitAll()
-						.requestMatchers("/api/auth/logout").permitAll()
-						.requestMatchers("/api/users/**").authenticated()
-						.anyRequest().authenticated()                  // Reszta nadal zablokowana
-				)
+			.authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
 			.logout(logout -> logout
 				.logoutUrl("/api/auth/logout")
 				.invalidateHttpSession(true)
 				.clearAuthentication(true)
 				.deleteCookies("JSESSIONID")
 				.logoutSuccessHandler((request, response, authentication) -> response.setStatus(200))
+			);
+
+		return http.build();
+	}
+
+	@Bean
+	@Order(1)
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		http
+			.csrf(csrf -> csrf.disable())
+			.cors(Customizer.withDefaults())
+			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+			.authorizeHttpRequests(auth -> auth
+				.requestMatchers("/api/users/**").authenticated()
+				.anyRequest().authenticated()
 			)
 			.httpBasic(Customizer.withDefaults());
 
@@ -53,7 +71,7 @@ public class SecurityConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(List.of("http://localhost:8080", "https://localhost:3000"));
+		configuration.setAllowedOrigins(List.of("http://localhost:8080", "http://localhost:3000", "https://localhost:3000"));
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		configuration.setAllowedHeaders(List.of("*"));
 		configuration.setAllowCredentials(true);
