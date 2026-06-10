@@ -1,5 +1,7 @@
 package com.eventflow.com.auth;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
@@ -8,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class SmtpEmailService implements EmailService {
+
+	private static final Logger log = LoggerFactory.getLogger(SmtpEmailService.class);
 
 	private final JavaMailSender mailSender;
 	private final String fromAddress;
@@ -34,7 +38,13 @@ public class SmtpEmailService implements EmailService {
 		try {
 			mailSender.send(message);
 		} catch (MailException exception) {
-			throw new IllegalStateException("Nie udalo sie wyslac maila weryfikacyjnego", exception);
+			// W Docker/dev SMTP często nie działa — rejestracja i tak się udaje; kod jest w logach backendu.
+			log.warn(
+				"Nie udalo sie wyslac maila weryfikacyjnego do {}. Kod weryfikacyjny: {}",
+				recipientEmail,
+				verificationCode,
+				exception
+			);
 		}
 	}
 
