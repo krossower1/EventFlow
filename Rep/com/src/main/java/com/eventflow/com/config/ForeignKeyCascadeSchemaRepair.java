@@ -36,6 +36,7 @@ public class ForeignKeyCascadeSchemaRepair {
 		new ForeignKeySpec("user_notifications", "user_id", "users", "id", "CASCADE"),
 		new ForeignKeySpec("miejsca", "user_id", "users", "id", "CASCADE"),
 		new ForeignKeySpec("organizator", "user_id", "users", "id", "CASCADE"),
+		new ForeignKeySpec("wydarzenia", "org_id", "organizator", "id", "CASCADE"),
 		new ForeignKeySpec("personel", "user_id", "users", "id", "CASCADE"),
 		new ForeignKeySpec("opinie", "user_id", "users", "id", "CASCADE"),
 		new ForeignKeySpec("zgloszenia", "user_id", "users", "id", "CASCADE"),
