@@ -169,10 +169,10 @@ const UstawieniaPage = () => {
   });
 
   const profileFields = useMemo(() => ([
-    { key: 'imie', label: t('settings.profile.name'), type: 'text' },
-    { key: 'nazwisko', label: t('settings.profile.last_name'), type: 'text' },
-    { key: 'email', label: t('settings.profile.email'), type: 'email' },
-    { key: 'telefon', label: t('settings.profile.phone_number'), type: 'tel' }
+    { key: 'imie', label: t('settings.profile.name'), type: 'text', maxLength: 100 },
+    { key: 'nazwisko', label: t('settings.profile.last_name'), type: 'text', maxLength: 100 },
+    { key: 'email', label: t('settings.profile.email'), type: 'email', maxLength: 255 },
+    { key: 'telefon', label: t('settings.profile.phone_number'), type: 'tel', maxLength: 20 }
   ]), [t]);
 
   const isAdminUser = String(currentUser?.rola || '').toUpperCase() === 'ADMIN';
@@ -1216,6 +1216,7 @@ const UstawieniaPage = () => {
                       setProfileForm((prev) => ({ ...prev, [field.key]: event.target.value }));
                     }}
                     disabled={!isEditingProfile}
+                    maxLength={field.maxLength}
                   />
                 </label>
               ))}
@@ -1308,6 +1309,7 @@ const UstawieniaPage = () => {
                       onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, paymentMethod: e.target.value })}
                       placeholder={t('settings.payments.paymentMethodPlaceholder')}
                       disabled={isSavingPaymentMethod}
+                      maxLength={255}
                     />
                     
                     <label htmlFor="bank-account-number">{t('settings.payments.bankAccountNumber')}</label>
@@ -1319,6 +1321,7 @@ const UstawieniaPage = () => {
                       onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, bankAccountNumber: e.target.value })}
                       placeholder={t('settings.payments.bankAccountPlaceholder')}
                       disabled={isSavingPaymentMethod}
+                      maxLength={32}
                     />
                     
                     <button
@@ -1688,6 +1691,7 @@ const UstawieniaPage = () => {
                             setPasswordForm((prev) => ({ ...prev, oldPassword: event.target.value }));
                             if (passwordStatus.message) setPasswordStatus({ type: '', message: '' });
                           }}
+                          maxLength={255}
                         />
                         <button
                           type="button"
@@ -1714,6 +1718,7 @@ const UstawieniaPage = () => {
                             setPasswordForm((prev) => ({ ...prev, newPassword: event.target.value }));
                             if (passwordStatus.message) setPasswordStatus({ type: '', message: '' });
                           }}
+                          maxLength={255}
                         />
                         <button
                           type="button"
@@ -1740,6 +1745,7 @@ const UstawieniaPage = () => {
                             setPasswordForm((prev) => ({ ...prev, confirmNewPassword: event.target.value }));
                             if (passwordStatus.message) setPasswordStatus({ type: '', message: '' });
                           }}
+                          maxLength={255}
                         />
                         <button
                           type="button"
@@ -2391,6 +2397,7 @@ const UstawieniaPage = () => {
                 value={verificationCode}
                 onChange={(event) => setVerificationCode(event.target.value)}
                 placeholder={t('settings.emailVerification.placeholder')}
+                maxLength={6}
               />
               <button
                 type="submit"

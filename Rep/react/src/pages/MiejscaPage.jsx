@@ -217,27 +217,27 @@ const MiejscaPage = () => {
             <form onSubmit={onMiejsceSubmit} className="miejsce-form-grid">
               <div className="miejsce-form-field miejsce-form-field--full">
                 <label htmlFor="miejsce-nazwa">{t('places.form.name')}</label>
-                <input id="miejsce-nazwa" type="text" value={miejsceForm.nazwa} onChange={e => setMiejsceForm({...miejsceForm, nazwa: e.target.value})} required />
+                <input id="miejsce-nazwa" type="text" value={miejsceForm.nazwa} onChange={e => setMiejsceForm({...miejsceForm, nazwa: e.target.value})} maxLength={255} required />
               </div>
 
               <div className="miejsce-form-field">
                 <label htmlFor="miejsce-panstwo">{t('places.form.country')}</label>
-                <input id="miejsce-panstwo" type="text" value={t('places.form.countryDefault')} disabled />
+                <input id="miejsce-panstwo" type="text" value={t('places.form.countryDefault')} disabled maxLength={255} />
               </div>
 
               <div className="miejsce-form-field">
                 <label htmlFor="miejsce-miasto">{t('places.form.city')}</label>
-                <input id="miejsce-miasto" type="text" value={miejsceForm.miasto} onChange={e => setMiejsceForm({...miejsceForm, miasto: e.target.value})} required />
+                <input id="miejsce-miasto" type="text" value={miejsceForm.miasto} onChange={e => setMiejsceForm({...miejsceForm, miasto: e.target.value})} maxLength={255} required />
               </div>
 
               <div className="miejsce-form-field">
                 <label htmlFor="miejsce-ulica">{t('places.form.street')}</label>
-                <input id="miejsce-ulica" type="text" value={miejsceForm.ulica} onChange={e => setMiejsceForm({...miejsceForm, ulica: e.target.value})} required />
+                <input id="miejsce-ulica" type="text" value={miejsceForm.ulica} onChange={e => setMiejsceForm({...miejsceForm, ulica: e.target.value})} maxLength={255} required />
               </div>
 
               <div className="miejsce-form-field">
                 <label htmlFor="miejsce-kod">{t('places.form.postalCode')}</label>
-                <input id="miejsce-kod" type="text" value={miejsceForm.kodPoczt} onChange={e => setMiejsceForm({...miejsceForm, kodPoczt: e.target.value})} required />
+                <input id="miejsce-kod" type="text" value={miejsceForm.kodPoczt} onChange={e => setMiejsceForm({...miejsceForm, kodPoczt: e.target.value})} maxLength={20} required />
               </div>
 
               <div className="miejsce-form-field miejsce-form-field--full">

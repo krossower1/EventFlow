@@ -1859,6 +1859,13 @@ span {
   margin-top: 16px;
 }
 
+.modal-card--auto-position {
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  margin: auto;
+}
+
 .info-modal-layout {
   grid-template-columns: 1fr;
   gap: 0;

@@ -814,6 +814,7 @@ const WydarzeniaPage = () => {
                     type="text"
                     value={wydarzenieForm.tytul}
                     onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, tytul: event.target.value })}
+                    maxLength={255}
                     required
                   />
 
@@ -823,6 +824,7 @@ const WydarzeniaPage = () => {
                     type="text"
                     value={wydarzenieForm.opis}
                     onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, opis: event.target.value })}
+                    maxLength={5000}
                   />
 
                   <label htmlFor="wyd-kategoria">{t('events.form.category')}</label>
@@ -861,6 +863,7 @@ const WydarzeniaPage = () => {
                         type="text"
                         value={wydarzenieForm.nowaKategoriaNazwa}
                         onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, nowaKategoriaNazwa: event.target.value })}
+                        maxLength={255}
                         required
                       />
 
@@ -870,6 +873,7 @@ const WydarzeniaPage = () => {
                         type="text"
                         value={wydarzenieForm.nowaKategoriaOpis}
                         onChange={(event) => setWydarzenieForm({ ...wydarzenieForm, nowaKategoriaOpis: event.target.value })}
+                        maxLength={5000}
                       />
                     </>
                   )}
@@ -1206,7 +1210,7 @@ const WydarzeniaPage = () => {
             if (e.target === e.currentTarget) closeInfoModal();
           }}
         >
-          <div className="modal-card modal-card--w600">
+          <div className="modal-card modal-card--w600 modal-card--auto-position">
             <div className="modal-header">
               <div className="modal-title">{t('events.moreInfo.modalTitle')}</div>
               <button
@@ -1271,6 +1275,39 @@ const WydarzeniaPage = () => {
                     <span>{selectedInfoEvent.opis || '-'}</span>
                   </div>
                 </div>
+                
+                {selectedInfoEvent.postepyBiletow && selectedInfoEvent.postepyBiletow.length > 0 && (
+                  <div className="event-detail-info" style={{ marginTop: '20px', borderTop: '1px solid #ddd', paddingTop: '15px' }}>
+                    <h4 style={{ marginBottom: '10px' }}>{t('events.moreInfo.tickets.title')}</h4>
+                    {selectedInfoEvent.postepyBiletow.map((postep) => {
+                      const kategoriaBiletu = postep.kategoriaBiletu || 'miejscówka';
+                      const isMiejscowka = kategoriaBiletu.toLowerCase() === 'miejscówka';
+                      const displayName = isMiejscowka 
+                        ? `${postep.klasa} (${kategoriaBiletu.charAt(0).toUpperCase() + kategoriaBiletu.slice(1)})`
+                        : postep.klasa;
+                      const formatDateTime = (dateTimeStr) => {
+                        if (!dateTimeStr) return '-';
+                        try {
+                          return new Date(dateTimeStr).toLocaleString(i18n.language === 'en' ? 'en-GB' : 'pl-PL');
+                        } catch {
+                          return '-';
+                        }
+                      };
+                      
+                      return (
+                        <div key={postep.biletId || postep.klasa} style={{ marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid #eee' }}>
+                          <div style={{ fontWeight: '600', marginBottom: '4px' }}>{displayName}</div>
+                          <div style={{ fontSize: '0.9em', color: '#666' }}>
+                            <div>{t('events.moreInfo.tickets.sold')}: {postep.sprzedane || 0} / {postep.wszystkie || 0}</div>
+                            <div>{t('events.moreInfo.tickets.salesStart')}: {formatDateTime(postep.startSprzedazy)}</div>
+                            <div>{t('events.moreInfo.tickets.salesEnd')}: {formatDateTime(postep.koniecSprzedazy)}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
                 <button
                   type="button"
                   className="btn-refresh ostatnia_deska info-reviews-btn"
@@ -1571,6 +1608,7 @@ const WydarzeniaPage = () => {
                 type="text"
                 value={organizerForm.firma}
                 onChange={(event) => setOrganizerForm({ ...organizerForm, firma: event.target.value })}
+                maxLength={255}
                 required
                 disabled={currentUser?.rola !== 'USER'}
               />
@@ -1581,6 +1619,7 @@ const WydarzeniaPage = () => {
                 type="text"
                 value={organizerForm.kwalifikacje}
                 onChange={(event) => setOrganizerForm({ ...organizerForm, kwalifikacje: event.target.value })}
+                maxLength={5000}
                 required
                 disabled={currentUser?.rola !== 'USER'}
               />
@@ -1591,6 +1630,7 @@ const WydarzeniaPage = () => {
                 type="text"
                 value={organizerForm.strona}
                 onChange={(event) => setOrganizerForm({ ...organizerForm, strona: event.target.value })}
+                maxLength={255}
                 required
                 disabled={currentUser?.rola !== 'USER'}
               />

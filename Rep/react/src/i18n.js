@@ -576,6 +576,10 @@ const resources = {
       'events.moreInfo.labels.description': 'Opis:',
       'events.moreInfo.hallCapacityValue': '{{count}} miejsc',
       'events.moreInfo.personnelCountValue': '{{count}} osób',
+      'events.moreInfo.tickets.title': 'Bilety',
+      'events.moreInfo.tickets.sold': 'Sprzedane',
+      'events.moreInfo.tickets.salesStart': 'Start sprzedaży',
+      'events.moreInfo.tickets.salesEnd': 'Koniec sprzedaży',
 
       'events.personnel.modalTitle': 'Personel',
       'events.personnel.forEvent': 'Personel dla wydarzenia: {{title}}',
@@ -1480,6 +1484,10 @@ const resources = {
       'events.moreInfo.labels.description': 'Description:',
       'events.moreInfo.hallCapacityValue': '{{count}} seats',
       'events.moreInfo.personnelCountValue': '{{count}} people',
+      'events.moreInfo.tickets.title': 'Tickets',
+      'events.moreInfo.tickets.sold': 'Sold',
+      'events.moreInfo.tickets.salesStart': 'Sales start',
+      'events.moreInfo.tickets.salesEnd': 'Sales end',
 
       'events.personnel.modalTitle': 'Personnel',
       'events.personnel.forEvent': 'Personnel for event: {{title}}',

@@ -303,6 +303,7 @@ const AuthPage = () => {
               type="text"
               value={loginForm.login}
               onChange={(event) => setLoginForm({ ...loginForm, login: event.target.value })}
+              maxLength={100}
               required
             />
 
@@ -312,6 +313,7 @@ const AuthPage = () => {
               type="password"
               value={loginForm.password}
               onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
+              maxLength={255}
               required
             />
 
@@ -382,6 +384,7 @@ const AuthPage = () => {
               type="text"
               value={registerForm.imie}
               onChange={(event) => setRegisterForm({ ...registerForm, imie: event.target.value })}
+              maxLength={100}
               required
             />
 
@@ -391,6 +394,7 @@ const AuthPage = () => {
               type="text"
               value={registerForm.nazwisko}
               onChange={(event) => setRegisterForm({ ...registerForm, nazwisko: event.target.value })}
+              maxLength={100}
               required
             />
 
@@ -400,6 +404,7 @@ const AuthPage = () => {
               type="email"
               value={registerForm.email}
               onChange={(event) => setRegisterForm({ ...registerForm, email: event.target.value })}
+              maxLength={255}
               required
             />
 
@@ -409,6 +414,7 @@ const AuthPage = () => {
               type="text"
               value={registerForm.login}
               onChange={(event) => setRegisterForm({ ...registerForm, login: event.target.value })}
+              maxLength={100}
               required
             />
 
@@ -419,6 +425,7 @@ const AuthPage = () => {
               value={registerForm.password}
               onChange={(event) => setRegisterForm({ ...registerForm, password: event.target.value })}
               minLength={6}
+              maxLength={255}
               required
             />
 
@@ -429,6 +436,7 @@ const AuthPage = () => {
               value={registerForm.confirmPassword}
               onChange={(event) => setRegisterForm({ ...registerForm, confirmPassword: event.target.value })}
               minLength={6}
+              maxLength={255}
               required
             />
 
@@ -444,6 +452,7 @@ const AuthPage = () => {
               type="email"
               value={verificationForm.email}
               onChange={(event) => setVerificationForm({ ...verificationForm, email: event.target.value })}
+              maxLength={255}
               required
             />
 
@@ -453,6 +462,7 @@ const AuthPage = () => {
               type="text"
               value={verificationForm.code}
               onChange={(event) => setVerificationForm({ ...verificationForm, code: event.target.value })}
+              maxLength={6}
               required
             />
 
