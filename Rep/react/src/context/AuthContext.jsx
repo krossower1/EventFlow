@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useCallback, useRef } from '
 import { useTranslation } from 'react-i18next';
 import { authService } from '../services/authService';
 import { ensureObservedLoaded, invalidateObservedCache } from '../utils/obserwowaneWydarzenia';
+import { cascadeAfterOwnAccountDelete } from '../utils/cascadeDelete';
 import i18n from '../i18n';
 
 export const AuthContext = createContext();
@@ -260,6 +261,7 @@ export const AuthProvider = ({ children }) => {
 
   const handleDeleteOwnAccount = useCallback(async () => {
     await authService.deleteOwnAccount();
+    cascadeAfterOwnAccountDelete();
     await handleLogout();
   }, [handleLogout]);
 

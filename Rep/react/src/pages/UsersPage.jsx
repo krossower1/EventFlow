@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthContext } from '../context/AuthContext';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
+import { cascadeAfterUserDelete } from '../utils/cascadeDelete';
 
 const UsersPage = () => {
   const { t } = useTranslation();
@@ -75,10 +76,10 @@ const UsersPage = () => {
   const onDeleteUser = async (userId, userLogin) => {
     try {
       await apiClient.delete(`/users/${userId}`, getRequestConfig());
+      cascadeAfterUserDelete(userId, { setFavoriteIds, setSelectedUser, setData });
       setStatus({ type: 'success', message: t('participants.status.deleteSuccess') });
       setConfirmAction(null);
       fetchUsers();
-      setSelectedUser(null);
     } catch (error) {
       setStatus({ type: 'error', message: t('participants.status.deleteError') });
     }
@@ -214,6 +215,7 @@ const UsersPage = () => {
                     <span className="inline-confirm-anchor" style={{ display: 'inline-block', marginLeft: '8px' }}>
                       {confirmAction?.type === 'delete' && confirmAction?.userId === user.id ? (
                         <span className="inline-confirm-popover" role="group" aria-label={t('participants.confirm.deleteAria')}>
+                          <p className="inline-confirm-cascade-hint">{t('participants.confirm.deleteCascadeHint')}</p>
                           <button
                             type="button"
                             className="btn-new-event inline-confirm-popover-btn"

@@ -359,6 +359,19 @@ const resources = {
       'places.addRoom.onlyOrganizer': 'Dodawanie sal dostępne tylko dla organizatorów.',
       'places.addRoom.roomLimitReached': 'Osiągnięto limit sal. Najpierw zwiększ ilosc_sal.',
       'places.increaseRooms.confirmAria': 'Potwierdź zwiększenie ilości sal',
+      'places.actions.deletePlace': 'Usuń miejsce',
+      'places.actions.deleteRoom': 'Usuń salę',
+      'places.confirm.yes': 'Tak',
+      'places.confirm.no': 'Nie',
+      'places.confirm.deletePlaceAria': 'Potwierdź usunięcie miejsca',
+      'places.confirm.deleteRoomAria': 'Potwierdź usunięcie sali',
+      'places.confirm.deletePlaceCascadeHint': 'Usunięte zostaną wszystkie sale, plany miejsc i wydarzenia przypisane do tego miejsca.',
+      'places.confirm.deleteRoomCascadeHint': 'Usunięte zostaną plan miejsc oraz wydarzenia przypisane do tej sali.',
+      'places.status.deleteSuccess': 'Miejsce zostało usunięte.',
+      'places.status.deleteError': 'Nie udało się usunąć miejsca.',
+      'places.status.roomDeleteSuccess': 'Sala została usunięta.',
+      'places.status.roomDeleteError': 'Nie udało się usunąć sali.',
+      'places.rooms.table.actions': 'Akcje',
 
       // Participants (Uczestnicy)
       'participants.page.title': 'Uczestnicy',
@@ -393,6 +406,7 @@ const resources = {
 
       'participants.confirm.deactivateAria': 'Potwierdź dezaktywację użytkownika',
       'participants.confirm.deleteAria': 'Potwierdź usunięcie użytkownika',
+      'participants.confirm.deleteCascadeHint': 'Usunięte zostaną także bilety, powiadomienia, obserwowane wydarzenia, wiadomości czatu i powiązane dane.',
       'participants.confirm.yes': 'Tak',
       'participants.confirm.no': 'Nie',
 
@@ -524,6 +538,11 @@ const resources = {
       'events.common.yes': 'Tak',
       'events.common.no': 'Nie',
       'events.admin.endEvent': 'Zakończ wydarzenie',
+      'events.admin.deleteEvent': 'Usuń wydarzenie',
+      'events.admin.confirmDeleteAria': 'Potwierdź usunięcie wydarzenia',
+      'events.admin.deleteCascadeHint': 'Usunięte zostaną bilety, opinie, personel, zgłoszenia i wpisy obserwowanych.',
+      'events.status.deleteSuccess': 'Wydarzenie zostało usunięte.',
+      'events.status.deleteError': 'Nie udało się usunąć wydarzenia.',
 
       'events.ticketPool.modalTitle': 'Formularz nowej puli biletów',
       'events.common.close': 'Zamknij',
@@ -1244,6 +1263,19 @@ const resources = {
       'places.addRoom.onlyOrganizer': 'Adding rooms is available only for organizers.',
       'places.addRoom.roomLimitReached': 'Room limit reached. Increase the room count first.',
       'places.increaseRooms.confirmAria': 'Confirm room count increase',
+      'places.actions.deletePlace': 'Delete place',
+      'places.actions.deleteRoom': 'Delete room',
+      'places.confirm.yes': 'Yes',
+      'places.confirm.no': 'No',
+      'places.confirm.deletePlaceAria': 'Confirm place deletion',
+      'places.confirm.deleteRoomAria': 'Confirm room deletion',
+      'places.confirm.deletePlaceCascadeHint': 'All rooms, seat plans and events linked to this place will be removed.',
+      'places.confirm.deleteRoomCascadeHint': 'The seat plan and events linked to this room will be removed.',
+      'places.status.deleteSuccess': 'Place has been deleted.',
+      'places.status.deleteError': 'Could not delete place.',
+      'places.status.roomDeleteSuccess': 'Room has been deleted.',
+      'places.status.roomDeleteError': 'Could not delete room.',
+      'places.rooms.table.actions': 'Actions',
 
       // Participants (Uczestnicy)
       'participants.page.title': 'Participants',
@@ -1278,6 +1310,7 @@ const resources = {
 
       'participants.confirm.deactivateAria': 'Confirm user deactivation',
       'participants.confirm.deleteAria': 'Confirm user deletion',
+      'participants.confirm.deleteCascadeHint': 'Tickets, notifications, observed events, chat messages and related data will also be removed.',
       'participants.confirm.yes': 'Yes',
       'participants.confirm.no': 'No',
 
@@ -1409,6 +1442,11 @@ const resources = {
       'events.common.yes': 'Yes',
       'events.common.no': 'No',
       'events.admin.endEvent': 'End event',
+      'events.admin.deleteEvent': 'Delete event',
+      'events.admin.confirmDeleteAria': 'Confirm event deletion',
+      'events.admin.deleteCascadeHint': 'Tickets, reviews, staff, reports and observed entries will also be removed.',
+      'events.status.deleteSuccess': 'Event has been deleted.',
+      'events.status.deleteError': 'Could not delete event.',
 
       'events.ticketPool.modalTitle': 'New ticket pool form',
       'events.common.close': 'Close',

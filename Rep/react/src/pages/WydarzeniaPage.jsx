@@ -7,6 +7,7 @@ import WydarzenieCard from '../components/WydarzenieCard';
 import PurchaseModal from '../components/PurchaseModal';
 import SeatPlanMap from '../components/SeatPlanMap';
 import { ensureObservedLoaded, getObservedEvents, OBSERVED_EVENTS_CHANGED } from '../utils/obserwowaneWydarzenia';
+import { cascadeAfterEventDelete } from '../utils/cascadeDelete';
 
 const TICKET_CATEGORY_SEAT = 'MIEJSCOWKA';
 const isSeatTicketCategory = (value) => !String(value || TICKET_CATEGORY_SEAT).trim().toLowerCase().startsWith('wej');
@@ -56,6 +57,7 @@ const WydarzeniaPage = () => {
   const [addTicketsForm, setAddTicketsForm] = useState([{ klasa: '', cena: '', ilosc: '', waluta: 'PLN', start_sprzedazy: '', koniec_sprzedazy: '', seatIds: [], kategoriaBiletu: 'miejscówka' }]);
   const [addTicketsLoading, setAddTicketsLoading] = useState(false);
   const [confirmEndEventId, setConfirmEndEventId] = useState(null);
+  const [confirmDeleteEventId, setConfirmDeleteEventId] = useState(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const [reviewsModalOpen, setReviewsModalOpen] = useState(false);
   const [opiniaForm, setOpiniaForm] = useState({ ocena: '5', opis: '' });
@@ -160,6 +162,17 @@ const WydarzeniaPage = () => {
   }, [confirmEndEventId]);
 
   useEffect(() => {
+    if (confirmDeleteEventId == null) return undefined;
+    const handleClickOutsideConfirm = (event) => {
+      if (!event.target.closest('.inline-confirm-anchor')) {
+        setConfirmDeleteEventId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideConfirm);
+    return () => document.removeEventListener('mousedown', handleClickOutsideConfirm);
+  }, [confirmDeleteEventId]);
+
+  useEffect(() => {
     if (!kategoriaFilterOpen) return undefined;
     const handleClickOutsideCategoryFilter = (event) => {
       if (!kategoriaFilterRef.current?.contains(event.target)) {
@@ -180,6 +193,20 @@ const WydarzeniaPage = () => {
       setStatus({
         type: 'error',
         message: error.response?.data?.message || t('events.status.endError'),
+      });
+    }
+  };
+
+  const handleDeleteEvent = async (eventId) => {
+    try {
+      const response = await apiClient.delete(`/wydarzenia/${eventId}`, getRequestConfig());
+      cascadeAfterEventDelete(eventId, { setMyWydarzenia });
+      setConfirmDeleteEventId(null);
+      setStatus({ type: 'success', message: response.data || t('events.status.deleteSuccess') });
+    } catch (error) {
+      setStatus({
+        type: 'error',
+        message: error.response?.data?.message || t('events.status.deleteError'),
       });
     }
   };
@@ -987,6 +1014,39 @@ const WydarzeniaPage = () => {
                         onClick={() => setConfirmEndEventId(item.id)}
                       >
                         {t('events.admin.endEvent')}
+                      </button>
+                    </span>
+                  </div>
+                ) : null}
+
+                {(currentUser?.rola === 'ADMIN' || currentUser?.rola === 'ORG') ? (
+                  <div style={{ marginTop: '12px' }}>
+                    <span className="inline-confirm-anchor" style={{ display: 'inline-block' }}>
+                      {confirmDeleteEventId === item.id ? (
+                        <span className="inline-confirm-popover" role="group" aria-label={t('events.admin.confirmDeleteAria')}>
+                          <p className="inline-confirm-cascade-hint">{t('events.admin.deleteCascadeHint')}</p>
+                          <button
+                            type="button"
+                            className="btn-delete inline-confirm-popover-btn"
+                            onClick={() => handleDeleteEvent(item.id)}
+                          >
+                            {t('events.common.yes')}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary inline-confirm-popover-btn"
+                            onClick={() => setConfirmDeleteEventId(null)}
+                          >
+                            {t('events.common.no')}
+                          </button>
+                        </span>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="btn-delete"
+                        onClick={() => setConfirmDeleteEventId(item.id)}
+                      >
+                        {t('events.admin.deleteEvent')}
                       </button>
                     </span>
                   </div>

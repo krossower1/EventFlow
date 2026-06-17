@@ -19,6 +19,8 @@ public interface UserObservedEventRepository extends JpaRepository<UserObservedE
 	/** Usunięcie wszystkich wpisów użytkownika (np. przy kaskadowym usuwaniu konta). */
 	void deleteByUserId(Long userId);
 
+	void deleteByWydarzenieId(Long wydarzenieId);
+
 	List<UserObservedEvent> findByWydarzenieId(Long wydarzenieId);
 
 	List<UserObservedEvent> findByStartReminderSentAtIsNull();

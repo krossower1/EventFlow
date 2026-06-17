@@ -48,6 +48,9 @@ export const invalidateObservedCache = () => {
   cache.ids = new Set();
 };
 
+/** Wewnętrzny dostęp do cache — używany przez cascadeDelete.js */
+export const __getObservedCache = () => cache;
+
 const applyCache = (events) => {
   cache.events = events;
   cache.ids = new Set(events.map((entry) => entry.id));

@@ -4,6 +4,9 @@ import com.eventflow.com.model.LoginLog;
 import com.eventflow.com.model.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,4 +18,8 @@ public interface LoginLogRepository extends JpaRepository<LoginLog, Long> {
 	List<LoginLog> findByUserOrderByLoginTimeDesc(User user, Pageable pageable);
 
 	Optional<LoginLog> findByIdAndUser(Long id, User user);
+
+	@Modifying
+	@Query("DELETE FROM LoginLog l WHERE l.user.id = :userId")
+	void deleteByUserId(@Param("userId") Long userId);
 }

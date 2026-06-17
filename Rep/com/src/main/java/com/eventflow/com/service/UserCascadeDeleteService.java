@@ -7,6 +7,7 @@ import com.eventflow.com.model.Opinia;
 import com.eventflow.com.model.Organizator;
 import com.eventflow.com.model.Personel;
 import com.eventflow.com.model.PozZam;
+import com.eventflow.com.model.SecurityTicket;
 import com.eventflow.com.model.User;
 import com.eventflow.com.model.Wydarzenie;
 import com.eventflow.com.model.WystBilet;
@@ -14,15 +15,22 @@ import com.eventflow.com.model.Zamowienie;
 import com.eventflow.com.model.Zgloszenie;
 import com.eventflow.com.model.Zwrot;
 import com.eventflow.com.repository.BiletRepository;
+import com.eventflow.com.repository.ChatMessageRepository;
 import com.eventflow.com.repository.KategoriaRepository;
+import com.eventflow.com.repository.LoginLogRepository;
 import com.eventflow.com.repository.MiejsceRepository;
 import com.eventflow.com.repository.OpiniaRepository;
 import com.eventflow.com.repository.OrganizatorRepository;
 import com.eventflow.com.repository.PersonelRepository;
 import com.eventflow.com.repository.PlatnoscRepository;
 import com.eventflow.com.repository.PozZamRepository;
+import com.eventflow.com.repository.SalaMiejsceRepository;
 import com.eventflow.com.repository.SalaRepository;
+import com.eventflow.com.repository.SecurityTicketAuditRepository;
+import com.eventflow.com.repository.SecurityTicketRepository;
+import com.eventflow.com.repository.UserFavoriteRepository;
 import com.eventflow.com.repository.UserNotificationRepository;
+import com.eventflow.com.repository.UserObservedEventRepository;
 import com.eventflow.com.repository.UserRepository;
 import com.eventflow.com.repository.WydarzenieRepository;
 import com.eventflow.com.repository.WystBiletRepository;
@@ -53,8 +61,15 @@ public class UserCascadeDeleteService {
 	private final ZgloszenieRepository zgloszenieRepository;
 	private final MiejsceRepository miejsceRepository;
 	private final SalaRepository salaRepository;
+	private final SalaMiejsceRepository salaMiejsceRepository;
 	private final KategoriaRepository kategoriaRepository;
 	private final UserNotificationRepository userNotificationRepository;
+	private final UserObservedEventRepository userObservedEventRepository;
+	private final UserFavoriteRepository userFavoriteRepository;
+	private final ChatMessageRepository chatMessageRepository;
+	private final LoginLogRepository loginLogRepository;
+	private final SecurityTicketRepository securityTicketRepository;
+	private final SecurityTicketAuditRepository securityTicketAuditRepository;
 
 	public UserCascadeDeleteService(
 		UserRepository userRepository,
@@ -71,8 +86,15 @@ public class UserCascadeDeleteService {
 		ZgloszenieRepository zgloszenieRepository,
 		MiejsceRepository miejsceRepository,
 		SalaRepository salaRepository,
+		SalaMiejsceRepository salaMiejsceRepository,
 		KategoriaRepository kategoriaRepository,
-		UserNotificationRepository userNotificationRepository
+		UserNotificationRepository userNotificationRepository,
+		UserObservedEventRepository userObservedEventRepository,
+		UserFavoriteRepository userFavoriteRepository,
+		ChatMessageRepository chatMessageRepository,
+		LoginLogRepository loginLogRepository,
+		SecurityTicketRepository securityTicketRepository,
+		SecurityTicketAuditRepository securityTicketAuditRepository
 	) {
 		this.userRepository = userRepository;
 		this.organizatorRepository = organizatorRepository;
@@ -88,8 +110,15 @@ public class UserCascadeDeleteService {
 		this.zgloszenieRepository = zgloszenieRepository;
 		this.miejsceRepository = miejsceRepository;
 		this.salaRepository = salaRepository;
+		this.salaMiejsceRepository = salaMiejsceRepository;
 		this.kategoriaRepository = kategoriaRepository;
 		this.userNotificationRepository = userNotificationRepository;
+		this.userObservedEventRepository = userObservedEventRepository;
+		this.userFavoriteRepository = userFavoriteRepository;
+		this.chatMessageRepository = chatMessageRepository;
+		this.loginLogRepository = loginLogRepository;
+		this.securityTicketRepository = securityTicketRepository;
+		this.securityTicketAuditRepository = securityTicketAuditRepository;
 	}
 
 	@Transactional
@@ -103,6 +132,23 @@ public class UserCascadeDeleteService {
 	@Transactional
 	public void deleteWydarzeniaWithDependencies(List<Long> wydarzenieIds) {
 		deleteEventsCascade(wydarzenieIds);
+	}
+
+	@Transactional
+	public void deleteMiejsceWithDependencies(Long miejsceId) {
+		List<Long> salaIds = salaRepository.findByMiejsceId(miejsceId).stream()
+			.map(sala -> sala.getId())
+			.toList();
+		deleteEventsForSalas(salaIds);
+		deleteSalasCascade(salaIds);
+		miejsceRepository.deleteById(miejsceId);
+	}
+
+	@Transactional
+	public void deleteSalaWithDependencies(Long salaId) {
+		deleteEventsForSalas(List.of(salaId));
+		salaMiejsceRepository.deleteBySalaId(salaId);
+		salaRepository.deleteById(salaId);
 	}
 
 	private void deleteUserOwnedResourcesIfOrg(User user) {
@@ -122,9 +168,10 @@ public class UserCascadeDeleteService {
 			.map(Miejsce::getId)
 			.toList();
 		if (!miejsceIds.isEmpty()) {
-			salaRepository.deleteAllByIdInBatch(
-				salaRepository.findByMiejsceIdIn(miejsceIds).stream().map(item -> item.getId()).toList()
-			);
+			List<Long> salaIds = salaRepository.findByMiejsceIdIn(miejsceIds).stream()
+				.map(sala -> sala.getId())
+				.toList();
+			deleteSalasCascade(salaIds);
 			miejsceRepository.deleteAllByIdInBatch(miejsceIds);
 		}
 
@@ -132,8 +179,6 @@ public class UserCascadeDeleteService {
 			.map(Kategoria::getId)
 			.toList();
 		if (!kategoriaIds.isEmpty()) {
-			// Jeśli po skasowaniu wydarzeń organizatora jakaś kategoria nadal jest używana
-			// przez cudze wydarzenie, nie usuwamy jej aby nie naruszyć spójności.
 			Set<Long> usedCategoryIds = wydarzenieRepository.findByKategoriaIdIn(kategoriaIds).stream()
 				.map(Wydarzenie::getKategoriaId)
 				.collect(Collectors.toSet());
@@ -148,6 +193,11 @@ public class UserCascadeDeleteService {
 
 	private void deleteSimpleUserLinks(Long userId) {
 		userNotificationRepository.deleteByUserId(userId);
+		userObservedEventRepository.deleteByUserId(userId);
+		userFavoriteRepository.deleteByUserIdOrFavoriteUserId(userId);
+		chatMessageRepository.deleteByUserId(userId);
+		loginLogRepository.deleteByUserId(userId);
+		deleteSecurityTicketsForUser(userId);
 
 		List<Long> personelIds = personelRepository.findByUserId(userId).stream()
 			.map(Personel::getId)
@@ -171,9 +221,44 @@ public class UserCascadeDeleteService {
 		}
 	}
 
+	private void deleteSecurityTicketsForUser(Long userId) {
+		securityTicketRepository.clearAssignedAdmin(userId);
+		List<SecurityTicket> tickets = securityTicketRepository.findByAffectedUser_IdOrReporterUser_Id(userId, userId);
+		for (SecurityTicket ticket : tickets) {
+			securityTicketAuditRepository.deleteAllForTicket(ticket.getId());
+		}
+		if (!tickets.isEmpty()) {
+			securityTicketRepository.deleteAllInBatch(tickets);
+		}
+	}
+
+	private void deleteEventsForSalas(List<Long> salaIds) {
+		if (salaIds == null || salaIds.isEmpty()) {
+			return;
+		}
+		List<Long> eventIds = wydarzenieRepository.findBySalaIdIn(salaIds).stream()
+			.map(Wydarzenie::getId)
+			.toList();
+		deleteEventsCascade(eventIds);
+	}
+
+	private void deleteSalasCascade(List<Long> salaIds) {
+		if (salaIds == null || salaIds.isEmpty()) {
+			return;
+		}
+		for (Long salaId : salaIds) {
+			salaMiejsceRepository.deleteBySalaId(salaId);
+		}
+		salaRepository.deleteAllByIdInBatch(salaIds);
+	}
+
 	private void deleteEventsCascade(List<Long> eventIds) {
 		if (eventIds == null || eventIds.isEmpty()) {
 			return;
+		}
+
+		for (Long eventId : eventIds) {
+			userObservedEventRepository.deleteByWydarzenieId(eventId);
 		}
 
 		List<Long> personelIds = personelRepository.findByWydIdIn(eventIds).stream()
