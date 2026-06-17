@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-const DEFAULT_CANVAS_WIDTH = 540;
+const DEFAULT_CANVAS_WIDTH = 520;
 const DEFAULT_CANVAS_HEIGHT = 315;
 const PADDING = 12;
 const DEFAULT_BASE_SCALE = 0.75;

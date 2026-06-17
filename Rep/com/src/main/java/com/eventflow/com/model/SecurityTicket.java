@@ -12,6 +12,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
@@ -37,6 +39,7 @@ public class SecurityTicket {
 	/** Konto, którego dotyczy sprawa (wymagane). */
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "affected_user_id", nullable = false)
+	@OnDelete(action = OnDeleteAction.CASCADE)
 	private User affectedUser;
 
 	/** Skąd powstało zgłoszenie (użytkownik vs. stary wpis systemowy w bazie). */

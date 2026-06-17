@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiClient, getAuthHeaders } from '../api/apiClient';
 import { AuthContext } from '../context/AuthContext';
+import { cascadeAfterMiejsceDelete, cascadeAfterSalaDelete } from '../utils/cascadeDelete';
 
 const MiejscaPage = () => {
   const { t } = useTranslation();
@@ -23,6 +24,8 @@ const MiejscaPage = () => {
   const [salaForms, setSalaForms] = useState({});
   const [increaseForms, setIncreaseForms] = useState({});
   const [confirmIncreaseMiejsceId, setConfirmIncreaseMiejsceId] = useState(null);
+  const [confirmDeleteMiejsceId, setConfirmDeleteMiejsceId] = useState(null);
+  const [confirmDeleteSala, setConfirmDeleteSala] = useState(null);
 
   const getRequestConfig = useCallback(() => {
     const config = { withCredentials: true };
@@ -63,6 +66,18 @@ const MiejscaPage = () => {
     document.addEventListener('mousedown', handleClickOutsideConfirm);
     return () => document.removeEventListener('mousedown', handleClickOutsideConfirm);
   }, [confirmIncreaseMiejsceId]);
+
+  useEffect(() => {
+    if (confirmDeleteMiejsceId == null && confirmDeleteSala == null) return undefined;
+    const handleClickOutsideConfirm = (event) => {
+      if (!event.target.closest('.inline-confirm-anchor')) {
+        setConfirmDeleteMiejsceId(null);
+        setConfirmDeleteSala(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutsideConfirm);
+    return () => document.removeEventListener('mousedown', handleClickOutsideConfirm);
+  }, [confirmDeleteMiejsceId, confirmDeleteSala]);
 
   const onMiejsceSubmit = async (event) => {
     event.preventDefault();
@@ -136,6 +151,28 @@ const MiejscaPage = () => {
     }
   };
 
+  const onDeleteMiejsce = async (miejsceId) => {
+    try {
+      const response = await apiClient.delete(`/miejsca/${miejsceId}`, getRequestConfig());
+      cascadeAfterMiejsceDelete(miejsceId, setMiejsca);
+      setConfirmDeleteMiejsceId(null);
+      setStatus({ type: 'success', message: response.data || t('places.status.deleteSuccess') });
+    } catch (error) {
+      setStatus({ type: 'error', message: error?.response?.data?.message || t('places.status.deleteError') });
+    }
+  };
+
+  const onDeleteSala = async (miejsceId, salaId) => {
+    try {
+      const response = await apiClient.delete(`/miejsca/sale/${salaId}`, getRequestConfig());
+      cascadeAfterSalaDelete(miejsceId, salaId, setMiejsca);
+      setConfirmDeleteSala(null);
+      setStatus({ type: 'success', message: response.data || t('places.status.roomDeleteSuccess') });
+    } catch (error) {
+      setStatus({ type: 'error', message: error?.response?.data?.message || t('places.status.roomDeleteError') });
+    }
+  };
+
   // Strona dostępna dla wszystkich, ale zarządzanie tylko dla organizatorów
 
   return (
@@ -180,27 +217,27 @@ const MiejscaPage = () => {
             <form onSubmit={onMiejsceSubmit} className="miejsce-form-grid">
               <div className="miejsce-form-field miejsce-form-field--full">
                 <label htmlFor="miejsce-nazwa">{t('places.form.name')}</label>
-                <input id="miejsce-nazwa" type="text" value={miejsceForm.nazwa} onChange={e => setMiejsceForm({...miejsceForm, nazwa: e.target.value})} required />
+                <input id="miejsce-nazwa" type="text" value={miejsceForm.nazwa} onChange={e => setMiejsceForm({...miejsceForm, nazwa: e.target.value})} maxLength={255} required />
               </div>
 
               <div className="miejsce-form-field">
                 <label htmlFor="miejsce-panstwo">{t('places.form.country')}</label>
-                <input id="miejsce-panstwo" type="text" value={t('places.form.countryDefault')} disabled />
+                <input id="miejsce-panstwo" type="text" value={t('places.form.countryDefault')} disabled maxLength={255} />
               </div>
 
               <div className="miejsce-form-field">
                 <label htmlFor="miejsce-miasto">{t('places.form.city')}</label>
-                <input id="miejsce-miasto" type="text" value={miejsceForm.miasto} onChange={e => setMiejsceForm({...miejsceForm, miasto: e.target.value})} required />
+                <input id="miejsce-miasto" type="text" value={miejsceForm.miasto} onChange={e => setMiejsceForm({...miejsceForm, miasto: e.target.value})} maxLength={255} required />
               </div>
 
               <div className="miejsce-form-field">
                 <label htmlFor="miejsce-ulica">{t('places.form.street')}</label>
-                <input id="miejsce-ulica" type="text" value={miejsceForm.ulica} onChange={e => setMiejsceForm({...miejsceForm, ulica: e.target.value})} required />
+                <input id="miejsce-ulica" type="text" value={miejsceForm.ulica} onChange={e => setMiejsceForm({...miejsceForm, ulica: e.target.value})} maxLength={255} required />
               </div>
 
               <div className="miejsce-form-field">
                 <label htmlFor="miejsce-kod">{t('places.form.postalCode')}</label>
-                <input id="miejsce-kod" type="text" value={miejsceForm.kodPoczt} onChange={e => setMiejsceForm({...miejsceForm, kodPoczt: e.target.value})} required />
+                <input id="miejsce-kod" type="text" value={miejsceForm.kodPoczt} onChange={e => setMiejsceForm({...miejsceForm, kodPoczt: e.target.value})} maxLength={20} required />
               </div>
 
               <div className="miejsce-form-field miejsce-form-field--full">
@@ -230,7 +267,27 @@ const MiejscaPage = () => {
             <div key={miejsce.id} className="miejsce-card" style={{ marginBottom: '30px', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <h3>{miejsce.nazwa}</h3>
-                <span className="event-badge">ID: {miejsce.id}</span>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span className="event-badge">ID: {miejsce.id}</span>
+                  {currentUser?.rola === 'ORG' ? (
+                    <span className="inline-confirm-anchor" style={{ display: 'inline-block' }}>
+                      {confirmDeleteMiejsceId === miejsce.id ? (
+                        <span className="inline-confirm-popover" role="group" aria-label={t('places.confirm.deletePlaceAria')}>
+                          <p className="inline-confirm-cascade-hint">{t('places.confirm.deletePlaceCascadeHint')}</p>
+                          <button type="button" className="btn-delete inline-confirm-popover-btn" onClick={() => onDeleteMiejsce(miejsce.id)}>
+                            {t('places.confirm.yes')}
+                          </button>
+                          <button type="button" className="btn-secondary inline-confirm-popover-btn" onClick={() => setConfirmDeleteMiejsceId(null)}>
+                            {t('places.confirm.no')}
+                          </button>
+                        </span>
+                      ) : null}
+                      <button type="button" className="btn-delete" onClick={() => setConfirmDeleteMiejsceId(miejsce.id)}>
+                        {t('places.actions.deletePlace')}
+                      </button>
+                    </span>
+                  ) : null}
+                </div>
               </div>
               <p><strong>{t('places.card.addressLabel')}</strong> {miejsce.ulica}, {miejsce.kodPoczt} {miejsce.miasto}, {miejsce.panstwo}</p>
               <p><strong>{t('places.card.roomsLimitLabel')}</strong> {miejsce.iloscSal}</p>
@@ -292,6 +349,7 @@ const MiejscaPage = () => {
                       <th>{t('places.rooms.table.capacity')}</th>
                       <th>{t('places.rooms.table.floor')}</th>
                       <th>{t('places.rooms.table.plan')}</th>
+                      {currentUser?.rola === 'ORG' ? <th>{t('places.rooms.table.actions')}</th> : null}
                     </tr>
                   </thead>
                   <tbody>
@@ -302,6 +360,26 @@ const MiejscaPage = () => {
                         <td>{sala.pojemnosc}</td>
                         <td>{sala.pietro}</td>
                         <td>{sala.maPlan ? t('places.rooms.table.planYes') : t('places.rooms.table.planNo')}</td>
+                        {currentUser?.rola === 'ORG' ? (
+                          <td>
+                            <span className="inline-confirm-anchor" style={{ display: 'inline-block' }}>
+                              {confirmDeleteSala?.miejsceId === miejsce.id && confirmDeleteSala?.salaId === sala.id ? (
+                                <span className="inline-confirm-popover" role="group" aria-label={t('places.confirm.deleteRoomAria')}>
+                                  <p className="inline-confirm-cascade-hint">{t('places.confirm.deleteRoomCascadeHint')}</p>
+                                  <button type="button" className="btn-delete inline-confirm-popover-btn" onClick={() => onDeleteSala(miejsce.id, sala.id)}>
+                                    {t('places.confirm.yes')}
+                                  </button>
+                                  <button type="button" className="btn-secondary inline-confirm-popover-btn" onClick={() => setConfirmDeleteSala(null)}>
+                                    {t('places.confirm.no')}
+                                  </button>
+                                </span>
+                              ) : null}
+                              <button type="button" className="btn-delete" onClick={() => setConfirmDeleteSala({ miejsceId: miejsce.id, salaId: sala.id })}>
+                                {t('places.actions.deleteRoom')}
+                              </button>
+                            </span>
+                          </td>
+                        ) : null}
                       </tr>
                     ))}
                   </tbody>

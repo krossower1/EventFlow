@@ -1003,6 +1003,22 @@ span {
   min-width: 52px;
 }
 
+.inline-confirm-cascade-hint {
+  margin: 0 0 8px;
+  max-width: 260px;
+  white-space: normal;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.inline-confirm-popover:has(.inline-confirm-cascade-hint) {
+  flex-direction: column;
+  align-items: stretch;
+  white-space: normal;
+  min-width: 220px;
+}
+
 .notification-panel-icon-btn {
   display: inline-flex;
   align-items: center;
@@ -1841,6 +1857,13 @@ span {
 
 .modal-card--w600 .auth-form button[type="submit"] {
   margin-top: 16px;
+}
+
+.modal-card--auto-position {
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  margin: auto;
 }
 
 .info-modal-layout {

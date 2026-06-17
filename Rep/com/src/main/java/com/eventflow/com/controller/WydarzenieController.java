@@ -265,7 +265,7 @@ public class WydarzenieController {
 		}
 		User selectedUser = userRepository.findById(request.userId())
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono wybranego uzytkownika."));
-		if (personelRepository.existsByWydIdAndUserIdAndRolaIgnoreCase(id, request.userId(), request.rola().trim())) {
+		if (personelRepository.countByWydIdAndUserIdAndRolaIgnoreCase(id, request.userId(), request.rola().trim()) > 0) {
 			throw new ResponseStatusException(BAD_REQUEST, "Ta rola jest juz przypisana temu uzytkownikowi.");
 		}
 
@@ -464,7 +464,7 @@ public class WydarzenieController {
 
 		Sala sala = salaRepository.findById(request.salaId())
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Wybrana sala nie istnieje."));
-		validateBilety(request.bilety(), sala);
+		validateBilety(request.bilety(), sala, null);
 		Miejsce miejsce = miejsceRepository.findById(sala.getMiejsceId())
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Miejsce przypisane do sali nie istnieje."));
 		if (!miejsce.getUserId().equals(user.getId())) {
@@ -549,7 +549,7 @@ public class WydarzenieController {
 		Sala sala = salaRepository.findById(wydarzenie.getSalaId())
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono sali wydarzenia."));
 		
-		validateBilety(bilety, sala);
+		validateBilety(bilety, sala, id);
 		saveBilety(id, bilety, sala);
 		
 		return ResponseEntity.ok("Bilety zostaly dodane do wydarzenia.");
@@ -683,7 +683,10 @@ public class WydarzenieController {
 					.map(PozZam::getIlosc)
 					.orElse(0);
 				int sprzedane = Math.max(wszystkie - pozostale, 0);
-				return new BiletPostepDto(bilet.getId(), bilet.getKlasa(), sprzedane, wszystkie);
+				String kategoriaBiletu = bilet.getKategoriaBiletu() != null ? bilet.getKategoriaBiletu() : "miejscówka";
+				String startSprzedazy = bilet.getStartSprzedazy() != null ? bilet.getStartSprzedazy().toString() : null;
+				String koniecSprzedazy = bilet.getKoniecSprzedazy() != null ? bilet.getKoniecSprzedazy().toString() : null;
+				return new BiletPostepDto(bilet.getId(), bilet.getKlasa(), kategoriaBiletu, sprzedane, wszystkie, startSprzedazy, koniecSprzedazy);
 			})
 			.toList();
 	}
@@ -733,7 +736,7 @@ public class WydarzenieController {
 			.toList();
 	}
 
-	private void validateBilety(List<BiletCreateRequestDto> bilety, Sala sala) {
+	private void validateBilety(List<BiletCreateRequestDto> bilety, Sala sala, Long wydarzenieId) {
 		if (bilety == null || bilety.isEmpty()) {
 			throw new ResponseStatusException(BAD_REQUEST, "Dodaj co najmniej jeden typ biletu.");
 		}
@@ -742,7 +745,21 @@ public class WydarzenieController {
 		Set<String> salaSeatIds = hasSalaPlan
 			? sala.getSeats().stream().map(SalaMiejsce::getSeatKey).filter(item -> item != null && !item.isBlank()).collect(java.util.stream.Collectors.toSet())
 			: Set.of();
-		Set<String> assignedSeatIds = new java.util.HashSet<>();
+		
+		Set<String> existingSeatIds = new java.util.HashSet<>();
+		if (wydarzenieId != null && hasSalaPlan) {
+			List<Bilet> existingBilety = biletRepository.findByWydarzenieId(wydarzenieId);
+			for (Bilet existingBilet : existingBilety) {
+				if (existingBilet.getSeatIds() != null && !existingBilet.getSeatIds().isBlank()) {
+					String[] seats = existingBilet.getSeatIds().split(",");
+					for (String seat : seats) {
+						existingSeatIds.add(seat.trim());
+					}
+				}
+			}
+		}
+		
+		Set<String> assignedSeatIds = new java.util.HashSet<>(existingSeatIds);
 
 		for (BiletCreateRequestDto bilet : bilety) {
 			if (bilet == null
@@ -787,7 +804,7 @@ public class WydarzenieController {
 							throw new ResponseStatusException(BAD_REQUEST, "Wybrane miejsce nie nalezy do planu sali.");
 						}
 						if (!assignedSeatIds.add(seatId)) {
-							throw new ResponseStatusException(BAD_REQUEST, "Nie mozna przypisac tego samego miejsca do dwoch klas biletow.");
+							throw new ResponseStatusException(BAD_REQUEST, "To miejsce jest juz przypisane do innej klasy biletow.");
 						}
 					}
 				}

@@ -10,6 +10,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
@@ -29,6 +31,7 @@ public class SecurityTicketAudit {
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "ticket_id", nullable = false)
+	@OnDelete(action = OnDeleteAction.CASCADE)
 	private SecurityTicket ticket;
 
 	/** Kto wykonał akcję; może być {@code null} dla zdarzeń „systemowych” w przyszłości. */

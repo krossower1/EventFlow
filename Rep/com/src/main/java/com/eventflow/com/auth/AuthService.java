@@ -117,6 +117,9 @@ public class AuthService {
 		String verificationCode = generateToken(VERIFICATION_CODE_LENGTH);
 		user.setVerificationCode(verificationCode);
 		user.setVerificationCodeExpiresAt(now.plusMinutes(VERIFICATION_CODE_TTL_MINUTES));
+		//user.setEmailVerified(true);
+		//user.setVerificationCode(null);
+		//user.setVerificationCodeExpiresAt(null);
 		user.setDataUtw(now);
 		userRepository.save(user);
 		emailService.sendVerificationCode(email, verificationCode);

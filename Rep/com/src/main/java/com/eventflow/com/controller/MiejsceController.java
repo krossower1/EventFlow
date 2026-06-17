@@ -9,6 +9,7 @@ import com.eventflow.com.repository.MiejsceRepository;
 import com.eventflow.com.repository.SalaMiejsceRepository;
 import com.eventflow.com.repository.SalaRepository;
 import com.eventflow.com.repository.UserRepository;
+import com.eventflow.com.service.UserCascadeDeleteService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -28,17 +29,20 @@ public class MiejsceController {
 	private final SalaRepository salaRepository;
 	private final SalaMiejsceRepository salaMiejsceRepository;
 	private final UserRepository userRepository;
+	private final UserCascadeDeleteService userCascadeDeleteService;
 
 	public MiejsceController(
 		MiejsceRepository miejsceRepository,
 		SalaRepository salaRepository,
 		SalaMiejsceRepository salaMiejsceRepository,
-		UserRepository userRepository
+		UserRepository userRepository,
+		UserCascadeDeleteService userCascadeDeleteService
 	) {
 		this.miejsceRepository = miejsceRepository;
 		this.salaRepository = salaRepository;
 		this.salaMiejsceRepository = salaMiejsceRepository;
 		this.userRepository = userRepository;
+		this.userCascadeDeleteService = userCascadeDeleteService;
 	}
 
 	@PostMapping
@@ -181,6 +185,42 @@ public class MiejsceController {
 		miejsce.setIloscSal(request.nowaIloscSal());
 		Miejsce updated = miejsceRepository.save(miejsce);
 		return ResponseEntity.ok(toMiejsceDto(updated));
+	}
+
+	@DeleteMapping("/{miejsceId}")
+	@Transactional
+	public ResponseEntity<String> deleteMiejsce(
+		@PathVariable Long miejsceId,
+		Authentication authentication
+	) {
+		User currentUser = requireOrg(authentication);
+		Miejsce miejsce = miejsceRepository.findById(miejsceId)
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono miejsca."));
+		if (!miejsce.getUserId().equals(currentUser.getId())) {
+			throw new ResponseStatusException(FORBIDDEN, "To miejsce nie nalezy do Ciebie.");
+		}
+
+		userCascadeDeleteService.deleteMiejsceWithDependencies(miejsceId);
+		return ResponseEntity.ok("Miejsce zostalo usuniete wraz z salami i powiazanymi danymi.");
+	}
+
+	@DeleteMapping("/sale/{salaId}")
+	@Transactional
+	public ResponseEntity<String> deleteSala(
+		@PathVariable Long salaId,
+		Authentication authentication
+	) {
+		User currentUser = requireOrg(authentication);
+		Sala sala = salaRepository.findById(salaId)
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono sali."));
+		Miejsce miejsce = miejsceRepository.findById(sala.getMiejsceId())
+			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono miejsca dla sali."));
+		if (!miejsce.getUserId().equals(currentUser.getId())) {
+			throw new ResponseStatusException(FORBIDDEN, "Ta sala nie nalezy do Ciebie.");
+		}
+
+		userCascadeDeleteService.deleteSalaWithDependencies(salaId);
+		return ResponseEntity.ok("Sala zostala usunieta wraz z planem miejsc i powiazanymi wydarzeniami.");
 	}
 
 	private MiejsceResponseDto toMiejsceDto(Miejsce miejsce) {

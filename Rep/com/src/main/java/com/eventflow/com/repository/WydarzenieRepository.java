@@ -82,4 +82,11 @@ public interface WydarzenieRepository extends JpaRepository<Wydarzenie, Long> {
 	List<Object[]> countActiveEventsByCategoryForOrg(@Param("status") String status, @Param("orgId") Long orgId);
 
 	List<Wydarzenie> findByOrgStartReminderSentAtIsNull();
+
+	@Query(value = """
+		SELECT w.*
+		FROM wydarzenia w
+		WHERE w.sala_id IN (:salaIds)
+		""", nativeQuery = true)
+	List<Wydarzenie> findBySalaIdIn(@Param("salaIds") List<Long> salaIds);
 }
