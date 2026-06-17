@@ -19,13 +19,13 @@ public interface PersonelRepository extends JpaRepository<Personel, Long> {
 	List<Personel> findByWydIdOrderByDataZajetDesc(@Param("wydId") Long wydId);
 
 	@Query(value = """
-		SELECT COUNT(p.id) > 0
+		SELECT COUNT(p.id)
 		FROM personel p
 		WHERE p.wyd_id = :wydId
 		  AND p.user_id = :userId
 		  AND LOWER(p.rola) = LOWER(:rola)
 		""", nativeQuery = true)
-	boolean existsByWydIdAndUserIdAndRolaIgnoreCase(
+	long countByWydIdAndUserIdAndRolaIgnoreCase(
 		@Param("wydId") Long wydId,
 		@Param("userId") Long userId,
 		@Param("rola") String rola

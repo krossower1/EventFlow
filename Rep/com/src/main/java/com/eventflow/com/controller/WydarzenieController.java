@@ -265,7 +265,7 @@ public class WydarzenieController {
 		}
 		User selectedUser = userRepository.findById(request.userId())
 			.orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Nie znaleziono wybranego uzytkownika."));
-		if (personelRepository.existsByWydIdAndUserIdAndRolaIgnoreCase(id, request.userId(), request.rola().trim())) {
+		if (personelRepository.countByWydIdAndUserIdAndRolaIgnoreCase(id, request.userId(), request.rola().trim()) > 0) {
 			throw new ResponseStatusException(BAD_REQUEST, "Ta rola jest juz przypisana temu uzytkownikowi.");
 		}
 
